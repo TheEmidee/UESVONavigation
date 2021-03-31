@@ -1,23 +1,245 @@
 #include "SVONavigationSystem.h"
 
+#include "SVONavigationData.h"
+
+#include <EngineUtils.h>
+
+void USVONavigationSystem::Initialize( FSubsystemCollectionBase & collection )
+{
+    Super::Initialize( collection );
+
+    TickDelegate = FTickerDelegate::CreateUObject( this, &USVONavigationSystem::Tick );
+    TickDelegateHandle = FTicker::GetCoreTicker().AddTicker( TickDelegate );
+
+    RegisterWorldDelegates();
+
+#if WITH_EDITOR
+    if ( GIsEditor )
+    {
+        GEngine->OnActorMoved().AddUObject( this, &USVONavigationSystem::OnActorMoved );
+    }
+#endif
+}
+
+void USVONavigationSystem::Deinitialize()
+{
+    Super::Deinitialize();
+
+    FTicker::GetCoreTicker().RemoveTicker( TickDelegateHandle );
+
+    UnRegisterWorldDelegates();
+}
+
+UWorld * USVONavigationSystem::GetWorld() const
+{
+    return World.Get();
+}
+
 void USVONavigationSystem::OnNavigationVolumeAdded( const ASVONavigationVolume & volume )
 {
+    if ( volume.GetWorld() != World )
+    {
+        return;
+    }
+
+    FSVONavigationBoundsUpdateRequest UpdateRequest;
+    UpdateRequest.NavBounds.UniqueID = volume.GetUniqueID();
+    UpdateRequest.NavBounds.AreaBox = volume.GetComponentsBoundingBox( true );
+    UpdateRequest.NavBounds.Level = volume.GetLevel();
+
+    UpdateRequest.UpdateRequest = FSVONavigationBoundsUpdateRequest::Type::Added;
+    AddNavigationVolumeUpdateRequest( UpdateRequest );
 }
 
 void USVONavigationSystem::OnNavigationVolumeRemoved( const ASVONavigationVolume & volume )
 {
+    if ( volume.GetWorld() != World )
+    {
+        return;
+    }
+
+    FSVONavigationBoundsUpdateRequest UpdateRequest;
+    UpdateRequest.NavBounds.UniqueID = volume.GetUniqueID();
+    UpdateRequest.NavBounds.AreaBox = volume.GetComponentsBoundingBox( true );
+    UpdateRequest.NavBounds.Level = volume.GetLevel();
+
+    UpdateRequest.UpdateRequest = FSVONavigationBoundsUpdateRequest::Type::Removed;
+    AddNavigationVolumeUpdateRequest( UpdateRequest );
 }
 
 void USVONavigationSystem::OnNavigationVolumeUpdated( const ASVONavigationVolume & volume )
 {
+    if ( volume.GetWorld() != World )
+    {
+        return;
+    }
+
+
     FSVONavigationBoundsUpdateRequest UpdateRequest;
     UpdateRequest.NavBounds.UniqueID = volume.GetUniqueID();
-    //UpdateRequest.NavBounds.AreaBox = NavVolume->GetComponentsBoundingBox( true );
+    UpdateRequest.NavBounds.AreaBox = volume.GetComponentsBoundingBox( true );
     UpdateRequest.NavBounds.Level = volume.GetLevel();
-    //UpdateRequest.NavBounds.SupportedAgents = NavVolume->SupportedAgents;
 
     UpdateRequest.UpdateRequest = FSVONavigationBoundsUpdateRequest::Type::Updated;
     AddNavigationVolumeUpdateRequest( UpdateRequest );
+}
+
+bool USVONavigationSystem::Tick( const float /*delta_seconds*/ )
+{
+    if ( PendingNavigationVolumeUpdateRequests.Num() > 0 )
+    {
+        PerformNavigationVolumesUpdate( PendingNavigationVolumeUpdateRequests );
+        PendingNavigationVolumeUpdateRequests.Reset();
+    }
+
+    return true;
+}
+
+#if WITH_EDITOR
+void USVONavigationSystem::OnActorMoved( AActor * actor )
+{
+    if ( auto * volume = Cast< ASVONavigationVolume >( actor ) )
+    {
+        OnNavigationVolumeUpdated( *volume );
+    }
+}
+#endif
+
+void USVONavigationSystem::RegisterWorldDelegates()
+{
+    PostLoadMapWithWorldDelegateHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject( this, &USVONavigationSystem::OnPostLoadMap );
+    OnPostWorldInitializationDelegateHandle = FWorldDelegates::OnPostWorldInitialization.AddUObject( this, &USVONavigationSystem::OnPostWorldInitialized );
+    OnPostWorldCleanupDelegateHandle = FWorldDelegates::OnPostWorldCleanup.AddUObject( this, &USVONavigationSystem::OnPostWorldCleanup );
+    OnLevelAddedToWorldDelegateHandle = FWorldDelegates::LevelAddedToWorld.AddUObject( this, &USVONavigationSystem::OnLevelAddedToWorld );
+    OnLevelRemovedFromWorldDelegateHandle = FWorldDelegates::LevelRemovedFromWorld.AddUObject( this, &USVONavigationSystem::OnLevelRemovedFromWorld );
+}
+
+void USVONavigationSystem::UnRegisterWorldDelegates()
+{
+    FCoreUObjectDelegates::PostLoadMapWithWorld.Remove( PostLoadMapWithWorldDelegateHandle );
+    FWorldDelegates::OnPostWorldInitialization.Remove( OnPostWorldInitializationDelegateHandle );
+    FWorldDelegates::LevelAddedToWorld.Remove( OnLevelAddedToWorldDelegateHandle );
+    FWorldDelegates::LevelRemovedFromWorld.Remove( OnLevelRemovedFromWorldDelegateHandle );
+}
+
+void USVONavigationSystem::OnPostWorldInitialized( UWorld * world, const UWorld::InitializationValues /*initialization_values*/ )
+{
+    NavigationData.Reset();
+    PendingNavigationVolumeUpdateRequests.Empty();
+
+    World = world;
+    GatherExistingNavigationData();
+}
+
+void USVONavigationSystem::OnPostWorldCleanup( UWorld * world, bool session_ended, bool cleanup_resources )
+{
+    /*if ( NavigationData.IsValid() && NavigationData->GetWorld() != World )
+    {
+        NavigationData.Reset();
+    }*/
+}
+
+void USVONavigationSystem::OnLevelAddedToWorld( ULevel * /* level */, UWorld * world )
+{
+    check( World.IsValid() )
+}
+
+void USVONavigationSystem::OnLevelRemovedFromWorld( ULevel * level, UWorld * world )
+{
+    check( World.IsValid() )
+}
+
+void USVONavigationSystem::OnPostLoadMap( UWorld * world )
+{
+    World = world;
+    ASVONavigationData * navigation_data = GetDefaultNavigationDataInstance( false );
+
+    if ( navigation_data == nullptr && IsThereAnywhereToBuildNavigation() )
+    {
+        navigation_data = GetDefaultNavigationDataInstance( true );
+    }
+}
+
+ASVONavigationData * USVONavigationSystem::CreateNavigationData() const
+{
+    check( World != nullptr );
+    return World->SpawnActor< ASVONavigationData >( ASVONavigationData::StaticClass() );
+}
+
+void USVONavigationSystem::GatherExistingNavigationData()
+{
+    check( World != nullptr );
+
+    for ( TActorIterator< ASVONavigationData > iterator( World.Get() ); iterator; ++iterator )
+    {
+        ASVONavigationData * navigation_data = ( *iterator );
+        if ( navigation_data != nullptr && !navigation_data->IsPendingKill() )
+        {
+            NavigationData = navigation_data;
+            return;
+        }
+    }
+}
+
+void USVONavigationSystem::SpawnMissingNavigationData()
+{
+    if ( NavigationData == nullptr )
+    {
+        NavigationData = CreateNavigationData();
+    }
+}
+
+ASVONavigationData * USVONavigationSystem::GetDefaultNavigationDataInstance( bool it_creates_if_missing )
+{
+    if ( NavigationData == nullptr || NavigationData->IsPendingKill() )
+    {
+        if ( it_creates_if_missing )
+        {
+            NavigationData = CreateNavigationData();
+        }
+    }
+
+    return NavigationData.Get();
+}
+
+void USVONavigationSystem::PerformNavigationVolumesUpdate( const TArray< FSVONavigationBoundsUpdateRequest > & update_requests )
+{
+    SpawnMissingNavigationData();
+
+    for ( const auto & update_request : update_requests )
+    {
+        FSetElementId ExistingElementId = RegisteredNavigationBounds.FindId( update_request.NavBounds );
+
+        switch ( update_request.UpdateRequest )
+        {
+            case FSVONavigationBoundsUpdateRequest::Type::Removed:
+            {
+                if ( ExistingElementId.IsValidId() )
+                {
+                    RegisteredNavigationBounds.Remove( ExistingElementId );
+                    NavigationData->RemoveNavigationBounds( update_request.NavBounds );
+                }
+            }
+            break;
+
+            case FSVONavigationBoundsUpdateRequest::Type::Added:
+            case FSVONavigationBoundsUpdateRequest::Type::Updated:
+            {
+                if ( ExistingElementId.IsValidId() )
+                {
+                    // always assign new bounds data, it may have different properties (like supported agents)
+                    RegisteredNavigationBounds[ ExistingElementId ] = update_request.NavBounds;
+                    NavigationData->UpdateNavigationBounds( update_request.NavBounds );
+                }
+                else
+                {
+                    RegisteredNavigationBounds.Emplace( update_request.NavBounds );
+                    NavigationData->AddNavigationBounds( update_request.NavBounds );
+                }
+            }
+            break;
+        }
+    }
 }
 
 void USVONavigationSystem::AddNavigationVolumeUpdateRequest( const FSVONavigationBoundsUpdateRequest & update_request )
@@ -56,4 +278,26 @@ void USVONavigationSystem::AddNavigationVolumeUpdateRequest( const FSVONavigatio
     {
         PendingNavigationVolumeUpdateRequests.Add( update_request );
     }
+}
+
+bool USVONavigationSystem::IsThereAnywhereToBuildNavigation() const
+{
+    for ( const auto & bounds : RegisteredNavigationBounds )
+    {
+        if ( bounds.AreaBox.IsValid )
+        {
+            return true;
+        }
+    }
+
+    for ( TActorIterator< ASVONavigationVolume > It( GetWorld() ); It; ++It )
+    {
+        auto const * const volume = ( *It );
+        if ( volume != nullptr && !volume->IsPendingKill() )
+        {
+            return true;
+        }
+    }
+
+    return false;
 }

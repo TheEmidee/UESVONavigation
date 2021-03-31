@@ -17,6 +17,7 @@ public class SVONavigation : ModuleRules
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
+				"SVONavigation/Private",
 				// ... add other private include paths required here ...
 			}
 			);
@@ -38,7 +39,9 @@ public class SVONavigation : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
-				// ... add private dependencies that you statically link with here ...	
+				"RHI",
+				"RenderCore",
+				"DeveloperSettings"
 			}
 			);
 		

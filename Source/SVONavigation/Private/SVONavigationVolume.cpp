@@ -1,8 +1,27 @@
 #include "SVONavigationVolume.h"
 
+
+
+#include "Editor.h"
+#include "SVONavigationSettings.h"
 #include "SVONavigationSystem.h"
+#include "Builders/CubeBuilder.h"
+
+
+#include <Components/BrushComponent.h>
+#include <Engine/CollisionProfile.h>
+
+ASVONavigationVolume::ASVONavigationVolume()
+{
+    GetBrushComponent()->SetCollisionProfileName( UCollisionProfile::NoCollision_ProfileName );
+    GetBrushComponent()->Mobility = EComponentMobility::Static;
+
+    BrushColor = FColor( 200, 200, 200, 255 );
+    bColored = true;
+}
 
 #if WITH_EDITOR
+
 void ASVONavigationVolume::PostEditUndo()
 {
     Super::PostEditUndo();
@@ -28,14 +47,10 @@ void ASVONavigationVolume::PostEditChangeProperty( FPropertyChangedEvent & Prope
 
     if ( auto * navigation_system = GEngine->GetEngineSubsystem< USVONavigationSystem >() )
     {
-        const FName property_name = ( PropertyChangedEvent.Property != nullptr ) ? PropertyChangedEvent.Property->GetFName() : FName();
-        const FName member_name = ( PropertyChangedEvent.MemberProperty != nullptr ) ? PropertyChangedEvent.MemberProperty->GetFName() : FName();
+        const auto property_name = ( PropertyChangedEvent.Property != nullptr ) ? PropertyChangedEvent.Property->GetFName() : FName();
+        const auto member_name = ( PropertyChangedEvent.MemberProperty != nullptr ) ? PropertyChangedEvent.MemberProperty->GetFName() : FName();
 
-        if ( property_name == GET_MEMBER_NAME_CHECKED( ABrush, BrushBuilder ) 
-            || member_name == USceneComponent::GetRelativeLocationPropertyName() 
-            || member_name == USceneComponent::GetRelativeRotationPropertyName() 
-            || member_name == USceneComponent::GetRelativeScale3DPropertyName() 
-            )
+        if ( property_name == GET_MEMBER_NAME_CHECKED( ABrush, BrushBuilder ) || member_name == USceneComponent::GetRelativeLocationPropertyName() || member_name == USceneComponent::GetRelativeRotationPropertyName() || member_name == USceneComponent::GetRelativeScale3DPropertyName() )
         {
             navigation_system->OnNavigationVolumeUpdated( *this );
         }
