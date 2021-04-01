@@ -3,7 +3,17 @@
 #include "SVONavDataRenderingComponent.h"
 #include "SVONavigationSettings.h"
 #include "SVONavigationSystem.h"
-#include "libmorton/morton.h"
+
+#include <libmorton/morton.h>
+
+static const FIntVector NeighborDirections[ 6 ] = {
+    { 1, 0, 0 },
+    { -1, 0, 0 },
+    { 0, 1, 0 },
+    { 0, -1, 0 },
+    { 0, 0, 1 },
+    { 0, 0, -1 }
+};
 
 bool FSVOOctreeLeaf::GetSubNodeAt( uint_fast32_t X, uint_fast32_t Y, uint_fast32_t Z ) const
 {
@@ -23,6 +33,33 @@ void FSVOOctreeData::Reset()
 {
     NodesByLayers.Reset();
     Leaves.Reset();
+}
+
+FVector FSVONavigationBoundsData::GetNodePosition( uint8 layer_index, MortonCode morton_code ) const
+{
+    const auto voxel_size = GetLayerVoxelSize( layer_index );
+    uint_fast32_t x, y, z;
+    morton3D_64_decode( morton_code, x, y, z );
+    return Box.GetCenter() - Box.GetExtent() + FVector( x, y, z ) * voxel_size + FVector( voxel_size * 0.5f );
+}
+
+FVector FSVONavigationBoundsData::GetNodePositionFromLink( const FSVOOctreeLink & link ) const
+{
+    const auto & node = OctreeData.NodesByLayers[ link.LayerIndex ][ link.NodeIndex ];
+    auto position = GetNodePosition( link.LayerIndex, node.MortonCode );
+
+    if ( link.LayerIndex == 0 && node.FirstChild.IsValid() )
+    {
+        const float Size = GetLayerVoxelSize( 0 );
+        uint_fast32_t X, Y, Z;
+        morton3D_64_decode( link.SubNodeIndex, X, Y, Z );
+        position += FVector( X * Size / 4, Y * Size / 4, Z * Size / 4 ) - FVector( Size * 0.375f );
+
+        /*const FNav3DOctreeLeaf & Leaf = Octree.Leafs[ Node.FirstChild.NodeIndex ];
+        return !Leaf.GetSubNode( Edge.SubNodeIndex );*/
+    }
+
+    return position;
 }
 
 void FSVONavigationBoundsData::ComputeDataFromNavigationBounds( const FSVONavigationBounds & navigation_bounds, const FSVODataConfig & config )
@@ -58,6 +95,11 @@ void FSVONavigationBoundsData::ComputeDataFromNavigationBounds( const FSVONaviga
         LayerVoxelHalfSizes.Add( layer_voxel_size * 0.5f );
     }
 
+    if ( LayerCount < 2 )
+    {
+        return;
+    }
+
     FirstPassRasterization();
 
     AllocateLeafNodes();
@@ -69,18 +111,10 @@ void FSVONavigationBoundsData::ComputeDataFromNavigationBounds( const FSVONaviga
         RasterizeLayer( layer_index );
     }
 
-    for ( LayerIndex layer_index = LayerCount - 2; layer_index >= 0; --layer_index )
+    for ( LayerIndex layer_index = LayerCount - 2; layer_index != static_cast< LayerIndex >( -1 ); --layer_index )
     {
         BuildNeighborLinks( layer_index );
     }
-}
-
-FVector FSVONavigationBoundsData::GetNodePosition( uint8 layer_index, MortonCode morton_code ) const
-{
-    const auto voxel_size = GetLayerVoxelSize( layer_index );
-    uint_fast32_t x, y, z;
-    morton3D_64_decode( morton_code, x, y, z );
-    return Box.GetCenter() - Box.GetExtent() + FVector( x, y, z ) * voxel_size + FVector( voxel_size * 0.5f );
 }
 
 bool FSVONavigationBoundsData::IsPositionOccluded( const FVector & position, float box_size ) const
@@ -92,30 +126,33 @@ bool FSVONavigationBoundsData::IsPositionOccluded( const FVector & position, flo
         FQuat::Identity,
         shared_ptr_config->CollisionChannel,
         FCollisionShape::MakeBox( FVector( box_size + shared_ptr_config->Clearance ) ),
-        shared_ptr_config->CollisionQueryParameters
-        );
+        shared_ptr_config->CollisionQueryParameters );
 }
 
 void FSVONavigationBoundsData::FirstPassRasterization()
 {
-    auto & layer_blocked_indices = BlockedIndices.Emplace_GetRef();
-    const auto node_count = GetLayerNodeCount( 1 );
-
-    for ( MortonCode node_index = 0; node_index < node_count; ++node_index )
     {
-        const auto position = GetNodePosition( 1, node_index );
-        if ( IsPositionOccluded( position, GetLayerVoxelHalfSize( 1 ) ) )
+        auto & layer_blocked_indices = BlockedIndices.Emplace_GetRef();
+        const auto node_count = GetLayerNodeCount( 1 );
+
+        for ( MortonCode node_index = 0; node_index < node_count; ++node_index )
         {
-            layer_blocked_indices.Add( node_index );
+            const auto position = GetNodePosition( 1, node_index );
+            if ( IsPositionOccluded( position, GetLayerVoxelHalfSize( 1 ) ) )
+            {
+                layer_blocked_indices.Add( node_index );
+            }
         }
     }
 
-    for ( int32 voxel_index = 0; voxel_index < VoxelExponent; voxel_index++ )
     {
-        layer_blocked_indices = BlockedIndices.Emplace_GetRef();
-        for ( MortonCode morton_code : layer_blocked_indices )
+        for ( int32 voxel_index = 0; voxel_index < VoxelExponent; voxel_index++ )
         {
-            layer_blocked_indices.Add( morton_code >> 3 );
+            auto & layer_blocked_indices = BlockedIndices.Emplace_GetRef();
+            for ( MortonCode morton_code : BlockedIndices[ voxel_index ] )
+            {
+                layer_blocked_indices.Add( morton_code >> 3 );
+            }
         }
     }
 }
@@ -129,20 +166,21 @@ void FSVONavigationBoundsData::RasterizeLeaf( const FVector & node_position, int
 {
     const auto layer_voxel_half_size = GetLayerVoxelHalfSize( 0 );
     const FVector Location = node_position - layer_voxel_half_size;
-    const float layer_voxel_size = GetLayerVoxelSize( 0 );
+    const auto leaf_voxel_size = layer_voxel_half_size * 0.5f;
+    const auto leaf_occlusion_voxel_size = leaf_voxel_size * 0.5f;
 
     for ( int32 subnode_index = 0; subnode_index < 64; subnode_index++ )
     {
         uint_fast32_t X, Y, Z;
         morton3D_64_decode( subnode_index, X, Y, Z );
-        const FVector voxel_location = Location + FVector( X * layer_voxel_size, Y * layer_voxel_size, Z * layer_voxel_size ) + layer_voxel_size * 0.5f;
+        const FVector voxel_location = Location + FVector( X * leaf_voxel_size, Y * leaf_voxel_size, Z * leaf_voxel_size ) + leaf_voxel_size * 0.5f;
 
         if ( leaf_index >= OctreeData.Leaves.Num() - 1 )
         {
             OctreeData.Leaves.AddDefaulted( 1 );
         }
 
-        if ( IsPositionOccluded( voxel_location, layer_voxel_half_size ) )
+        if ( IsPositionOccluded( voxel_location, leaf_occlusion_voxel_size ) )
         {
             OctreeData.Leaves[ leaf_index ].SetSubNode( subnode_index );
         }
@@ -151,11 +189,11 @@ void FSVONavigationBoundsData::RasterizeLeaf( const FVector & node_position, int
 
 void FSVONavigationBoundsData::RasterizeInitialLayer()
 {
-    OctreeData.NodesByLayers.Emplace();
+    auto & layer_nodes = OctreeData.NodesByLayers.Emplace_GetRef();
     int32 leaf_index = 0;
 
     OctreeData.Leaves.Reserve( BlockedIndices[ 0 ].Num() * 8 );
-    OctreeData.NodesByLayers[ 0 ].Reserve( BlockedIndices[ 0 ].Num() * 8 );
+    layer_nodes.Reserve( BlockedIndices[ 0 ].Num() * 8 );
 
     const auto layer_node_count = GetLayerNodeCount( 0 );
 
@@ -167,7 +205,7 @@ void FSVONavigationBoundsData::RasterizeInitialLayer()
             continue;
         }
 
-        auto & octree_node = GetOctreeNodesFromLayer( 0 ).Emplace_GetRef();
+        auto & octree_node = layer_nodes.Emplace_GetRef();
         octree_node.MortonCode = node_index;
 
         const auto node_position = GetNodePosition( 0, node_index );
@@ -192,9 +230,11 @@ void FSVONavigationBoundsData::RasterizeInitialLayer()
 
 void FSVONavigationBoundsData::RasterizeLayer( const LayerIndex layer_index )
 {
-    checkf( layer_index > 0 && layer_index < LayerCount, TEXT( "layer_index is out of bounds" ) )
+    auto & layer_nodes = OctreeData.NodesByLayers.Emplace_GetRef();
 
-    OctreeData.NodesByLayers[ layer_index ].Reserve( BlockedIndices[ layer_index ].Num() * 8 );
+    checkf( layer_index > 0 && layer_index < LayerCount, TEXT( "layer_index is out of bounds" ) );
+
+    layer_nodes.Reserve( BlockedIndices[ layer_index ].Num() * 8 );
 
     const auto node_count = GetLayerNodeCount( layer_index );
 
@@ -205,7 +245,6 @@ void FSVONavigationBoundsData::RasterizeLayer( const LayerIndex layer_index )
             continue;
         }
 
-        auto & layer_nodes = GetOctreeNodesFromLayer( layer_index );
         const auto new_node_index = layer_nodes.Emplace();
 
         auto & new_octree_node = layer_nodes[ new_node_index ];
@@ -221,7 +260,7 @@ void FSVONavigationBoundsData::RasterizeLayer( const LayerIndex layer_index )
             // Set child->parent links
             for ( auto child_index = 0; child_index < 8; ++child_index )
             {
-                auto & child_node = GetOctreeNodesFromLayer( new_octree_node.FirstChild.LayerIndex )[ new_octree_node.FirstChild.NodeIndex + child_index ];
+                auto & child_node = GetLayerNodes( new_octree_node.FirstChild.LayerIndex )[ new_octree_node.FirstChild.NodeIndex + child_index ];
                 child_node.Parent.LayerIndex = layer_index;
                 child_node.Parent.NodeIndex = new_node_index;
             }
@@ -233,9 +272,9 @@ void FSVONavigationBoundsData::RasterizeLayer( const LayerIndex layer_index )
     }
 }
 
-TOptional<NodeIndex> FSVONavigationBoundsData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
+TOptional< NodeIndex > FSVONavigationBoundsData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
 {
-    const auto & layer_nodes = GetOctreeNodesFromLayer( layer_index );
+    const auto & layer_nodes = GetLayerNodes( layer_index );
     auto start = 0;
     auto end = layer_nodes.Num() - 1;
     auto mean = ( start + end ) * 0.5f;
@@ -259,7 +298,116 @@ TOptional<NodeIndex> FSVONavigationBoundsData::GetNodeIndexFromMortonCode( const
         mean = ( start + end ) * 0.5f;
     }
 
-    return TOptional < NodeIndex >();
+    return TOptional< NodeIndex >();
+}
+
+void FSVONavigationBoundsData::BuildNeighborLinks( LayerIndex layer_index )
+{
+    auto & layer_nodes = GetLayerNodes( layer_index );
+
+    for ( NodeIndex layer_node_index = 0; layer_node_index < layer_nodes.Num(); layer_node_index++ )
+    {
+        auto & node = layer_nodes[ layer_node_index ];
+        FVector node_position = GetNodePosition( layer_index, node.MortonCode );
+
+        for ( NeighborDirection direction = 0; direction < 6; direction++ )
+        {
+            NodeIndex node_index = layer_node_index;
+
+            FSVOOctreeLink & link = node.Neighbors[ direction ];
+
+            LayerIndex current_layer = layer_index;
+
+            while ( !FindNeighborInDirection( link, current_layer, node_index, direction, node_position ) && current_layer < LayerCount - 2 )
+            {
+                auto & parent_node = GetLayerNodes( current_layer )[ layer_node_index ].Parent;
+                if ( parent_node.IsValid() )
+                {
+                    node_index = parent_node.NodeIndex;
+                    current_layer = parent_node.LayerIndex;
+                }
+                else
+                {
+                    current_layer++;
+                    node_index = GetNodeIndexFromMortonCode( current_layer, node.MortonCode >> 3 ).Get( 0 );
+                }
+            }
+        }
+    }
+}
+
+bool FSVONavigationBoundsData::FindNeighborInDirection( FSVOOctreeLink & link, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position )
+{
+    const auto max_coordinates = GetLayerMaxNodeCount( layer_index );
+    const auto & layer_nodes = GetLayerNodes( layer_index );
+    const auto & target_node = layer_nodes[ node_index ];
+
+    uint_fast32_t x, y, z;
+    morton3D_64_decode( target_node.MortonCode, x, y, z );
+
+    FIntVector neighbor_coords( static_cast< int32 >( x ), static_cast< int32 >( y ), static_cast< int32 >( z ) );
+    neighbor_coords += NeighborDirections[ direction ];
+
+    if ( neighbor_coords.X < 0 || neighbor_coords.X >= max_coordinates ||
+         neighbor_coords.Y < 0 || neighbor_coords.Y >= max_coordinates ||
+         neighbor_coords.Z < 0 || neighbor_coords.Z >= max_coordinates )
+    {
+        link.Invalidate();
+        return true;
+    }
+
+    x = neighbor_coords.X;
+    y = neighbor_coords.Y;
+    z = neighbor_coords.Z;
+
+    const MortonCode neighbor_code = morton3D_64_encode( x, y, z );
+
+    int32 stop_index = layer_nodes.Num();
+    int32 increment = 1;
+
+    if ( neighbor_code < target_node.MortonCode )
+    {
+        increment = -1;
+        stop_index = -1;
+    }
+
+    for ( int32 neighbor_node_index = node_index + increment; neighbor_node_index != stop_index; neighbor_node_index += increment )
+    {
+        auto & node = layer_nodes[ node_index ];
+
+        if ( node.MortonCode == neighbor_code )
+        {
+            if ( layer_index == 0 &&
+                 node.HasChildren() &&
+                 OctreeData.Leaves[ node.FirstChild.NodeIndex ].IsOccluded() )
+            {
+
+                link.Invalidate();
+                return true;
+            }
+
+            link.LayerIndex = layer_index;
+
+            if ( neighbor_node_index >= layer_nodes.Num() || neighbor_node_index < 0 )
+            {
+                break;
+            }
+
+            link.NodeIndex = neighbor_node_index;
+
+            /*FVector AdjacentLocation;
+            GetNodeLocation( LayerIndex, AdjacentCode, AdjacentLocation );*/
+
+            return true;
+        }
+
+        // If we've passed the code we're looking for, it's not on this layer
+        if ( increment == -1 && node.MortonCode < neighbor_code || increment == 1 && node.MortonCode > neighbor_code )
+        {
+            return false;
+        }
+    }
+    return false;
 }
 
 ASVONavigationData::ASVONavigationData()
@@ -288,6 +436,22 @@ void ASVONavigationData::PostRegisterAllComponents()
         Config->CollisionChannel = settings->CollisionChannel;
         Config->World = GetWorld();
     }
+}
+
+void ASVONavigationData::Serialize( FArchive & archive )
+{
+    Super::Serialize( archive );
+    archive << NavigationBoundsData;
+}
+
+int32 ASVONavigationData::GetDebugDrawFlags() const
+{
+    return 0 |
+           ( ItDebugDrawsBounds ? 1 << static_cast< int32 >( ESVODebugDrawFlags::Bounds ) : 0 ) |
+           ( ItDebugDrawsLayers ? 1 << static_cast< int32 >( ESVODebugDrawFlags::Layers ) : 0 ) |
+           ( ItDebugDrawsLeaves ? 1 << static_cast< int32 >( ESVODebugDrawFlags::Leaves ) : 0 ) |
+           ( ItDebugDrawsOccludedLeaves ? 1 << static_cast< int32 >( ESVODebugDrawFlags::OccludesLeaves ) : 0 ) |
+           ( ItDebugDrawsLinks ? 1 << static_cast< int32 >( ESVODebugDrawFlags::Links ) : 0 );
 }
 
 void ASVONavigationData::AddNavigationBounds( const FSVONavigationBounds & navigation_bounds )

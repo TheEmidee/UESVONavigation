@@ -3,17 +3,21 @@
 #include "SVONavigationTypes.h"
 
 #include <CoreMinimal.h>
-
-
-#include "Chaos/AABB.h"
-#include "Chaos/AABB.h"
-
 #include <GameFramework/Actor.h>
 
 #include "SVONavigationData.generated.h"
 
 class USVONavDataRenderingComponent;
 struct FSVONavigationBounds;
+
+enum class ESVODebugDrawFlags : uint8
+{
+    Bounds,
+    Layers,
+    Leaves,
+    OccludesLeaves,
+    Links
+};
 
 struct FSVODataConfig : TSharedFromThis< FSVODataConfig >
 {
@@ -62,15 +66,21 @@ FORCEINLINE bool FSVOOctreeLeaf::IsEmpty() const
     return SubNodes == 0;
 }
 
-struct FSVOOctreeEdge
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeLeaf & data )
 {
-    FSVOOctreeEdge() :
+    archive << data.SubNodes;
+    return archive;
+}
+
+struct FSVOOctreeLink
+{
+    FSVOOctreeLink() :
         LayerIndex( 15 ),
         NodeIndex( 0 ),
         SubNodeIndex( 0 )
     {}
 
-    FSVOOctreeEdge( const LayerIndex layer_index, const MortonCode node_index, const SubNodeIndex sub_node_index ) :
+    FSVOOctreeLink( const LayerIndex layer_index, const MortonCode node_index, const SubNodeIndex sub_node_index ) :
         LayerIndex( layer_index ),
         NodeIndex( node_index ),
         SubNodeIndex( sub_node_index )
@@ -79,9 +89,9 @@ struct FSVOOctreeEdge
     bool IsValid() const;
     void Invalidate();
 
-    static FSVOOctreeEdge InvalidEdge()
+    static FSVOOctreeLink InvalidEdge()
     {
-        return FSVOOctreeEdge();
+        return FSVOOctreeLink();
     }
 
     uint8 LayerIndex : 4;
@@ -89,34 +99,59 @@ struct FSVOOctreeEdge
     uint8 SubNodeIndex : 6;
 };
 
-FORCEINLINE bool FSVOOctreeEdge::IsValid() const
+FORCEINLINE bool FSVOOctreeLink::IsValid() const
 {
     return LayerIndex != 15;
 }
 
-FORCEINLINE void FSVOOctreeEdge::Invalidate()
+FORCEINLINE void FSVOOctreeLink::Invalidate()
 {
     LayerIndex = 15;
+}
+
+FORCEINLINE uint32 GetTypeHash( const FSVOOctreeLink & link )
+{
+    return *( uint32 * ) &link;
+}
+
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeLink & data )
+{
+    archive.Serialize( &data, sizeof( FSVOOctreeLink ) );
+    return archive;
 }
 
 struct FSVOOctreeNode
 {
     MortonCode MortonCode;
-    FSVOOctreeEdge Parent;
-    FSVOOctreeEdge FirstChild;
-    FSVOOctreeEdge AdjacentEdges[ 6 ];
+    FSVOOctreeLink Parent;
+    FSVOOctreeLink FirstChild;
+    FSVOOctreeLink Neighbors[ 6 ];
 
     FSVOOctreeNode() :
         MortonCode( 0 ),
-        Parent( FSVOOctreeEdge::InvalidEdge() ),
-        FirstChild( FSVOOctreeEdge::InvalidEdge() )
+        Parent( FSVOOctreeLink::InvalidEdge() ),
+        FirstChild( FSVOOctreeLink::InvalidEdge() )
     {}
 
-    /*bool HasChildren() const
+    bool HasChildren() const
     {
         return FirstChild.IsValid();
-    }*/
+    }
 };
+
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeNode & data )
+{
+    archive << data.MortonCode;
+    archive << data.Parent;
+    archive << data.FirstChild;
+    
+    for ( int32 neighbor_index = 0; neighbor_index < 6; neighbor_index++ )
+    {
+        archive << data.Neighbors[ neighbor_index ];
+    }
+
+    return archive;
+}
 
 struct FSVOOctreeData
 {
@@ -126,23 +161,35 @@ struct FSVOOctreeData
     TArray< FSVOOctreeLeaf > Leaves;
 };
 
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeData & data )
+{
+    archive << data.NodesByLayers;
+    archive << data.Leaves;
+
+    return archive;
+}
+
 USTRUCT()
 struct SVONAVIGATION_API FSVONavigationBoundsData
 {
     GENERATED_USTRUCT_BODY()
 
+    friend FArchive & operator<<( FArchive & archive, FSVONavigationBoundsData & data );
+
     const FBox & GetBox() const;
+    const FSVOOctreeData & GetOctreeData() const;
+    FVector GetNodePosition( LayerIndex layer_index, MortonCode morton_code ) const;
+    FVector GetNodePositionFromLink( const FSVOOctreeLink & link ) const;
+    float GetLayerVoxelSize( LayerIndex layer_index ) const;
+    float GetLayerVoxelHalfSize( LayerIndex layer_index ) const;
 
     void ComputeDataFromNavigationBounds( const FSVONavigationBounds & navigation_bounds, const FSVODataConfig & config );
 
 private:
-
     uint32 GetLayerNodeCount( LayerIndex layer_index ) const;
-    float GetLayerVoxelSize( LayerIndex layer_index ) const;
-    float GetLayerVoxelHalfSize( LayerIndex layer_index ) const;
-    const TArray< FSVOOctreeNode > & GetOctreeNodesFromLayer( LayerIndex layer_index ) const;
-    TArray< FSVOOctreeNode > & GetOctreeNodesFromLayer( LayerIndex layer_index );
-    FVector GetNodePosition( LayerIndex layer_index, MortonCode morton_code ) const;
+    const TArray< FSVOOctreeNode > & GetLayerNodes( LayerIndex layer_index ) const;
+    TArray< FSVOOctreeNode > & GetLayerNodes( LayerIndex layer_index );
+    int32 GetLayerMaxNodeCount( LayerIndex layer_index ) const;
     bool IsPositionOccluded( const FVector & position, float box_size ) const;
     void FirstPassRasterization();
     void AllocateLeafNodes();
@@ -150,7 +197,8 @@ private:
     void RasterizeInitialLayer();
     void RasterizeLayer( LayerIndex layer_index );
     TOptional< NodeIndex > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
-    void BuildNeighborLinks( LayerIndex Layer_Index );
+    void BuildNeighborLinks( LayerIndex layer_index );
+    bool FindNeighborInDirection( FSVOOctreeLink & link, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
 
     UPROPERTY( VisibleAnywhere, Category = "SVONavigation" )
     int VoxelExponent;
@@ -174,14 +222,24 @@ private:
     TWeakPtr< const FSVODataConfig > Config;
 };
 
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsData  & data )
+{
+    archive << data.LayerVoxelSizes;
+    archive << data.LayerVoxelHalfSizes;
+    archive << data.LayerNodeCount;
+    archive << data.OctreeData;
+
+    return archive;
+}
+
 FORCEINLINE const FBox & FSVONavigationBoundsData::GetBox() const
 {
     return Box;
 }
 
-FORCEINLINE uint32 FSVONavigationBoundsData::GetLayerNodeCount( LayerIndex layer_index ) const
+FORCEINLINE const FSVOOctreeData & FSVONavigationBoundsData::GetOctreeData() const
 {
-    return LayerNodeCount[ layer_index ];
+    return OctreeData;
 }
 
 FORCEINLINE float FSVONavigationBoundsData::GetLayerVoxelSize( LayerIndex layer_index ) const
@@ -194,14 +252,24 @@ FORCEINLINE float FSVONavigationBoundsData::GetLayerVoxelHalfSize( LayerIndex la
     return LayerVoxelHalfSizes[ layer_index ];
 }
 
-FORCEINLINE const TArray< FSVOOctreeNode > & FSVONavigationBoundsData::GetOctreeNodesFromLayer( LayerIndex layer_index ) const
+FORCEINLINE uint32 FSVONavigationBoundsData::GetLayerNodeCount( LayerIndex layer_index ) const
+{
+    return LayerNodeCount[ layer_index ];
+}
+
+FORCEINLINE const TArray< FSVOOctreeNode > & FSVONavigationBoundsData::GetLayerNodes( LayerIndex layer_index ) const
 {
     return OctreeData.NodesByLayers[ layer_index ];
 }
 
-FORCEINLINE TArray< FSVOOctreeNode > & FSVONavigationBoundsData::GetOctreeNodesFromLayer( LayerIndex layer_index )
+FORCEINLINE TArray< FSVOOctreeNode > & FSVONavigationBoundsData::GetLayerNodes( LayerIndex layer_index )
 {
     return OctreeData.NodesByLayers[ layer_index ];
+}
+
+FORCEINLINE int32 FSVONavigationBoundsData::GetLayerMaxNodeCount( LayerIndex layer_index ) const
+{
+    return FMath::Pow( 2, VoxelExponent - layer_index );
 }
 
 UCLASS( hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
@@ -212,22 +280,43 @@ class SVONAVIGATION_API ASVONavigationData : public AActor
 public:
     ASVONavigationData();
 
-    bool HasDebugDrawingEnabled() const;
+    int32 GetDebugDrawFlags() const;
+    uint8 GetLayerIndexToDraw() const;
+
     const TMap< uint32, FSVONavigationBoundsData > & GetNavigationBoundsData() const;
 
     void PostRegisterAllComponents() override;
+    void Serialize( FArchive & archive ) override;
 
+    bool HasDebugDrawingEnabled() const;
     void AddNavigationBounds( const FSVONavigationBounds & navigation_bounds );
     void UpdateNavigationBounds( const FSVONavigationBounds & navigation_bounds );
     void RemoveNavigationBounds( const FSVONavigationBounds & navigation_bounds );
 
 private:
-
     UPROPERTY( BlueprintReadOnly, VisibleAnywhere, meta = ( AllowPrivateAccess = true ) )
     USVONavDataRenderingComponent * RenderingComponent;
 
     UPROPERTY( EditInstanceOnly )
     uint8 ItHasDebugDrawingEnabled : 1;
+
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = ItHasDebugDrawingEnabled ) )
+    uint8 ItDebugDrawsBounds : 1;
+
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = ItHasDebugDrawingEnabled ) )
+    uint8 ItDebugDrawsLayers : 1;
+
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled && ItDebugDrawsLayers", ClampMin = "1", UIMin = "1" ) )
+    uint8 LayerIndexToDraw;
+
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = ItHasDebugDrawingEnabled ) )
+    uint8 ItDebugDrawsLeaves : 1;
+
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = ItHasDebugDrawingEnabled ) )
+    uint8 ItDebugDrawsOccludedLeaves : 1;
+
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = ItHasDebugDrawingEnabled ) )
+    uint8 ItDebugDrawsLinks : 1;
 
     UPROPERTY( VisibleAnywhere )
     TMap< uint32, FSVONavigationBoundsData > NavigationBoundsData;
@@ -238,6 +327,11 @@ private:
 FORCEINLINE bool ASVONavigationData::HasDebugDrawingEnabled() const
 {
     return ItHasDebugDrawingEnabled;
+}
+
+FORCEINLINE uint8 ASVONavigationData::GetLayerIndexToDraw() const
+{
+    return LayerIndexToDraw;
 }
 
 FORCEINLINE const TMap< uint32, FSVONavigationBoundsData > & ASVONavigationData::GetNavigationBoundsData() const
