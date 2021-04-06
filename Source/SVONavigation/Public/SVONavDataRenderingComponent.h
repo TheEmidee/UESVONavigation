@@ -2,6 +2,9 @@
 
 #include <Components/PrimitiveComponent.h>
 #include <CoreMinimal.h>
+
+#include "SVONavigationTypes.h"
+
 #include <DebugRenderSceneProxy.h>
 
 #include "SVONavDataRenderingComponent.generated.h"
@@ -20,22 +23,25 @@ struct SVONAVIGATION_API FSVONavigationSceneProxyData : public TSharedFromThis< 
     const TArray< FBoxCenterAndExtent > & GetLayers() const;
     const TArray< FBoxCenterAndExtent > & GetLeaves() const;
     const TArray< FBoxCenterAndExtent > & GetOccludedLeaves() const;
+    const TArray< FDebugRenderSceneProxy::FDebugLine > & GetLinks() const;
+    const FSVONavigationBoundsDataDebugInfos & GetDebugInfos() const;
 
     void Reset();
-    void Serialize( FArchive & Ar );
+    void Serialize( FArchive & archive );
     uint32 GetAllocatedSize() const;
-    void GatherData( const ASVONavigationData * navigation_data, int32 debug_draw_flags );
+    void GatherData( const ASVONavigationData & navigation_data );
 
 private:
     TArray< FBoxCenterAndExtent > OctreeBounds;
     TArray< FBoxCenterAndExtent > Layers;
     TArray< FBoxCenterAndExtent > Leaves;
     TArray< FBoxCenterAndExtent > OccludedLeaves;
+    TArray< FDebugRenderSceneProxy::FDebugLine > Links;
 
     FBox Bounds;
     uint32 bDataGathered : 1;
     uint32 bNeedsNewData : 1;
-    int32 DebugDrawFlags;
+    FSVONavigationBoundsDataDebugInfos DebugInfos;
 };
 
 FORCEINLINE const TArray< FBoxCenterAndExtent > & FSVONavigationSceneProxyData::GetOctreeBounds() const
@@ -56,6 +62,16 @@ FORCEINLINE const TArray< FBoxCenterAndExtent > & FSVONavigationSceneProxyData::
 FORCEINLINE const TArray< FBoxCenterAndExtent > & FSVONavigationSceneProxyData::GetOccludedLeaves() const
 {
     return OccludedLeaves;
+}
+
+FORCEINLINE const TArray< FDebugRenderSceneProxy::FDebugLine > & FSVONavigationSceneProxyData::GetLinks() const
+{
+    return Links;
+}
+
+FORCEINLINE const FSVONavigationBoundsDataDebugInfos & FSVONavigationSceneProxyData::GetDebugInfos() const
+{
+    return DebugInfos;
 }
 
 class SVONAVIGATION_API FSVONavigationMeshSceneProxy final : public FDebugRenderSceneProxy

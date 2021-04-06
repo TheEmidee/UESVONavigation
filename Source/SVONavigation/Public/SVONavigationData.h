@@ -10,15 +10,6 @@
 class USVONavDataRenderingComponent;
 struct FSVONavigationBounds;
 
-enum class ESVODebugDrawFlags : uint8
-{
-    Bounds,
-    Layers,
-    Leaves,
-    OccludesLeaves,
-    Links
-};
-
 struct FSVODataConfig : TSharedFromThis< FSVODataConfig >
 {
     TEnumAsByte< ECollisionChannel > CollisionChannel;
@@ -177,6 +168,7 @@ struct SVONAVIGATION_API FSVONavigationBoundsData
     friend FArchive & operator<<( FArchive & archive, FSVONavigationBoundsData & data );
 
     const FBox & GetBox() const;
+    const FBox & GetVolumeBox() const;
     const FSVOOctreeData & GetOctreeData() const;
     FVector GetNodePosition( LayerIndex layer_index, MortonCode morton_code ) const;
     FVector GetNodePositionFromLink( const FSVOOctreeLink & link ) const;
@@ -207,6 +199,9 @@ private:
     uint8 LayerCount = 0;
 
     UPROPERTY( VisibleAnywhere, Category = "SVONavigation" )
+    FBox VolumeBox;
+
+    UPROPERTY( VisibleAnywhere, Category = "SVONavigation" )
     FBox Box;
 
     UPROPERTY( VisibleAnywhere, Category = "SVONavigation" )
@@ -224,6 +219,11 @@ private:
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsData  & data )
 {
+    archive << data.Box;
+    archive << data.VolumeBox;
+    archive << data.VoxelExponent;
+    archive << data.LayerCount;
+    archive << data.UsedBoxExtent;
     archive << data.LayerVoxelSizes;
     archive << data.LayerVoxelHalfSizes;
     archive << data.LayerNodeCount;
@@ -235,6 +235,11 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsData 
 FORCEINLINE const FBox & FSVONavigationBoundsData::GetBox() const
 {
     return Box;
+}
+
+FORCEINLINE const FBox & FSVONavigationBoundsData::GetVolumeBox() const
+{
+    return VolumeBox;
 }
 
 FORCEINLINE const FSVOOctreeData & FSVONavigationBoundsData::GetOctreeData() const
@@ -280,15 +285,13 @@ class SVONAVIGATION_API ASVONavigationData : public AActor
 public:
     ASVONavigationData();
 
-    int32 GetDebugDrawFlags() const;
-    uint8 GetLayerIndexToDraw() const;
+    const FSVONavigationBoundsDataDebugInfos & GetDebugInfos() const;
 
     const TMap< uint32, FSVONavigationBoundsData > & GetNavigationBoundsData() const;
 
     void PostRegisterAllComponents() override;
     void Serialize( FArchive & archive ) override;
 
-    bool HasDebugDrawingEnabled() const;
     void AddNavigationBounds( const FSVONavigationBounds & navigation_bounds );
     void UpdateNavigationBounds( const FSVONavigationBounds & navigation_bounds );
     void RemoveNavigationBounds( const FSVONavigationBounds & navigation_bounds );
@@ -297,44 +300,21 @@ private:
     UPROPERTY( BlueprintReadOnly, VisibleAnywhere, meta = ( AllowPrivateAccess = true ) )
     USVONavDataRenderingComponent * RenderingComponent;
 
-    UPROPERTY( EditInstanceOnly )
-    uint8 ItHasDebugDrawingEnabled : 1;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = ItHasDebugDrawingEnabled ) )
-    uint8 ItDebugDrawsBounds : 1;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = ItHasDebugDrawingEnabled ) )
-    uint8 ItDebugDrawsLayers : 1;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled && ItDebugDrawsLayers", ClampMin = "1", UIMin = "1" ) )
-    uint8 LayerIndexToDraw;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = ItHasDebugDrawingEnabled ) )
-    uint8 ItDebugDrawsLeaves : 1;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = ItHasDebugDrawingEnabled ) )
-    uint8 ItDebugDrawsOccludedLeaves : 1;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = ItHasDebugDrawingEnabled ) )
-    uint8 ItDebugDrawsLinks : 1;
-
     UPROPERTY( VisibleAnywhere )
     TMap< uint32, FSVONavigationBoundsData > NavigationBoundsData;
+
+    UPROPERTY( EditInstanceOnly )
+    FSVONavigationBoundsDataDebugInfos DebugInfos;
 
     TSharedPtr< FSVODataConfig > Config;
 };
 
-FORCEINLINE bool ASVONavigationData::HasDebugDrawingEnabled() const
-{
-    return ItHasDebugDrawingEnabled;
-}
-
-FORCEINLINE uint8 ASVONavigationData::GetLayerIndexToDraw() const
-{
-    return LayerIndexToDraw;
-}
-
 FORCEINLINE const TMap< uint32, FSVONavigationBoundsData > & ASVONavigationData::GetNavigationBoundsData() const
 {
     return NavigationBoundsData;
+}
+
+FORCEINLINE const FSVONavigationBoundsDataDebugInfos & ASVONavigationData::GetDebugInfos() const
+{
+    return DebugInfos;
 }

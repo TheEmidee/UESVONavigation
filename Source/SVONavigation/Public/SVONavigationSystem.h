@@ -45,7 +45,6 @@ class SVONAVIGATION_API USVONavigationSystem : public UEngineSubsystem
     GENERATED_BODY()
 
 public:
-
     void Initialize( FSubsystemCollectionBase & collection ) override;
     void Deinitialize() override;
     UWorld * GetWorld() const override;
@@ -55,7 +54,6 @@ public:
     bool Tick( float delta_seconds );
 
 private:
-
 #if WITH_EDITOR
     void OnActorMoved( AActor * actor );
 #endif
@@ -74,6 +72,7 @@ private:
     void PerformNavigationVolumesUpdate( const TArray< FSVONavigationBoundsUpdateRequest > & update_requests );
     void AddNavigationVolumeUpdateRequest( const FSVONavigationBoundsUpdateRequest & update_request );
     bool IsThereAnywhereToBuildNavigation() const;
+    void UpdateNavigationVolumeAroundActor( AActor * actor );
 
     UPROPERTY( Transient )
     TWeakObjectPtr< ASVONavigationData > NavigationData;

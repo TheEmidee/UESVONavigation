@@ -54,9 +54,6 @@ FVector FSVONavigationBoundsData::GetNodePositionFromLink( const FSVOOctreeLink 
         uint_fast32_t X, Y, Z;
         morton3D_64_decode( link.SubNodeIndex, X, Y, Z );
         position += FVector( X * Size / 4, Y * Size / 4, Z * Size / 4 ) - FVector( Size * 0.375f );
-
-        /*const FNav3DOctreeLeaf & Leaf = Octree.Leafs[ Node.FirstChild.NodeIndex ];
-        return !Leaf.GetSubNode( Edge.SubNodeIndex );*/
     }
 
     return position;
@@ -66,18 +63,18 @@ void FSVONavigationBoundsData::ComputeDataFromNavigationBounds( const FSVONaviga
 {
     Config = config.AsShared();
 
-    const auto initial_box = navigation_bounds.AreaBox;
+    VolumeBox = navigation_bounds.AreaBox;
 
     const auto * settings = GetDefault< USVONavigationSettings >();
 
-    const auto box_max_size = initial_box.GetSize().GetAbsMax();
+    const auto box_max_size = VolumeBox.GetSize().GetAbsMax();
     VoxelExponent = FMath::RoundToInt( FMath::Log2( box_max_size / ( settings->VoxelSize * 4 ) ) );
     LayerCount = VoxelExponent + 1;
 
     const auto corrected_box_size = FMath::Pow( 2, VoxelExponent ) * ( settings->VoxelSize * 4 );
     const auto corrected_box_extent = corrected_box_size * 0.5f;
 
-    Box = FBox::BuildAABB( initial_box.GetCenter(), FVector( corrected_box_extent ) );
+    Box = FBox::BuildAABB( VolumeBox.GetCenter(), FVector( corrected_box_extent ) );
 
     BlockedIndices.Reset();
     OctreeData.Reset();
@@ -320,7 +317,7 @@ void FSVONavigationBoundsData::BuildNeighborLinks( LayerIndex layer_index )
 
             while ( !FindNeighborInDirection( link, current_layer, node_index, direction, node_position ) && current_layer < LayerCount - 2 )
             {
-                auto & parent_node = GetLayerNodes( current_layer )[ layer_node_index ].Parent;
+                auto & parent_node = GetLayerNodes( current_layer )[ node_index ].Parent;
                 if ( parent_node.IsValid() )
                 {
                     node_index = parent_node.NodeIndex;
@@ -373,7 +370,7 @@ bool FSVONavigationBoundsData::FindNeighborInDirection( FSVOOctreeLink & link, c
 
     for ( int32 neighbor_node_index = node_index + increment; neighbor_node_index != stop_index; neighbor_node_index += increment )
     {
-        auto & node = layer_nodes[ node_index ];
+        auto & node = layer_nodes[ neighbor_node_index ];
 
         if ( node.MortonCode == neighbor_code )
         {
@@ -417,8 +414,6 @@ ASVONavigationData::ASVONavigationData()
     RenderingComponent = CreateDefaultSubobject< USVONavDataRenderingComponent >( TEXT( "RenderingComponent" ) );
     RootComponent = RenderingComponent;
 
-    ItHasDebugDrawingEnabled = false;
-
     Config = MakeShared< FSVODataConfig >();
 
     Config->CollisionQueryParameters.bFindInitialOverlaps = true;
@@ -442,22 +437,31 @@ void ASVONavigationData::Serialize( FArchive & archive )
 {
     Super::Serialize( archive );
     archive << NavigationBoundsData;
-}
-
-int32 ASVONavigationData::GetDebugDrawFlags() const
-{
-    return 0 |
-           ( ItDebugDrawsBounds ? 1 << static_cast< int32 >( ESVODebugDrawFlags::Bounds ) : 0 ) |
-           ( ItDebugDrawsLayers ? 1 << static_cast< int32 >( ESVODebugDrawFlags::Layers ) : 0 ) |
-           ( ItDebugDrawsLeaves ? 1 << static_cast< int32 >( ESVODebugDrawFlags::Leaves ) : 0 ) |
-           ( ItDebugDrawsOccludedLeaves ? 1 << static_cast< int32 >( ESVODebugDrawFlags::OccludesLeaves ) : 0 ) |
-           ( ItDebugDrawsLinks ? 1 << static_cast< int32 >( ESVODebugDrawFlags::Links ) : 0 );
+    archive << DebugInfos;
 }
 
 void ASVONavigationData::AddNavigationBounds( const FSVONavigationBounds & navigation_bounds )
 {
-    auto & data = NavigationBoundsData.Emplace( navigation_bounds.UniqueID );
-    data.ComputeDataFromNavigationBounds( navigation_bounds, *Config );
+    const auto bounds_box = navigation_bounds.AreaBox;
+    auto must_add_new_entry = true;
+
+    // If we already have a volume with the same box, update the key. Not ideal but we can't use the unique id of the actor as it's new each time we load the level
+    for ( auto & key_pair : NavigationBoundsData )
+    {
+        if ( key_pair.Value.GetVolumeBox() == bounds_box )
+        {
+            key_pair.Key = navigation_bounds.UniqueID;
+            must_add_new_entry = false;
+            break;
+        }
+    }
+
+    if ( must_add_new_entry )
+    {
+        auto & data = NavigationBoundsData.Emplace( navigation_bounds.UniqueID );
+        data.ComputeDataFromNavigationBounds( navigation_bounds, *Config );
+    }
+
     MarkComponentsRenderStateDirty();
 }
 

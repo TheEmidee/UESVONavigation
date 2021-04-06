@@ -37,7 +37,9 @@ UWorld * USVONavigationSystem::GetWorld() const
 
 void USVONavigationSystem::OnNavigationVolumeAdded( const ASVONavigationVolume & volume )
 {
-    if ( volume.GetWorld() != World )
+    auto * volume_world = volume.GetWorld();
+
+    if ( volume_world != World )
     {
         return;
     }
@@ -53,7 +55,9 @@ void USVONavigationSystem::OnNavigationVolumeAdded( const ASVONavigationVolume &
 
 void USVONavigationSystem::OnNavigationVolumeRemoved( const ASVONavigationVolume & volume )
 {
-    if ( volume.GetWorld() != World )
+    auto * volume_world = volume.GetWorld();
+
+    if ( volume_world != World )
     {
         return;
     }
@@ -69,11 +73,12 @@ void USVONavigationSystem::OnNavigationVolumeRemoved( const ASVONavigationVolume
 
 void USVONavigationSystem::OnNavigationVolumeUpdated( const ASVONavigationVolume & volume )
 {
-    if ( volume.GetWorld() != World )
+    auto * volume_world = volume.GetWorld();
+
+    if ( volume_world != World )
     {
         return;
     }
-
 
     FSVONavigationBoundsUpdateRequest UpdateRequest;
     UpdateRequest.NavBounds.UniqueID = volume.GetUniqueID();
@@ -101,6 +106,10 @@ void USVONavigationSystem::OnActorMoved( AActor * actor )
     if ( auto * volume = Cast< ASVONavigationVolume >( actor ) )
     {
         OnNavigationVolumeUpdated( *volume );
+    }
+    else
+    {
+        UpdateNavigationVolumeAroundActor( actor );
     }
 }
 #endif
@@ -300,4 +309,25 @@ bool USVONavigationSystem::IsThereAnywhereToBuildNavigation() const
     }
 
     return false;
+}
+
+void USVONavigationSystem::UpdateNavigationVolumeAroundActor( AActor * actor )
+{
+    if ( actor == nullptr )
+    {
+        return;
+    }
+
+    const auto actor_bounds = actor->GetComponentsBoundingBox();
+
+    if ( auto * navigation_data = GetDefaultNavigationDataInstance( true ) )
+    {
+        for ( const auto & navigation_bounds : RegisteredNavigationBounds )
+        {
+            if ( navigation_bounds.AreaBox.Intersect( actor_bounds ) || actor_bounds.IsInside( navigation_bounds.AreaBox ) )
+            {
+                navigation_data->UpdateNavigationBounds( navigation_bounds );
+            }
+        }
+    }
 }

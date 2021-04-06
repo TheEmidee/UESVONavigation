@@ -6,31 +6,28 @@
 
 namespace
 {
-    void DrawDebugBox( FPrimitiveDrawInterface * PDI, FVector const & Center, FVector const & Box, FColor const & Color )
+    void DrawDebugBox( FPrimitiveDrawInterface * pdi, FVector const & center, FVector const & box, FColor const & color, const float line_thickness )
     {
         // no debug line drawing on dedicated server
-        if ( PDI != nullptr )
+        if ( pdi == nullptr )
         {
-            PDI->DrawLine( Center + FVector( Box.X, Box.Y, Box.Z ), Center + FVector( Box.X, -Box.Y, Box.Z ), Color, SDPG_World, 5.0f );
-            PDI->DrawLine( Center + FVector( Box.X, -Box.Y, Box.Z ), Center + FVector( -Box.X, -Box.Y, Box.Z ), Color, SDPG_World, 5.0f );
-            PDI->DrawLine( Center + FVector( -Box.X, -Box.Y, Box.Z ), Center + FVector( -Box.X, Box.Y, Box.Z ), Color, SDPG_World, 5.0f );
-            PDI->DrawLine( Center + FVector( -Box.X, Box.Y, Box.Z ), Center + FVector( Box.X, Box.Y, Box.Z ), Color, SDPG_World, 5.0f );
-
-            PDI->DrawLine( Center + FVector( Box.X, Box.Y, -Box.Z ), Center + FVector( Box.X, -Box.Y, -Box.Z ), Color, SDPG_World, 5.0f );
-            PDI->DrawLine( Center + FVector( Box.X, -Box.Y, -Box.Z ), Center + FVector( -Box.X, -Box.Y, -Box.Z ), Color, SDPG_World, 5.0f );
-            PDI->DrawLine( Center + FVector( -Box.X, -Box.Y, -Box.Z ), Center + FVector( -Box.X, Box.Y, -Box.Z ), Color, SDPG_World, 5.0f );
-            PDI->DrawLine( Center + FVector( -Box.X, Box.Y, -Box.Z ), Center + FVector( Box.X, Box.Y, -Box.Z ), Color, SDPG_World, 5.0f );
-
-            PDI->DrawLine( Center + FVector( Box.X, Box.Y, Box.Z ), Center + FVector( Box.X, Box.Y, -Box.Z ), Color, SDPG_World, 5.0f );
-            PDI->DrawLine( Center + FVector( Box.X, -Box.Y, Box.Z ), Center + FVector( Box.X, -Box.Y, -Box.Z ), Color, SDPG_World, 5.0f );
-            PDI->DrawLine( Center + FVector( -Box.X, -Box.Y, Box.Z ), Center + FVector( -Box.X, -Box.Y, -Box.Z ), Color, SDPG_World, 5.0f );
-            PDI->DrawLine( Center + FVector( -Box.X, Box.Y, Box.Z ), Center + FVector( -Box.X, Box.Y, -Box.Z ), Color, SDPG_World, 5.0f );
+            return;
         }
-    }
 
-    bool HasDebugDrawFlag( int32 flags, ESVODebugDrawFlags test_flag )
-    {
-        return ( flags & ( 1 << static_cast< int32 >( test_flag ) ) ) != 0;
+        pdi->DrawLine( center + FVector( box.X, box.Y, box.Z ), center + FVector( box.X, -box.Y, box.Z ), color, SDPG_World, line_thickness );
+        pdi->DrawLine( center + FVector( box.X, -box.Y, box.Z ), center + FVector( -box.X, -box.Y, box.Z ), color, SDPG_World, line_thickness );
+        pdi->DrawLine( center + FVector( -box.X, -box.Y, box.Z ), center + FVector( -box.X, box.Y, box.Z ), color, SDPG_World, line_thickness );
+        pdi->DrawLine( center + FVector( -box.X, box.Y, box.Z ), center + FVector( box.X, box.Y, box.Z ), color, SDPG_World, line_thickness );
+
+        pdi->DrawLine( center + FVector( box.X, box.Y, -box.Z ), center + FVector( box.X, -box.Y, -box.Z ), color, SDPG_World, line_thickness );
+        pdi->DrawLine( center + FVector( box.X, -box.Y, -box.Z ), center + FVector( -box.X, -box.Y, -box.Z ), color, SDPG_World, line_thickness );
+        pdi->DrawLine( center + FVector( -box.X, -box.Y, -box.Z ), center + FVector( -box.X, box.Y, -box.Z ), color, SDPG_World, line_thickness );
+        pdi->DrawLine( center + FVector( -box.X, box.Y, -box.Z ), center + FVector( box.X, box.Y, -box.Z ), color, SDPG_World, line_thickness );
+
+        pdi->DrawLine( center + FVector( box.X, box.Y, box.Z ), center + FVector( box.X, box.Y, -box.Z ), color, SDPG_World, line_thickness );
+        pdi->DrawLine( center + FVector( box.X, -box.Y, box.Z ), center + FVector( box.X, -box.Y, -box.Z ), color, SDPG_World, line_thickness );
+        pdi->DrawLine( center + FVector( -box.X, -box.Y, box.Z ), center + FVector( -box.X, -box.Y, -box.Z ), color, SDPG_World, line_thickness );
+        pdi->DrawLine( center + FVector( -box.X, box.Y, box.Z ), center + FVector( -box.X, box.Y, -box.Z ), color, SDPG_World, line_thickness );
     }
 }
 
@@ -39,19 +36,36 @@ void FSVONavigationSceneProxyData::Reset()
     OctreeBounds.Reset();
 }
 
-void FSVONavigationSceneProxyData::Serialize( FArchive & Ar )
+void FSVONavigationSceneProxyData::Serialize( FArchive & archive )
 {
-    int32 NumBounds = OctreeBounds.Num();
-    Ar << NumBounds;
-    if ( Ar.IsLoading() )
+    auto octree_bounds_count = OctreeBounds.Num();
+    archive << octree_bounds_count;
+    if ( archive.IsLoading() )
     {
-        OctreeBounds.SetNum( NumBounds );
+        OctreeBounds.Reset( octree_bounds_count );
+        OctreeBounds.AddUninitialized( octree_bounds_count );
     }
 
-    for ( int32 Idx = 0; Idx < NumBounds; Idx++ )
+    for ( auto index = 0; index < octree_bounds_count; index++ )
     {
-        Ar << OctreeBounds[ Idx ].Center;
-        Ar << OctreeBounds[ Idx ].Extent;
+        archive << OctreeBounds[ index ].Center;
+        archive << OctreeBounds[ index ].Extent;
+    }
+
+    auto links_count = Links.Num();
+    archive << links_count;
+    if ( archive.IsLoading() )
+    {
+        Links.Reset( links_count );
+        Links.AddUninitialized( links_count );
+    }
+
+    for ( auto index = 0; index < links_count; index++ )
+    {
+        archive << Links[ index ].Thickness;
+        archive << Links[ index ].Start;
+        archive << Links[ index ].End;
+        archive << Links[ index ].Color;
     }
 }
 
@@ -60,18 +74,19 @@ uint32 FSVONavigationSceneProxyData::GetAllocatedSize() const
     return OctreeBounds.GetAllocatedSize() +
            Layers.GetAllocatedSize() +
            Leaves.GetAllocatedSize() +
-           OccludedLeaves.GetAllocatedSize();
+           OccludedLeaves.GetAllocatedSize() +
+           Links.GetAllocatedSize();
 }
 
-void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData * navigation_data, int32 debug_draw_flags )
+void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & navigation_data )
 {
     Reset();
 
-    DebugDrawFlags = debug_draw_flags;
+    DebugInfos = navigation_data.GetDebugInfos();
 
-    const auto & navigation_bounds = navigation_data->GetNavigationBoundsData();
+    const auto & navigation_bounds = navigation_data.GetNavigationBoundsData();
 
-    if ( HasDebugDrawFlag( DebugDrawFlags, ESVODebugDrawFlags::Bounds ) )
+    if ( DebugInfos.ItDebugDrawsBounds )
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
@@ -79,8 +94,8 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData * naviga
         }
     }
 
-    const auto it_draws_layers = HasDebugDrawFlag( DebugDrawFlags, ESVODebugDrawFlags::Layers );
-    const auto it_draws_leaves = HasDebugDrawFlag( DebugDrawFlags, ESVODebugDrawFlags::Leaves );
+    const auto it_draws_layers = DebugInfos.ItDebugDrawsLayers;
+    const auto it_draws_leaves = DebugInfos.ItDebugDrawsLeaves;
 
     if ( it_draws_layers || it_draws_leaves )
     {
@@ -93,8 +108,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData * naviga
                 break;
             }
 
-            const auto fill_array = [ &octree_data, &bounds_data ]( TArray< FBoxCenterAndExtent > & array, const LayerIndex layer_index )
-            {
+            const auto fill_array = [ &octree_data, &bounds_data ]( TArray< FBoxCenterAndExtent > & array, const LayerIndex layer_index ) {
                 const auto & layer_nodes = octree_data.NodesByLayers[ layer_index ];
                 for ( const auto & node : layer_nodes )
                 {
@@ -113,7 +127,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData * naviga
 
             if ( it_draws_layers )
             {
-                const auto layer_index_to_draw = navigation_data->GetLayerIndexToDraw();
+                const auto layer_index_to_draw = DebugInfos.LayerIndexToDraw;
 
                 if ( layer_index_to_draw >= 1 && layer_index_to_draw < octree_data.NodesByLayers.Num() )
                 {
@@ -123,7 +137,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData * naviga
         }
     }
 
-    if ( HasDebugDrawFlag( DebugDrawFlags, ESVODebugDrawFlags::OccludesLeaves ) )
+    if ( DebugInfos.ItDebugDrawsOccludedLeaves )
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
@@ -140,6 +154,64 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData * naviga
                         const auto node_location = bounds_data.Value.GetNodePositionFromLink( link );
 
                         OccludedLeaves.Emplace( FBoxCenterAndExtent( node_location, FVector( occluded_leaf_voxel_size ) ) );
+                    }
+                }
+            }
+        }
+    }
+
+    if ( DebugInfos.ItDebugDrawsLinks )
+    {
+        for ( const auto & bounds_data : navigation_bounds )
+        {
+            const auto & octree_data = bounds_data.Value.GetOctreeData();
+
+            if ( octree_data.NodesByLayers.Num() == 0 )
+            {
+                break;
+            }
+
+            const auto layer_index_to_draw = DebugInfos.LinksLayerIndexToDraw;
+
+            if ( layer_index_to_draw >= 1 && layer_index_to_draw < octree_data.NodesByLayers.Num() )
+            {
+                const auto & layer_nodes = octree_data.NodesByLayers[ layer_index_to_draw ];
+                for ( const auto & node : layer_nodes )
+                {
+                    const auto code = node.MortonCode;
+                    const auto node_position = bounds_data.Value.GetNodePosition( layer_index_to_draw, code );
+
+                    const auto add_link = [ &bounds_data, &node_position, line_thickness = DebugInfos.DebugLineThickness ]( TArray< FDebugRenderSceneProxy::FDebugLine > & links, const FSVOOctreeLink & link )
+                    {
+                        if ( !link.IsValid() )
+                        {
+                            return;
+                        }
+
+                        const auto neighbor_position = bounds_data.Value.GetNodePositionFromLink( link );
+                        links.Emplace( FDebugRenderSceneProxy::FDebugLine( node_position, neighbor_position, FColor::Orange, line_thickness ) );
+                    };
+
+                    if ( DebugInfos.ItDebugDrawsNeighborLinks )
+                    {
+                        for ( const auto & link : node.Neighbors )
+                        {
+                            add_link( Links, link );
+                        }
+                    }
+
+                    if ( DebugInfos.ItDebugDrawsParentLinks )
+                    {
+                        const auto & link = node.Parent;
+
+                        add_link( Links, link );
+                    }
+
+                    if ( DebugInfos.ItDebugDrawsFirstChildLinks )
+                    {
+                        const auto & link = node.FirstChild;
+
+                        add_link( Links, link );
                     }
                 }
             }
@@ -187,12 +259,12 @@ void FSVONavigationMeshSceneProxy::GetDynamicMeshElements( const TArray< const F
             }
 
             FPrimitiveDrawInterface * pdi = collector.GetPDI( view_index );
+            const auto line_thickness = ProxyData.GetDebugInfos().DebugLineThickness;
 
-            const auto draw_boxes = [ pdi ]( const TArray< FBoxCenterAndExtent > & boxes, const FColor & color )
-            {
+            const auto draw_boxes = [ pdi, line_thickness ]( const TArray< FBoxCenterAndExtent > & boxes, const FColor & color ) {
                 for ( const auto & box : boxes )
                 {
-                    DrawDebugBox( pdi, box.Center, box.Extent, color );
+                    DrawDebugBox( pdi, box.Center, box.Extent, color, line_thickness );
                 }
             };
 
@@ -200,6 +272,11 @@ void FSVONavigationMeshSceneProxy::GetDynamicMeshElements( const TArray< const F
             draw_boxes( ProxyData.GetLayers(), FColor::Blue );
             draw_boxes( ProxyData.GetLeaves(), FColor::Magenta );
             draw_boxes( ProxyData.GetOccludedLeaves(), FColor::Yellow );
+
+            for ( const auto & line : ProxyData.GetLinks() )
+            {
+                pdi->DrawLine( line.Start, line.End, line.Color, SDPG_World, line.Thickness, 0, true );
+            }
         }
     }
 }
@@ -232,7 +309,7 @@ FPrimitiveSceneProxy * USVONavDataRenderingComponent::CreateSceneProxy()
     {
         if ( const ASVONavigationData * navigation_data = Cast< ASVONavigationData >( GetOwner() ) )
         {
-            if ( navigation_data->HasDebugDrawingEnabled() )
+            if ( navigation_data->GetDebugInfos().ItHasDebugDrawingEnabled )
             {
                 FSVONavigationSceneProxyData ProxyData;
                 GatherData( ProxyData, *navigation_data );
@@ -267,5 +344,5 @@ FBoxSphereBounds USVONavDataRenderingComponent::CalcBounds( const FTransform & L
 
 void USVONavDataRenderingComponent::GatherData( FSVONavigationSceneProxyData & proxy_data, const ASVONavigationData & navigation_data ) const
 {
-    proxy_data.GatherData( &navigation_data, navigation_data.GetDebugDrawFlags() );
+    proxy_data.GatherData( navigation_data );
 }
