@@ -22,7 +22,7 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
         ItDebugDrawsOccludedLeaves( false ),
         ItDebugDrawsLinks( false ),
         LinksLayerIndexToDraw( false ),
-        DebugLineThickness( 1 )
+        DebugLineThickness( 5.0f )
     {}
 
     friend FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataDebugInfos & data );
