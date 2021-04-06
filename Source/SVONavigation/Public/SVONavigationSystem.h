@@ -52,6 +52,7 @@ public:
     void OnNavigationVolumeRemoved( const ASVONavigationVolume & volume );
     void OnNavigationVolumeUpdated( const ASVONavigationVolume & volume );
     bool Tick( float delta_seconds );
+    void UpdateAllNavigationVolumes();
 
 private:
 #if WITH_EDITOR

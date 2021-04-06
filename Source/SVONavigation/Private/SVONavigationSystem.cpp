@@ -100,6 +100,14 @@ bool USVONavigationSystem::Tick( const float /*delta_seconds*/ )
     return true;
 }
 
+void USVONavigationSystem::UpdateAllNavigationVolumes()
+{
+    for ( TActorIterator< ASVONavigationVolume > iterator( GetWorld() ); iterator; ++iterator )
+    {
+        OnNavigationVolumeUpdated( **iterator );
+    }
+}
+
 #if WITH_EDITOR
 void USVONavigationSystem::OnActorMoved( AActor * actor )
 {

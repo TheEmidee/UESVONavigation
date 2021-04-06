@@ -297,6 +297,7 @@ public:
     void RemoveNavigationBounds( const FSVONavigationBounds & navigation_bounds );
 
 private:
+
     UPROPERTY( BlueprintReadOnly, VisibleAnywhere, meta = ( AllowPrivateAccess = true ) )
     USVONavDataRenderingComponent * RenderingComponent;
 
