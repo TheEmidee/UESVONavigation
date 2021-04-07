@@ -479,3 +479,8 @@ void ASVONavigationData::RemoveNavigationBounds( const FSVONavigationBounds & na
     NavigationBoundsData.Remove( navigation_bounds.UniqueID );
     MarkComponentsRenderStateDirty();
 }
+
+FSVOPathFindingResult ASVONavigationData::FindPath( const FSVOPathFindingQuery & path_finding_query ) const
+{
+    return FSVOPathFindingResult( ENavigationQueryResult::Error );
+}

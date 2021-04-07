@@ -135,7 +135,7 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeNode & data )
     archive << data.MortonCode;
     archive << data.Parent;
     archive << data.FirstChild;
-    
+
     for ( int32 neighbor_index = 0; neighbor_index < 6; neighbor_index++ )
     {
         archive << data.Neighbors[ neighbor_index ];
@@ -217,7 +217,7 @@ private:
     TWeakPtr< const FSVODataConfig > Config;
 };
 
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsData  & data )
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsData & data )
 {
     archive << data.Box;
     archive << data.VolumeBox;
@@ -296,8 +296,9 @@ public:
     void UpdateNavigationBounds( const FSVONavigationBounds & navigation_bounds );
     void RemoveNavigationBounds( const FSVONavigationBounds & navigation_bounds );
 
-private:
+    FSVOPathFindingResult FindPath( const FSVOPathFindingQuery & path_finding_query ) const;
 
+private:
     UPROPERTY( BlueprintReadOnly, VisibleAnywhere, meta = ( AllowPrivateAccess = true ) )
     USVONavDataRenderingComponent * RenderingComponent;
 

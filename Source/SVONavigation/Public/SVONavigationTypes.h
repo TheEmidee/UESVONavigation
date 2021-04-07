@@ -1,12 +1,71 @@
 #pragma once
 
+#include <NavigationSystemTypes.h>
 #include "SVONavigationTypes.generated.h"
 
+class ASVONavigationData;
 typedef uint_fast64_t MortonCode;
 typedef uint8 LayerIndex;
 typedef int32 NodeIndex;
 typedef uint8 SubNodeIndex;
 typedef uint8 NeighborDirection;
+
+DECLARE_DELEGATE_ThreeParams( FSVONavigationPathQueryDelegate, uint32, ENavigationQueryResult::Type, FNavPathSharedPtr );
+
+struct NAVIGATIONSYSTEM_API FSVOPathFindingQuery : public FPathFindingQueryData
+{
+    FSVOPathFindingQuery() = default;
+
+    FSVOPathFindingQuery( const UObject * owner, const ASVONavigationData & navigation_data, const FVector & start, const FVector & end ) :
+        FPathFindingQueryData( owner, start, end ),
+        NavigationData( &navigation_data )
+    {}
+
+    TWeakObjectPtr< const ASVONavigationData > NavigationData;
+};
+
+struct FSVOAsyncPathFindingQuery : public FPathFindingQuery
+{
+    const uint32 QueryID;
+    const FSVONavigationPathQueryDelegate OnDoneDelegate;
+    FSVOPathFindingResult Result;
+
+    FSVOAsyncPathFindingQuery() :
+        QueryID( INVALID_NAVQUERYID )
+    {}
+
+    FSVOAsyncPathFindingQuery( const FSVOPathFindingQuery & path_finding_query, const FSVONavigationPathQueryDelegate & on_done_delegate ) :
+        FPathFindingQuery( path_finding_query ),
+        QueryID( GetUniqueID() ),
+        OnDoneDelegate( on_done_delegate )
+    {
+    }
+
+protected:
+    FORCEINLINE static uint32 GetUniqueID()
+    {
+        return ++LastPathFindingUniqueID;
+    }
+
+    static uint32 LastPathFindingUniqueID;
+};
+
+struct FSVOPathFindingResult
+{
+    FNavPathSharedPtr Path;
+    ENavigationQueryResult::Type Result;
+
+    explicit FSVOPathFindingResult( ENavigationQueryResult::Type result = ENavigationQueryResult::Invalid ) :
+        Result( result )
+    {}
+
+    bool IsSuccessful() const;
+};
+
+FORCEINLINE bool FSVOPathFindingResult::IsSuccessful() const
+{
+    return Result == ENavigationQueryResult::Success;
+}
 
 USTRUCT()
 struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos

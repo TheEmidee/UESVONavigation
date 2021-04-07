@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SVONavigationTypes.h"
 #include "SVONavigationVolume.h"
 
 #include <Subsystems/EngineSubsystem.h>
@@ -45,6 +46,8 @@ class SVONAVIGATION_API USVONavigationSystem : public UEngineSubsystem
     GENERATED_BODY()
 
 public:
+    const TWeakObjectPtr< ASVONavigationData > & GetNavigationData() const;
+
     void Initialize( FSubsystemCollectionBase & collection ) override;
     void Deinitialize() override;
     UWorld * GetWorld() const override;
@@ -53,6 +56,8 @@ public:
     void OnNavigationVolumeUpdated( const ASVONavigationVolume & volume );
     bool Tick( float delta_seconds );
     void UpdateAllNavigationVolumes();
+    FSVOPathFindingResult FindPathSync( FSVOPathFindingQuery path_finding_query );
+    uint32 FindPathAsync( FSVOPathFindingQuery path_finding_query, const FSVONavigationPathQueryDelegate & result_delegate );
 
 private:
 #if WITH_EDITOR
@@ -74,6 +79,9 @@ private:
     void AddNavigationVolumeUpdateRequest( const FSVONavigationBoundsUpdateRequest & update_request );
     bool IsThereAnywhereToBuildNavigation() const;
     void UpdateNavigationVolumeAroundActor( AActor * actor );
+    void AddAsyncQuery( const FSVOAsyncPathFindingQuery & async_query );
+    void TriggerAsyncQueries( TArray< FSVOAsyncPathFindingQuery > & queries );
+    void DispatchAsyncQueriesResults( const TArray< FSVOAsyncPathFindingQuery > & queries );
 
     UPROPERTY( Transient )
     TWeakObjectPtr< ASVONavigationData > NavigationData;
@@ -91,4 +99,16 @@ private:
     FDelegateHandle OnPostWorldCleanupDelegateHandle;
     FDelegateHandle OnLevelAddedToWorldDelegateHandle;
     FDelegateHandle OnLevelRemovedFromWorldDelegateHandle;
+
+    /** Queued async pathfinding queries to process in the next update. */
+    TArray< FSVOAsyncPathFindingQuery > AsyncPathFindingQueries;
+
+    /** Queued async pathfinding results computed by the dedicated task in the last frame and ready to dispatch in the next update. */
+    TArray< FSVOAsyncPathFindingQuery > AsyncPathFindingCompletedQueries;
+    FGraphEventRef AsyncPathFindingTask;
 };
+
+const TWeakObjectPtr< ASVONavigationData > & USVONavigationSystem::GetNavigationData() const
+{
+    return NavigationData;
+}

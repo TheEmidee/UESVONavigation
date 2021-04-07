@@ -97,6 +97,23 @@ bool USVONavigationSystem::Tick( const float /*delta_seconds*/ )
         PendingNavigationVolumeUpdateRequests.Reset();
     }
 
+    // In multithreaded configuration we can process async pathfinding queries
+    // in dedicated task while dispatching completed queries results on the main thread.
+    // The created task can start and append new result right away so we transfer
+    // completed queries before to keep the list safe.
+    TArray< FSVOAsyncPathFindingQuery > AsyncPathFindingCompletedQueriesToDispatch;
+    Swap( AsyncPathFindingCompletedQueriesToDispatch, AsyncPathFindingCompletedQueries );
+
+    // Trigger the async pathfinding queries (new ones and those that may have been postponed from last frame)
+    if ( AsyncPathFindingQueries.Num() > 0 )
+    {
+        TriggerAsyncQueries( AsyncPathFindingQueries );
+        AsyncPathFindingQueries.Reset();
+    }
+
+    // Dispatch async pathfinding queries results from last frame
+    DispatchAsyncQueriesResults( AsyncPathFindingCompletedQueriesToDispatch );
+
     return true;
 }
 
@@ -106,6 +123,44 @@ void USVONavigationSystem::UpdateAllNavigationVolumes()
     {
         OnNavigationVolumeUpdated( **iterator );
     }
+}
+
+FSVOPathFindingResult USVONavigationSystem::FindPathSync( FSVOPathFindingQuery path_finding_query )
+{
+    if ( !path_finding_query.NavigationData.IsValid() )
+    {
+        path_finding_query.NavigationData = GetDefaultNavigationDataInstance( false );
+    }
+
+    FSVOPathFindingResult result( ENavigationQueryResult::Error );
+    if ( path_finding_query.NavigationData.IsValid() )
+    {
+        result = path_finding_query.NavigationData->FindPath( path_finding_query );
+    }
+
+    return result;
+}
+
+uint32 USVONavigationSystem::FindPathAsync( FSVOPathFindingQuery path_finding_query, const FSVONavigationPathQueryDelegate & result_delegate )
+{
+    if ( !path_finding_query.NavigationData.IsValid() )
+    {
+        path_finding_query.NavigationData = GetDefaultNavigationDataInstance( false );
+    }
+
+    if ( path_finding_query.NavigationData.IsValid() )
+    {
+        FSVOAsyncPathFindingQuery async_query( path_finding_query, result_delegate );
+
+        if ( async_query.QueryID != INVALID_NAVQUERYID )
+        {
+            AddAsyncQuery( async_query );
+        }
+
+        return async_query.QueryID;
+    }
+
+    return INVALID_NAVQUERYID;
 }
 
 #if WITH_EDITOR
@@ -336,6 +391,34 @@ void USVONavigationSystem::UpdateNavigationVolumeAroundActor( AActor * actor )
             {
                 navigation_data->UpdateNavigationBounds( navigation_bounds );
             }
+        }
+    }
+}
+
+void USVONavigationSystem::AddAsyncQuery( const FSVOAsyncPathFindingQuery & async_query )
+{
+    check( IsInGameThread() );
+    AsyncPathFindingQueries.Add( async_query );
+}
+
+void USVONavigationSystem::TriggerAsyncQueries( TArray<FSVOAsyncPathFindingQuery> & queries )
+{
+    DECLARE_CYCLE_STAT( TEXT( "FSimpleDelegateGraphTask.USVONavigationSystem batched async queries" ),
+        STAT_FSimpleDelegateGraphTask_USVONavigationSystemBatchedAsyncQueries,
+        STATGROUP_TaskGraphTasks );
+
+    AsyncPathFindingTask = FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+        FSimpleDelegateGraphTask::FDelegate::CreateUObject( this, &USVONavigationSystem::PerformAsyncQueries, queries ),
+        GET_STATID( STAT_FSimpleDelegateGraphTask_USVONavigationSystemBatchedAsyncQueries ) );
+}
+
+void USVONavigationSystem::DispatchAsyncQueriesResults( const TArray<FSVOAsyncPathFindingQuery> & queries )
+{
+    if ( AsyncPathFindingQueries.Num() > 0 )
+    {
+        for ( const auto & query : AsyncPathFindingQueries )
+        {
+            query.OnDoneDelegate.ExecuteIfBound( query.QueryID, query.Result.Result, query.Result.Path );
         }
     }
 }

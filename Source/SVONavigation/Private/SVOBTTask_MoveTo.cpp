@@ -362,7 +362,7 @@ USVOAITask_MoveTo * USVOBTTask_MoveTo::PrepareMoveTask( UBehaviorTreeComponent &
     USVOAITask_MoveTo * move_task = existing_task ? existing_task : NewBTAITask< USVOAITask_MoveTo >( owner_component );
     if ( move_task )
     {
-        move_task->SetUp( move_task->GetAIController(), move_request, bUseAsyncPathfinding );
+        move_task->SetUp( move_task->GetAIController(), move_request );
     }
 
     return move_task;
