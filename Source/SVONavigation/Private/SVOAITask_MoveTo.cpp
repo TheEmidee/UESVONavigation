@@ -1,12 +1,11 @@
 #include "SVOAITask_MoveTo.h"
 
-#include "AIResources.h"
-#include "Chaos/AABB.h"
-#include "Perception/AIPerceptionComponent.h"
 #include "SVONavigationSystem.h"
 #include "SVONavigationTypes.h"
 
 #include <AIController.h>
+#include <AIResources.h>
+#include <Perception/AIPerceptionComponent.h>
 #include <Runtime/Engine/Public/VisualLogger/VisualLogger.h>
 #include <Runtime/GameplayTasks/Classes/GameplayTasksComponent.h>
 

@@ -1,12 +1,11 @@
 #include "SVONavigationVolume.h"
 
-
-
+#if WITH_EDITOR
 #include "Editor.h"
-#include "SVONavigationSettings.h"
-#include "SVONavigationSystem.h"
-#include "Builders/CubeBuilder.h"
+#endif
 
+//#include "SVONavigationSettings.h"
+#include "SVONavigationSystem.h"
 
 #include <Components/BrushComponent.h>
 #include <Engine/CollisionProfile.h>

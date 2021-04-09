@@ -1,10 +1,9 @@
 #pragma once
 
-#include <Components/PrimitiveComponent.h>
-#include <CoreMinimal.h>
-
 #include "SVONavigationTypes.h"
 
+#include <Components/PrimitiveComponent.h>
+#include <CoreMinimal.h>
 #include <DebugRenderSceneProxy.h>
 
 #include "SVONavDataRenderingComponent.generated.h"
