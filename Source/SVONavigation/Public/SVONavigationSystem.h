@@ -70,6 +70,7 @@ private:
     void OnPostWorldCleanup( UWorld * world, bool session_ended, bool cleanup_resources );
     void OnLevelAddedToWorld( ULevel * level, UWorld * world );
     void OnLevelRemovedFromWorld( ULevel * level, UWorld * world );
+    void OnWorldPostActorTick( UWorld * world, ELevelTick tick_type, float delta_time );
     void OnPostLoadMap( UWorld * world );
     ASVONavigationData * CreateNavigationData() const;
     void GatherExistingNavigationData();
@@ -82,6 +83,8 @@ private:
     void AddAsyncQuery( const FSVOAsyncPathFindingQuery & async_query );
     void TriggerAsyncQueries( TArray< FSVOAsyncPathFindingQuery > & queries );
     void DispatchAsyncQueriesResults( const TArray< FSVOAsyncPathFindingQuery > & queries );
+    void PerformAsyncQueries( TArray<FSVOAsyncPathFindingQuery> path_finding_queries );
+    void PostponeAsyncQueries();
 
     UPROPERTY( Transient )
     TWeakObjectPtr< ASVONavigationData > NavigationData;
@@ -98,6 +101,7 @@ private:
     FDelegateHandle OnPostWorldInitializationDelegateHandle;
     FDelegateHandle OnPostWorldCleanupDelegateHandle;
     FDelegateHandle OnLevelAddedToWorldDelegateHandle;
+    FDelegateHandle OnWorldPostActorTickDelegateHandle;
     FDelegateHandle OnLevelRemovedFromWorldDelegateHandle;
 
     /** Queued async pathfinding queries to process in the next update. */
@@ -106,9 +110,12 @@ private:
     /** Queued async pathfinding results computed by the dedicated task in the last frame and ready to dispatch in the next update. */
     TArray< FSVOAsyncPathFindingQuery > AsyncPathFindingCompletedQueries;
     FGraphEventRef AsyncPathFindingTask;
+
+    /** Flag used by main thread to ask the async pathfinding task to stop and postpone remaining queries, if any. */
+    std::atomic< bool > AbortAsyncQueriesRequested;
 };
 
-const TWeakObjectPtr< ASVONavigationData > & USVONavigationSystem::GetNavigationData() const
+FORCEINLINE const TWeakObjectPtr< ASVONavigationData > & USVONavigationSystem::GetNavigationData() const
 {
     return NavigationData;
 }

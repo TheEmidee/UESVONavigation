@@ -102,6 +102,9 @@ public:
 
     FPrimitiveSceneProxy * CreateSceneProxy() override;
     FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const override;
+    void ForceUpdate();
+
+    static bool IsNavigationShowFlagSet( const UWorld * world );
 
 private:
     void GatherData( FSVONavigationSceneProxyData & proxy_data, const ASVONavigationData & navigation_data ) const;

@@ -184,6 +184,7 @@ void USVONavigationSystem::RegisterWorldDelegates()
     OnPostWorldCleanupDelegateHandle = FWorldDelegates::OnPostWorldCleanup.AddUObject( this, &USVONavigationSystem::OnPostWorldCleanup );
     OnLevelAddedToWorldDelegateHandle = FWorldDelegates::LevelAddedToWorld.AddUObject( this, &USVONavigationSystem::OnLevelAddedToWorld );
     OnLevelRemovedFromWorldDelegateHandle = FWorldDelegates::LevelRemovedFromWorld.AddUObject( this, &USVONavigationSystem::OnLevelRemovedFromWorld );
+    OnWorldPostActorTickDelegateHandle = FWorldDelegates::OnWorldPostActorTick.AddUObject( this, &USVONavigationSystem::OnWorldPostActorTick );
 }
 
 void USVONavigationSystem::UnRegisterWorldDelegates()
@@ -192,6 +193,7 @@ void USVONavigationSystem::UnRegisterWorldDelegates()
     FWorldDelegates::OnPostWorldInitialization.Remove( OnPostWorldInitializationDelegateHandle );
     FWorldDelegates::LevelAddedToWorld.Remove( OnLevelAddedToWorldDelegateHandle );
     FWorldDelegates::LevelRemovedFromWorld.Remove( OnLevelRemovedFromWorldDelegateHandle );
+    FWorldDelegates::OnWorldPostActorTick.Remove( OnWorldPostActorTickDelegateHandle );
 }
 
 void USVONavigationSystem::OnPostWorldInitialized( UWorld * world, const UWorld::InitializationValues /*initialization_values*/ )
@@ -221,6 +223,11 @@ void USVONavigationSystem::OnLevelRemovedFromWorld( ULevel * level, UWorld * wor
     check( World.IsValid() )
 }
 
+void USVONavigationSystem::OnWorldPostActorTick( UWorld * world, ELevelTick tick_type, float delta_time )
+{
+    PostponeAsyncQueries();
+}
+
 void USVONavigationSystem::OnPostLoadMap( UWorld * world )
 {
     World = world;
@@ -234,8 +241,12 @@ void USVONavigationSystem::OnPostLoadMap( UWorld * world )
 
 ASVONavigationData * USVONavigationSystem::CreateNavigationData() const
 {
-    check( World != nullptr );
-    return World->SpawnActor< ASVONavigationData >( ASVONavigationData::StaticClass() );
+    if ( World != nullptr )
+    {
+        return World->SpawnActor< ASVONavigationData >( ASVONavigationData::StaticClass() );
+    }
+
+    return nullptr;
 }
 
 void USVONavigationSystem::GatherExistingNavigationData()
@@ -277,6 +288,11 @@ ASVONavigationData * USVONavigationSystem::GetDefaultNavigationDataInstance( boo
 void USVONavigationSystem::PerformNavigationVolumesUpdate( const TArray< FSVONavigationBoundsUpdateRequest > & update_requests )
 {
     SpawnMissingNavigationData();
+
+    if ( !NavigationData.IsValid() )
+    {
+        return;
+    }
 
     for ( const auto & update_request : update_requests )
     {
@@ -401,7 +417,7 @@ void USVONavigationSystem::AddAsyncQuery( const FSVOAsyncPathFindingQuery & asyn
     AsyncPathFindingQueries.Add( async_query );
 }
 
-void USVONavigationSystem::TriggerAsyncQueries( TArray<FSVOAsyncPathFindingQuery> & queries )
+void USVONavigationSystem::TriggerAsyncQueries( TArray< FSVOAsyncPathFindingQuery > & queries )
 {
     DECLARE_CYCLE_STAT( TEXT( "FSimpleDelegateGraphTask.USVONavigationSystem batched async queries" ),
         STAT_FSimpleDelegateGraphTask_USVONavigationSystemBatchedAsyncQueries,
@@ -412,7 +428,7 @@ void USVONavigationSystem::TriggerAsyncQueries( TArray<FSVOAsyncPathFindingQuery
         GET_STATID( STAT_FSimpleDelegateGraphTask_USVONavigationSystemBatchedAsyncQueries ) );
 }
 
-void USVONavigationSystem::DispatchAsyncQueriesResults( const TArray<FSVOAsyncPathFindingQuery> & queries )
+void USVONavigationSystem::DispatchAsyncQueriesResults( const TArray< FSVOAsyncPathFindingQuery > & queries )
 {
     if ( AsyncPathFindingQueries.Num() > 0 )
     {
@@ -420,5 +436,59 @@ void USVONavigationSystem::DispatchAsyncQueriesResults( const TArray<FSVOAsyncPa
         {
             query.OnDoneDelegate.ExecuteIfBound( query.QueryID, query.Result.Result, query.Result.Path );
         }
+    }
+}
+
+void USVONavigationSystem::PerformAsyncQueries( TArray< FSVOAsyncPathFindingQuery > path_finding_queries )
+{
+    if ( path_finding_queries.Num() == 0 )
+    {
+        return;
+    }
+
+    int32 NumProcessed = 0;
+    for ( FSVOAsyncPathFindingQuery & query : path_finding_queries )
+    {
+        // @todo this is not necessarily the safest way to use UObjects outside of main thread.
+        //	think about something else.
+        if ( const auto * navigation_data = query.NavigationData.IsValid() ? query.NavigationData.Get() : GetDefaultNavigationDataInstance( false ) )
+        {
+            query.Result = navigation_data->FindPath( query );
+        }
+        else
+        {
+            query.Result.Result = ENavigationQueryResult::Error;
+        }
+        ++NumProcessed;
+
+        // Check for abort request from the main tread
+        if ( AbortAsyncQueriesRequested )
+        {
+            break;
+        }
+    }
+
+    const int32 NumQueries = path_finding_queries.Num();
+    const int32 NumPostponed = NumQueries - NumProcessed;
+
+    // Queue remaining queries for next frame
+    if ( AbortAsyncQueriesRequested )
+    {
+        AsyncPathFindingQueries.Append( path_finding_queries.GetData() + NumProcessed, NumPostponed );
+    }
+
+    // Append to list of completed queries to dispatch results in main thread
+    AsyncPathFindingCompletedQueries.Append( path_finding_queries.GetData(), NumProcessed );
+
+    UE_LOG( LogNavigation, Log, TEXT( "Async pathfinding queries: %d completed, %d postponed to next frame" ), NumProcessed, NumPostponed );
+}
+
+void USVONavigationSystem::PostponeAsyncQueries()
+{
+    if ( AsyncPathFindingTask.GetReference() && !AsyncPathFindingTask->IsComplete() )
+    {
+        AbortAsyncQueriesRequested = true;
+        FTaskGraphInterface::Get().WaitUntilTaskCompletes( AsyncPathFindingTask, ENamedThreads::GameThread );
+        AbortAsyncQueriesRequested = false;
     }
 }

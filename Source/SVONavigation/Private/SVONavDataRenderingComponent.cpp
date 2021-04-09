@@ -4,6 +4,11 @@
 
 #include <Engine/CollisionProfile.h>
 
+#if WITH_EDITOR
+#include "Editor.h"
+#include "EditorViewportClient.h"
+#endif
+
 namespace
 {
     void DrawDebugBox( FPrimitiveDrawInterface * pdi, FVector const & center, FVector const & box, FColor const & color, const float line_thickness )
@@ -181,8 +186,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                     const auto code = node.MortonCode;
                     const auto node_position = bounds_data.Value.GetNodePosition( layer_index_to_draw, code );
 
-                    const auto add_link = [ &bounds_data, &node_position, line_thickness = DebugInfos.DebugLineThickness ]( TArray< FDebugRenderSceneProxy::FDebugLine > & links, const FSVOOctreeLink & link )
-                    {
+                    const auto add_link = [ &bounds_data, &node_position, line_thickness = DebugInfos.DebugLineThickness ]( TArray< FDebugRenderSceneProxy::FDebugLine > & links, const FSVOOctreeLink & link ) {
                         if ( !link.IsValid() )
                         {
                             return;
@@ -340,6 +344,38 @@ FBoxSphereBounds USVONavDataRenderingComponent::CalcBounds( const FTransform & L
     }
 
     return FBoxSphereBounds( bounding_box );
+}
+
+bool USVONavDataRenderingComponent::IsNavigationShowFlagSet( const UWorld * world )
+{
+    bool show_navigation = false;
+
+    FWorldContext * world_context = GEngine->GetWorldContextFromWorld( world );
+
+#if WITH_EDITOR
+    if ( GEditor != nullptr && world_context && world_context->WorldType != EWorldType::Game )
+    {
+        show_navigation = world_context->GameViewport != nullptr && world_context->GameViewport->EngineShowFlags.Navigation;
+        if ( show_navigation == false )
+        {
+            // we have to check all viewports because we can't to distinguish between SIE and PIE at this point.
+            for ( FEditorViewportClient * current_viewport : GEditor->GetAllViewportClients() )
+            {
+                if ( current_viewport && current_viewport->EngineShowFlags.Navigation )
+                {
+                    show_navigation = true;
+                    break;
+                }
+            }
+        }
+    }
+    else
+#endif //WITH_EDITOR
+    {
+        show_navigation = world_context && world_context->GameViewport && world_context->GameViewport->EngineShowFlags.Navigation;
+    }
+
+    return show_navigation;
 }
 
 void USVONavDataRenderingComponent::GatherData( FSVONavigationSceneProxyData & proxy_data, const ASVONavigationData & navigation_data ) const

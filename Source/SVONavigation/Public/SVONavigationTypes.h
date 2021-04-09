@@ -12,44 +12,6 @@ typedef uint8 NeighborDirection;
 
 DECLARE_DELEGATE_ThreeParams( FSVONavigationPathQueryDelegate, uint32, ENavigationQueryResult::Type, FNavPathSharedPtr );
 
-struct NAVIGATIONSYSTEM_API FSVOPathFindingQuery : public FPathFindingQueryData
-{
-    FSVOPathFindingQuery() = default;
-
-    FSVOPathFindingQuery( const UObject * owner, const ASVONavigationData & navigation_data, const FVector & start, const FVector & end ) :
-        FPathFindingQueryData( owner, start, end ),
-        NavigationData( &navigation_data )
-    {}
-
-    TWeakObjectPtr< const ASVONavigationData > NavigationData;
-};
-
-struct FSVOAsyncPathFindingQuery : public FPathFindingQuery
-{
-    const uint32 QueryID;
-    const FSVONavigationPathQueryDelegate OnDoneDelegate;
-    FSVOPathFindingResult Result;
-
-    FSVOAsyncPathFindingQuery() :
-        QueryID( INVALID_NAVQUERYID )
-    {}
-
-    FSVOAsyncPathFindingQuery( const FSVOPathFindingQuery & path_finding_query, const FSVONavigationPathQueryDelegate & on_done_delegate ) :
-        FPathFindingQuery( path_finding_query ),
-        QueryID( GetUniqueID() ),
-        OnDoneDelegate( on_done_delegate )
-    {
-    }
-
-protected:
-    FORCEINLINE static uint32 GetUniqueID()
-    {
-        return ++LastPathFindingUniqueID;
-    }
-
-    static uint32 LastPathFindingUniqueID;
-};
-
 struct FSVOPathFindingResult
 {
     FNavPathSharedPtr Path;
@@ -66,6 +28,49 @@ FORCEINLINE bool FSVOPathFindingResult::IsSuccessful() const
 {
     return Result == ENavigationQueryResult::Success;
 }
+
+struct SVONAVIGATION_API FSVOPathFindingQuery : public FPathFindingQueryData
+{
+    FSVOPathFindingQuery()
+    {}
+
+    FSVOPathFindingQuery( const UObject * owner, const ASVONavigationData & navigation_data, const FVector & start, const FVector & end, FNavPathSharedPtr path_to_fill = nullptr ) :
+        FPathFindingQueryData( owner, start, end ),
+        NavigationData( &navigation_data ),
+        PathInstanceToFill( path_to_fill )
+    {}
+
+    TWeakObjectPtr< const ASVONavigationData > NavigationData;
+    FNavPathSharedPtr PathInstanceToFill;
+};
+
+struct SVONAVIGATION_API FSVOAsyncPathFindingQuery : public FSVOPathFindingQuery
+{
+    const uint32 QueryID;
+    const FSVONavigationPathQueryDelegate OnDoneDelegate;
+    FSVOPathFindingResult Result;
+
+    FSVOAsyncPathFindingQuery() :
+        QueryID( INVALID_NAVQUERYID )
+    {}
+
+    FSVOAsyncPathFindingQuery( const FSVOPathFindingQuery & path_finding_query, const FSVONavigationPathQueryDelegate & on_done_delegate ) :
+        FSVOPathFindingQuery( path_finding_query ),
+        QueryID( GetUniqueID() ),
+        OnDoneDelegate( on_done_delegate )
+    {
+    }
+
+protected:
+    FORCEINLINE static uint32 GetUniqueID()
+    {
+        return ++LastPathFindingUniqueID;
+    }
+
+    static uint32 LastPathFindingUniqueID;
+};
+
+uint32 FSVOAsyncPathFindingQuery::LastPathFindingUniqueID = 0;
 
 USTRUCT()
 struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos

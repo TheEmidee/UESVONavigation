@@ -66,21 +66,23 @@ EBTNodeResult::Type USVOBTTask_MoveTo::ExecuteTask( UBehaviorTreeComponent & own
 
 EBTNodeResult::Type USVOBTTask_MoveTo::AbortTask( UBehaviorTreeComponent & owner_component, uint8 * node_memory )
 {
-    FSVOBTTaskMoveToMemory * MyMemory = reinterpret_cast< FSVOBTTaskMoveToMemory * >( node_memory );
-    if ( !MyMemory->bWaitingForPath )
+    FSVOBTTaskMoveToMemory * my_memory = reinterpret_cast< FSVOBTTaskMoveToMemory * >( node_memory );
+    if ( !my_memory->bWaitingForPath )
     {
-        if ( MyMemory->MoveRequestID.IsValid() )
+        if ( my_memory->MoveRequestID.IsValid() )
         {
-            AAIController * MyController = owner_component.GetAIOwner();
-            if ( MyController && MyController->GetPathFollowingComponent() )
+            if ( AAIController * ai_controller = owner_component.GetAIOwner() )
             {
-                MyController->GetPathFollowingComponent()->AbortMove( *this, FPathFollowingResultFlags::OwnerFinished, MyMemory->MoveRequestID );
+                if ( ai_controller && ai_controller->GetPathFollowingComponent() )
+                {
+                    ai_controller->GetPathFollowingComponent()->AbortMove( *this, FPathFollowingResultFlags::OwnerFinished, my_memory->MoveRequestID );
+                }
             }
         }
         else
         {
-            MyMemory->bObserverCanFinishTask = false;
-            USVOAITask_MoveTo * move_task = MyMemory->Task.Get();
+            my_memory->bObserverCanFinishTask = false;
+            USVOAITask_MoveTo * move_task = my_memory->Task.Get();
             if ( move_task )
             {
                 move_task->ExternalCancel();

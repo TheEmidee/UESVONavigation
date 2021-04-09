@@ -1,9 +1,11 @@
 #include "SVONavigationData.h"
 
 #include "SVONavDataRenderingComponent.h"
+#include "SVONavigationPath.h"
 #include "SVONavigationSettings.h"
 #include "SVONavigationSystem.h"
 
+#include <AI/NavDataGenerator.h>
 #include <libmorton/morton.h>
 
 static const FIntVector NeighborDirections[ 6 ] = {
