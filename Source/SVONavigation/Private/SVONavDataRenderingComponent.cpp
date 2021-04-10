@@ -89,7 +89,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
 
     DebugInfos = navigation_data.GetDebugInfos();
 
-    const auto & navigation_bounds = navigation_data.GetNavigationBoundsData();
+    /*const auto & navigation_bounds = navigation_data.GetNavigationBoundsData();
 
     if ( DebugInfos.ItDebugDrawsBounds )
     {
@@ -220,7 +220,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                 }
             }
         }
-    }
+    }*/
 }
 
 SIZE_T FSVONavigationMeshSceneProxy::GetTypeHash() const
@@ -335,12 +335,12 @@ FBoxSphereBounds USVONavDataRenderingComponent::CalcBounds( const FTransform & L
 
     if ( ASVONavigationData * navigation_data = Cast< ASVONavigationData >( GetOwner() ) )
     {
-        const auto & navigation_bounds = navigation_data->GetNavigationBoundsData();
+        /*const auto & navigation_bounds = navigation_data->GetNavigationBoundsData();
 
         for ( const auto & bounds : navigation_bounds )
         {
             bounding_box += bounds.Value.GetBox();
-        }
+        }*/
     }
 
     return FBoxSphereBounds( bounding_box );

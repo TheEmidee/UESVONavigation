@@ -1,9 +1,11 @@
 #include "SVONavigationData.h"
 
+
+#include "NavigationSystem.h"
 #include "SVONavDataRenderingComponent.h"
+#include "SVONavigationDataGenerator.h"
 #include "SVONavigationPath.h"
 #include "SVONavigationSettings.h"
-#include "SVONavigationSystem.h"
 
 #include <AI/NavDataGenerator.h>
 #include <libmorton/morton.h>
@@ -61,9 +63,9 @@ FVector FSVONavigationBoundsData::GetNodePositionFromLink( const FSVOOctreeLink 
     return position;
 }
 
-void FSVONavigationBoundsData::ComputeDataFromNavigationBounds( const FSVONavigationBounds & navigation_bounds, const FSVODataConfig & config )
+void FSVONavigationBoundsData::ComputeDataFromNavigationBounds( const FSVONavigationBounds & navigation_bounds, const FSVODataBuildConfig & config )
 {
-    Config = config.AsShared();
+    /*Config = config.AsShared();
 
     VolumeBox = navigation_bounds.AreaBox;
 
@@ -76,7 +78,7 @@ void FSVONavigationBoundsData::ComputeDataFromNavigationBounds( const FSVONaviga
     const auto corrected_box_size = FMath::Pow( 2, VoxelExponent ) * ( settings->VoxelSize * 4 );
     const auto corrected_box_extent = corrected_box_size * 0.5f;
 
-    Box = FBox::BuildAABB( VolumeBox.GetCenter(), FVector( corrected_box_extent ) );
+    Box = FBox::BuildAABB( VolumeBox.GetCenter(), FVector( corrected_box_extent ) );*/
 
     BlockedIndices.Reset();
     OctreeData.Reset();
@@ -120,12 +122,13 @@ bool FSVONavigationBoundsData::IsPositionOccluded( const FVector & position, flo
 {
     auto shared_ptr_config = Config.Pin();
 
-    return shared_ptr_config->World->OverlapBlockingTestByChannel(
+    return false;
+    /*return shared_ptr_config->World->OverlapBlockingTestByChannel(
         position,
         FQuat::Identity,
         shared_ptr_config->CollisionChannel,
         FCollisionShape::MakeBox( FVector( box_size + shared_ptr_config->Clearance ) ),
-        shared_ptr_config->CollisionQueryParameters );
+        shared_ptr_config->CollisionQueryParameters );*/
 }
 
 void FSVONavigationBoundsData::FirstPassRasterization()
@@ -413,26 +416,31 @@ ASVONavigationData::ASVONavigationData()
 {
     PrimaryActorTick.bCanEverTick = false;
 
-    RenderingComponent = CreateDefaultSubobject< USVONavDataRenderingComponent >( TEXT( "RenderingComponent" ) );
-    RootComponent = RenderingComponent;
-
-    Config = MakeShared< FSVODataConfig >();
-
-    Config->CollisionQueryParameters.bFindInitialOverlaps = true;
-    Config->CollisionQueryParameters.bTraceComplex = false;
-    Config->CollisionQueryParameters.TraceTag = "SVONavigationRasterize";
+    Config.CollisionQueryParameters.bFindInitialOverlaps = true;
+    Config.CollisionQueryParameters.bTraceComplex = false;
+    Config.CollisionQueryParameters.TraceTag = "SVONavigationRasterize";
 }
 
-void ASVONavigationData::PostRegisterAllComponents()
+void ASVONavigationData::PostInitProperties()
 {
-    Super::PostRegisterAllComponents();
-
-    if ( auto * settings = GetDefault< USVONavigationSettings >() )
+    if ( UWorld * world = GetWorld() )
     {
-        Config->Clearance = settings->Clearance;
-        Config->CollisionChannel = settings->CollisionChannel;
-        Config->World = GetWorld();
+        if ( auto * settings = GetDefault< USVONavigationSettings >() )
+        {
+            if ( HasAnyFlags( RF_NeedLoad )                                                                   //  was loaded
+                 && settings->ShouldDiscardSubLevelNavigationData && GEngine->IsSettingUpPlayWorld() == false // this is a @HACK
+                 && world->GetOutermost() != GetOutermost()
+                 // If we are cooking, then let them all pass.
+                 // They will be handled at load-time when running.
+                 && !IsRunningCommandlet() )
+            {
+                // marking self for deletion
+                CleanUpAndMarkPendingKill();
+            }
+        }
     }
+
+    Super::PostInitProperties();
 }
 
 void ASVONavigationData::Serialize( FArchive & archive )
@@ -441,6 +449,185 @@ void ASVONavigationData::Serialize( FArchive & archive )
     archive << NavigationBoundsData;
     archive << DebugInfos;
 }
+
+void ASVONavigationData::CleanUp()
+{
+    Super::CleanUp();
+    ResetGenerator();
+}
+
+FBox ASVONavigationData::GetBounds() const
+{
+    FBox result( EForceInit::ForceInit );
+
+    for ( const auto & key_pair : NavigationBoundsData )
+    {
+        result += key_pair.Value.GetBox();
+    }
+
+    return result;
+}
+
+FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+    return FNavLocation();
+}
+
+bool ASVONavigationData::GetRandomReachablePointInRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+    return false;
+}
+
+bool ASVONavigationData::GetRandomPointInNavigableRadius( const FVector & origin, float Radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+    return false;
+}
+
+void ASVONavigationData::BatchRaycast( TArray<FNavigationRaycastWork> & workload, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+}
+
+bool ASVONavigationData::FindMoveAlongSurface( const FNavLocation & start_location, const FVector & target_position, FNavLocation & out_location, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+    return false;
+}
+
+bool ASVONavigationData::ProjectPoint( const FVector & point, FNavLocation & out_location, const FVector & extent, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+    return false;
+}
+
+void ASVONavigationData::BatchProjectPoints( TArray<FNavigationProjectionWork> & Workload, const FVector & Extent, FSharedConstNavQueryFilter Filter, const UObject * Querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+}
+
+void ASVONavigationData::BatchProjectPoints( TArray<FNavigationProjectionWork> & Workload, FSharedConstNavQueryFilter Filter, const UObject * Querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+}
+
+ENavigationQueryResult::Type ASVONavigationData::CalcPathCost( const FVector & path_start, const FVector & path_end, float & out_path_cost, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+    return ENavigationQueryResult::Error;
+}
+
+ENavigationQueryResult::Type ASVONavigationData::CalcPathLength( const FVector & path_start, const FVector & path_end, float & out_path_length, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+    return ENavigationQueryResult::Error;
+}
+
+ENavigationQueryResult::Type ASVONavigationData::CalcPathLengthAndCost( const FVector & path_start, const FVector & path_end, float & out_path_length, float & out_path_cost, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+{
+    // :TODO:
+    checkNoEntry();
+    return ENavigationQueryResult::Error;
+}
+
+bool ASVONavigationData::DoesNodeContainLocation( NavNodeRef node_ref, const FVector & world_space_location ) const
+{
+    // :TODO:
+    checkNoEntry();
+    return false;
+}
+
+UPrimitiveComponent * ASVONavigationData::ConstructRenderingComponent()
+{
+    return NewObject< USVONavDataRenderingComponent >( this, TEXT( "SVONavRenderingComp" ), RF_Transient );
+}
+
+void ASVONavigationData::OnStreamingLevelAdded( ULevel * level, UWorld * world )
+{
+    // :TODO:
+    checkNoEntry();
+}
+
+void ASVONavigationData::OnStreamingLevelRemoved( ULevel * level, UWorld * world )
+{
+    // :TODO:
+    checkNoEntry();
+}
+
+void ASVONavigationData::OnNavAreaChanged()
+{
+    // :TODO:
+    checkNoEntry();
+}
+
+void ASVONavigationData::OnNavAreaAdded( const UClass * nav_area_class, int32 agent_index )
+{
+    // :TODO:
+    checkNoEntry();
+}
+
+int32 ASVONavigationData::GetNewAreaID( const UClass * nav_area_class ) const
+{
+    // :TODO:
+    checkNoEntry();
+    return -1;
+}
+
+int32 ASVONavigationData::GetMaxSupportedAreas() const
+{
+    return 32;
+}
+
+#if WITH_EDITOR
+void ASVONavigationData::PostEditChangeProperty( FPropertyChangedEvent & property_changed_event )
+{
+    Super::PostEditChangeProperty( property_changed_event );
+
+    if ( property_changed_event.Property == nullptr )
+    {
+        return;
+    }
+
+    const FName property_name = property_changed_event.Property->GetFName();
+
+    if ( property_name == GET_MEMBER_NAME_CHECKED( ASVONavigationData, Config ) )
+    {
+        if ( auto * settings = GetDefault< USVONavigationSettings >() )
+        {
+            if ( !HasAnyFlags( RF_ClassDefaultObject ) && settings->NavigationAutoUpdateEnabled )
+            {
+                RebuildAll();
+            }
+        }
+    }
+}
+
+bool ASVONavigationData::ShouldExport()
+{
+    return false;
+}
+#endif
+
+#if !UE_BUILD_SHIPPING
+uint32 ASVONavigationData::LogMemUsed() const
+{
+    // :TODO:
+    checkNoEntry();
+    return Super::LogMemUsed();
+}
+#endif
 
 void ASVONavigationData::AddNavigationBounds( const FSVONavigationBounds & navigation_bounds )
 {
@@ -461,7 +648,7 @@ void ASVONavigationData::AddNavigationBounds( const FSVONavigationBounds & navig
     if ( must_add_new_entry )
     {
         auto & data = NavigationBoundsData.Emplace( navigation_bounds.UniqueID );
-        data.ComputeDataFromNavigationBounds( navigation_bounds, *Config );
+        data.ComputeDataFromNavigationBounds( navigation_bounds, Config );
     }
 
     MarkComponentsRenderStateDirty();
@@ -471,7 +658,7 @@ void ASVONavigationData::UpdateNavigationBounds( const FSVONavigationBounds & na
 {
     if ( auto * data = NavigationBoundsData.Find( navigation_bounds.UniqueID ) )
     {
-        data->ComputeDataFromNavigationBounds( navigation_bounds, *Config );
+        data->ComputeDataFromNavigationBounds( navigation_bounds, Config );
         MarkComponentsRenderStateDirty();
     }
 }
@@ -484,5 +671,90 @@ void ASVONavigationData::RemoveNavigationBounds( const FSVONavigationBounds & na
 
 FSVOPathFindingResult ASVONavigationData::FindPath( const FSVOPathFindingQuery & path_finding_query ) const
 {
-    return FSVOPathFindingResult( ENavigationQueryResult::Error );
+    const ASVONavigationData * self = path_finding_query.NavigationData.Get();
+
+    if ( self == nullptr )
+    {
+        return FSVOPathFindingResult( ENavigationQueryResult::Error );
+    }
+
+    FSVOPathFindingResult result( ENavigationQueryResult::Error );
+
+    FNavigationPath * navigation_path = path_finding_query.PathInstanceToFill.Get();
+    FSVONavigationPath * svo_navigation_path = navigation_path ? navigation_path->CastPath< FSVONavigationPath >() : nullptr;
+
+    if ( svo_navigation_path )
+    {
+        result.Path = path_finding_query.PathInstanceToFill;
+        svo_navigation_path->ResetForRepath();
+    }
+    else
+    {
+        result.Path = self->CreatePathInstance< FSVONavigationPath >( path_finding_query );
+        navigation_path = result.Path.Get();
+        svo_navigation_path = navigation_path ? navigation_path->CastPath< FSVONavigationPath >() : nullptr;
+    }
+
+    const FNavigationQueryFilter * NavFilter = path_finding_query.QueryFilter.Get();
+
+    if ( svo_navigation_path != nullptr && NavFilter != nullptr )
+    {
+        const FVector adjusted_end_location = NavFilter->GetAdjustedEndLocation( path_finding_query.EndLocation );
+        if ( ( path_finding_query.StartLocation - adjusted_end_location ).IsNearlyZero() )
+        {
+            result.Path->GetPathPoints().Reset();
+            result.Path->GetPathPoints().Add( FNavPathPoint( adjusted_end_location ) );
+            result.Result = ENavigationQueryResult::Success;
+        }
+        else
+        {
+            /*result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath( path_finding_query.StartLocation, adjusted_end_location, path_finding_query.CostLimit, *svo_navigation_path, *NavFilter, path_finding_query.Owner.Get() );
+
+            const bool bPartialPath = result.IsPartial();
+            if ( bPartialPath )
+            {
+                result.Result = path_finding_query.bAllowPartialPaths ? ENavigationQueryResult::Success : ENavigationQueryResult::Fail;
+            }*/
+        }
+    }
+
+    return result;
+}
+
+void ASVONavigationData::ConditionalConstructGenerator()
+{
+    ResetGenerator();
+
+    UWorld * world = GetWorld();
+    check( world );
+    const bool requires_generator = SupportsRuntimeGeneration() || !world->IsGameWorld();
+
+    if ( !requires_generator )
+    {
+        return;
+    }
+    
+    if ( FSVONavigationDataGenerator * generator = new FSVONavigationDataGenerator( *this ) )
+    {
+        NavDataGenerator = MakeShareable( static_cast< FNavDataGenerator * >( generator ) );
+        generator->Init();
+    }
+
+    if ( UNavigationSystemV1 * navigation_system = FNavigationSystem::GetCurrent< UNavigationSystemV1 >( world ) )
+    {
+        RestrictBuildingToActiveTiles( navigation_system->IsActiveTilesGenerationEnabled() );
+    }
+}
+
+void ASVONavigationData::ResetGenerator(const  bool cancel_build )
+{
+    if ( NavDataGenerator.IsValid() )
+    {
+        if ( cancel_build )
+        {
+            NavDataGenerator->CancelBuild();
+        }
+
+        NavDataGenerator.Reset();
+    }
 }

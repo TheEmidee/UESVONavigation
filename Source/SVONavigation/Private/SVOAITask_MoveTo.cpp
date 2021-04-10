@@ -1,6 +1,5 @@
 #include "SVOAITask_MoveTo.h"
 
-#include "SVONavigationSystem.h"
 #include "SVONavigationTypes.h"
 
 #include <AIController.h>
@@ -410,7 +409,7 @@ bool USVOAITask_MoveTo::BuildPathfindingQuery( FSVOPathFindingQuery & path_findi
 {
     bool bResult = false;
 
-    if ( auto * svo_navigation_system = GEngine->GetEngineSubsystem< USVONavigationSystem >() )
+    /*if ( USVONavigationSystem * svo_navigation_system = GEngine->GetEngineSubsystem< USVONavigationSystem >() )
     {
         const auto & navigation_data = svo_navigation_system->GetNavigationData();
 
@@ -427,14 +426,14 @@ bool USVOAITask_MoveTo::BuildPathfindingQuery( FSVOPathFindingQuery & path_findi
     else
     {
         UE_VLOG( GetGameplayTasksComponent(), LogGameplayTasks, Warning, TEXT( "Unable to find NavigationData instance while calling AAIController::BuildPathfindingQuery" ) );
-    }
+    }*/
 
     return bResult;
 }
 
 void USVOAITask_MoveTo::FindPathForMoveRequest( const FAIMoveRequest & move_request, const FSVOPathFindingQuery & path_finding_query, FNavPathSharedPtr & path ) const
 {
-    if ( auto * svo_navigation_system = GEngine->GetEngineSubsystem< USVONavigationSystem >() )
+    /*if ( auto * svo_navigation_system = GEngine->GetEngineSubsystem< USVONavigationSystem >() )
     {
         const auto path_finding_result = svo_navigation_system->FindPathSync( path_finding_query );
         if ( path_finding_result.Result != ENavigationQueryResult::Error )
@@ -455,7 +454,7 @@ void USVOAITask_MoveTo::FindPathForMoveRequest( const FAIMoveRequest & move_requ
             UE_VLOG( GetGameplayTasksComponent(), LogGameplayTasks, Error, TEXT( "Trying to find path to %s resulted in Error" ), move_request.IsMoveToActorRequest() ? *GetNameSafe( move_request.GetGoalActor() ) : *move_request.GetGoalLocation().ToString() );
             UE_VLOG_SEGMENT( GetGameplayTasksComponent(), LogGameplayTasks, Error, OwnerController->GetPawn() ? OwnerController->GetPawn()->GetActorLocation() : FAISystem::InvalidLocation, move_request.GetGoalLocation(), FColor::Red, TEXT( "Failed move to %s" ), *GetNameSafe( move_request.GetGoalActor() ) );
         }
-    }
+    }*/
 }
 
 FPathFollowingRequestResult USVOAITask_MoveTo::MoveTo( FNavPathSharedPtr * out_path, const FAIMoveRequest & move_request )

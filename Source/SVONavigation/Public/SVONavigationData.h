@@ -3,20 +3,12 @@
 #include "SVONavigationTypes.h"
 
 #include <CoreMinimal.h>
-#include <GameFramework/Actor.h>
+#include <NavigationData.h>
 
 #include "SVONavigationData.generated.h"
 
 class USVONavDataRenderingComponent;
 struct FSVONavigationBounds;
-
-struct FSVODataConfig : TSharedFromThis< FSVODataConfig >
-{
-    TEnumAsByte< ECollisionChannel > CollisionChannel;
-    float Clearance = 0.0f;
-    TWeakObjectPtr< UWorld > World;
-    FCollisionQueryParams CollisionQueryParameters;
-};
 
 struct FSVOOctreeLeaf
 {
@@ -175,7 +167,7 @@ struct SVONAVIGATION_API FSVONavigationBoundsData
     float GetLayerVoxelSize( LayerIndex layer_index ) const;
     float GetLayerVoxelHalfSize( LayerIndex layer_index ) const;
 
-    void ComputeDataFromNavigationBounds( const FSVONavigationBounds & navigation_bounds, const FSVODataConfig & config );
+    void ComputeDataFromNavigationBounds( const FSVONavigationBounds & navigation_bounds, const FSVODataBuildConfig & config );
 
 private:
     uint32 GetLayerNodeCount( LayerIndex layer_index ) const;
@@ -214,7 +206,7 @@ private:
     TArray< uint32 > LayerNodeCount;
     FSVOOctreeData OctreeData;
     TWeakObjectPtr< UWorld > World;
-    TWeakPtr< const FSVODataConfig > Config;
+    TWeakPtr< const FSVODataBuildConfig > Config;
 };
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsData & data )
@@ -277,20 +269,52 @@ FORCEINLINE int32 FSVONavigationBoundsData::GetLayerMaxNodeCount( LayerIndex lay
     return FMath::Pow( 2, VoxelExponent - layer_index );
 }
 
-UCLASS( hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
-class SVONAVIGATION_API ASVONavigationData : public AActor
+UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
+class SVONAVIGATION_API ASVONavigationData : public ANavigationData
 {
     GENERATED_BODY()
 
 public:
     ASVONavigationData();
 
+    friend class FSVONavigationDataGenerator;
+
     const FSVONavigationBoundsDataDebugInfos & GetDebugInfos() const;
+    //const TMap< uint32, FSVONavigationBoundsData > & GetNavigationBoundsData() const;
 
-    const TMap< uint32, FSVONavigationBoundsData > & GetNavigationBoundsData() const;
-
-    void PostRegisterAllComponents() override;
+    void PostInitProperties() override;
     void Serialize( FArchive & archive ) override;
+    void CleanUp() override;
+
+    FBox GetBounds() const override;
+    FNavLocation GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const override;
+    bool GetRandomReachablePointInRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
+    bool GetRandomPointInNavigableRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
+    void BatchRaycast( TArray< FNavigationRaycastWork > & workload, FSharedConstNavQueryFilter filter, const UObject * querier = nullptr ) const override;
+    bool FindMoveAlongSurface( const FNavLocation & start_location, const FVector & target_position, FNavLocation & out_location, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
+    bool ProjectPoint( const FVector & point, FNavLocation & out_location, const FVector & extent, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
+    void BatchProjectPoints( TArray< FNavigationProjectionWork > & Workload, const FVector & Extent, FSharedConstNavQueryFilter Filter = nullptr, const UObject * Querier = nullptr ) const override;
+    void BatchProjectPoints( TArray< FNavigationProjectionWork > & Workload, FSharedConstNavQueryFilter Filter = nullptr, const UObject * Querier = nullptr ) const override;
+    ENavigationQueryResult::Type CalcPathCost( const FVector & path_start, const FVector & path_end, float & out_path_cost, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
+    ENavigationQueryResult::Type CalcPathLength( const FVector & path_start, const FVector & path_end, float & out_path_length, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
+    ENavigationQueryResult::Type CalcPathLengthAndCost( const FVector & path_start, const FVector & path_end, float & out_path_length, float & out_path_cost, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
+    bool DoesNodeContainLocation( NavNodeRef node_ref, const FVector & world_space_location ) const override;
+    UPrimitiveComponent * ConstructRenderingComponent() override;
+    void OnStreamingLevelAdded( ULevel * level, UWorld * world ) override;
+    void OnStreamingLevelRemoved( ULevel * level, UWorld * world ) override;
+    void OnNavAreaChanged() override;
+    void OnNavAreaAdded( const UClass * nav_area_class, int32 agent_index ) override;
+    int32 GetNewAreaID( const UClass * nav_area_class ) const override;
+    int32 GetMaxSupportedAreas() const override;
+
+#if WITH_EDITOR
+    void PostEditChangeProperty( FPropertyChangedEvent & property_changed_event );
+    bool ShouldExport() override;
+#endif
+
+#if !UE_BUILD_SHIPPING
+    uint32 LogMemUsed() const override;
+#endif
 
     void AddNavigationBounds( const FSVONavigationBounds & navigation_bounds );
     void UpdateNavigationBounds( const FSVONavigationBounds & navigation_bounds );
@@ -298,23 +322,30 @@ public:
 
     FSVOPathFindingResult FindPath( const FSVOPathFindingQuery & path_finding_query ) const;
 
-private:
-    UPROPERTY( BlueprintReadOnly, VisibleAnywhere, meta = ( AllowPrivateAccess = true ) )
-    USVONavDataRenderingComponent * RenderingComponent;
+    void ConditionalConstructGenerator() override;
 
+private:
+
+    void ResetGenerator( bool cancel_build = true );
+
+private:
     UPROPERTY( VisibleAnywhere )
     TMap< uint32, FSVONavigationBoundsData > NavigationBoundsData;
 
-    UPROPERTY( EditInstanceOnly )
+    UPROPERTY( EditAnywhere, Category = "Display" )
     FSVONavigationBoundsDataDebugInfos DebugInfos;
 
-    TSharedPtr< FSVODataConfig > Config;
+    UPROPERTY( EditAnywhere, Category = "Generation" )
+    FSVODataBuildConfig Config;
+
+    UPROPERTY( EditAnywhere, Category = "Generation", config, meta = ( ClampMin = "0", UIMin = "0" ), AdvancedDisplay )
+    int32 MaxSimultaneousBoxGenerationJobsCount;
 };
 
-FORCEINLINE const TMap< uint32, FSVONavigationBoundsData > & ASVONavigationData::GetNavigationBoundsData() const
-{
-    return NavigationBoundsData;
-}
+//FORCEINLINE const TMap< uint32, FSVONavigationBoundsData > & ASVONavigationData::GetNavigationBoundsData() const
+//{
+//    return NavigationBoundsData;
+//}
 
 FORCEINLINE const FSVONavigationBoundsDataDebugInfos & ASVONavigationData::GetDebugInfos() const
 {

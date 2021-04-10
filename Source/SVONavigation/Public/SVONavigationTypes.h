@@ -144,3 +144,17 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataD
 
     return archive;
 }
+
+USTRUCT()
+struct FSVODataBuildConfig
+{
+    GENERATED_USTRUCT_BODY()
+
+    UPROPERTY( EditInstanceOnly, Category = "Generation" )
+    TEnumAsByte< ECollisionChannel > CollisionChannel;
+
+    UPROPERTY( EditInstanceOnly, Category = "Generation" )
+    float Clearance = 0.0f;
+
+    FCollisionQueryParams CollisionQueryParameters;
+};
