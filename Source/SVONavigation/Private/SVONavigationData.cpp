@@ -446,7 +446,7 @@ void ASVONavigationData::PostInitProperties()
 void ASVONavigationData::Serialize( FArchive & archive )
 {
     Super::Serialize( archive );
-    archive << NavigationBoundsData;
+    //archive << NavigationBoundsData;
     archive << DebugInfos;
 }
 
@@ -460,10 +460,10 @@ FBox ASVONavigationData::GetBounds() const
 {
     FBox result( EForceInit::ForceInit );
 
-    for ( const auto & key_pair : NavigationBoundsData )
+    /*for ( const auto & key_pair : NavigationBoundsData )
     {
         result += key_pair.Value.GetBox();
-    }
+    }*/
 
     return result;
 }
@@ -471,81 +471,81 @@ FBox ASVONavigationData::GetBounds() const
 FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return FNavLocation();
 }
 
 bool ASVONavigationData::GetRandomReachablePointInRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return false;
 }
 
 bool ASVONavigationData::GetRandomPointInNavigableRadius( const FVector & origin, float Radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return false;
 }
 
 void ASVONavigationData::BatchRaycast( TArray<FNavigationRaycastWork> & workload, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
 }
 
 bool ASVONavigationData::FindMoveAlongSurface( const FNavLocation & start_location, const FVector & target_position, FNavLocation & out_location, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return false;
 }
 
 bool ASVONavigationData::ProjectPoint( const FVector & point, FNavLocation & out_location, const FVector & extent, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return false;
 }
 
 void ASVONavigationData::BatchProjectPoints( TArray<FNavigationProjectionWork> & Workload, const FVector & Extent, FSharedConstNavQueryFilter Filter, const UObject * Querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
 }
 
 void ASVONavigationData::BatchProjectPoints( TArray<FNavigationProjectionWork> & Workload, FSharedConstNavQueryFilter Filter, const UObject * Querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
 }
 
 ENavigationQueryResult::Type ASVONavigationData::CalcPathCost( const FVector & path_start, const FVector & path_end, float & out_path_cost, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return ENavigationQueryResult::Error;
 }
 
 ENavigationQueryResult::Type ASVONavigationData::CalcPathLength( const FVector & path_start, const FVector & path_end, float & out_path_length, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return ENavigationQueryResult::Error;
 }
 
 ENavigationQueryResult::Type ASVONavigationData::CalcPathLengthAndCost( const FVector & path_start, const FVector & path_end, float & out_path_length, float & out_path_cost, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return ENavigationQueryResult::Error;
 }
 
 bool ASVONavigationData::DoesNodeContainLocation( NavNodeRef node_ref, const FVector & world_space_location ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return false;
 }
 
@@ -557,31 +557,31 @@ UPrimitiveComponent * ASVONavigationData::ConstructRenderingComponent()
 void ASVONavigationData::OnStreamingLevelAdded( ULevel * level, UWorld * world )
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
 }
 
 void ASVONavigationData::OnStreamingLevelRemoved( ULevel * level, UWorld * world )
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
 }
 
 void ASVONavigationData::OnNavAreaChanged()
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
 }
 
 void ASVONavigationData::OnNavAreaAdded( const UClass * nav_area_class, int32 agent_index )
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
 }
 
 int32 ASVONavigationData::GetNewAreaID( const UClass * nav_area_class ) const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return -1;
 }
 
@@ -624,50 +624,10 @@ bool ASVONavigationData::ShouldExport()
 uint32 ASVONavigationData::LogMemUsed() const
 {
     // :TODO:
-    checkNoEntry();
+    ensure( false );
     return Super::LogMemUsed();
 }
 #endif
-
-void ASVONavigationData::AddNavigationBounds( const FSVONavigationBounds & navigation_bounds )
-{
-    const auto bounds_box = navigation_bounds.AreaBox;
-    auto must_add_new_entry = true;
-
-    // If we already have a volume with the same box, update the key. Not ideal but we can't use the unique id of the actor as it's new each time we load the level
-    for ( auto & key_pair : NavigationBoundsData )
-    {
-        if ( key_pair.Value.GetVolumeBox() == bounds_box )
-        {
-            key_pair.Key = navigation_bounds.UniqueID;
-            must_add_new_entry = false;
-            break;
-        }
-    }
-
-    if ( must_add_new_entry )
-    {
-        auto & data = NavigationBoundsData.Emplace( navigation_bounds.UniqueID );
-        data.ComputeDataFromNavigationBounds( navigation_bounds, Config );
-    }
-
-    MarkComponentsRenderStateDirty();
-}
-
-void ASVONavigationData::UpdateNavigationBounds( const FSVONavigationBounds & navigation_bounds )
-{
-    if ( auto * data = NavigationBoundsData.Find( navigation_bounds.UniqueID ) )
-    {
-        data->ComputeDataFromNavigationBounds( navigation_bounds, Config );
-        MarkComponentsRenderStateDirty();
-    }
-}
-
-void ASVONavigationData::RemoveNavigationBounds( const FSVONavigationBounds & navigation_bounds )
-{
-    NavigationBoundsData.Remove( navigation_bounds.UniqueID );
-    MarkComponentsRenderStateDirty();
-}
 
 FSVOPathFindingResult ASVONavigationData::FindPath( const FSVOPathFindingQuery & path_finding_query ) const
 {
@@ -757,4 +717,9 @@ void ASVONavigationData::ResetGenerator(const  bool cancel_build )
 
         NavDataGenerator.Reset();
     }
+}
+
+void ASVONavigationData::OnNavigationDataUpdatedInBounds( const TArray<FBox> & updated_boxes )
+{
+    //InvalidateAffectedPaths(ChangedTiles);
 }

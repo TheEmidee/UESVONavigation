@@ -269,6 +269,11 @@ FORCEINLINE int32 FSVONavigationBoundsData::GetLayerMaxNodeCount( LayerIndex lay
     return FMath::Pow( 2, VoxelExponent - layer_index );
 }
 
+FORCEINLINE uint32 GetTypeHash( const FBox & box )
+{
+    return HashCombine( GetTypeHash( box.GetCenter() ), GetTypeHash( box.GetExtent() ) );
+}
+
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
 class SVONAVIGATION_API ASVONavigationData : public ANavigationData
 {
@@ -316,10 +321,6 @@ public:
     uint32 LogMemUsed() const override;
 #endif
 
-    void AddNavigationBounds( const FSVONavigationBounds & navigation_bounds );
-    void UpdateNavigationBounds( const FSVONavigationBounds & navigation_bounds );
-    void RemoveNavigationBounds( const FSVONavigationBounds & navigation_bounds );
-
     FSVOPathFindingResult FindPath( const FSVOPathFindingQuery & path_finding_query ) const;
 
     void ConditionalConstructGenerator() override;
@@ -327,10 +328,10 @@ public:
 private:
 
     void ResetGenerator( bool cancel_build = true );
+    void OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_boxes );
 
-private:
     UPROPERTY( VisibleAnywhere )
-    TMap< uint32, FSVONavigationBoundsData > NavigationBoundsData;
+    TArray< FSVONavigationBoundsData > NavigationBoundsData;
 
     UPROPERTY( EditAnywhere, Category = "Display" )
     FSVONavigationBoundsDataDebugInfos DebugInfos;
