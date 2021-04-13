@@ -4,14 +4,22 @@
 
 #include <NavigationSystem.h>
 
-FSVOBoxNavigationDataGenerator::FSVOBoxNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & box ) :
-    Box( box ),
-    ParentGeneratorWeakPtr( navigation_data_generator.AsShared() )
+FSVOBoxNavigationDataGenerator::FSVOBoxNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds ) :
+    ParentGenerator( navigation_data_generator ),
+    VolumeBounds( volume_bounds )
 {
+    NavDataConfig = navigation_data_generator.GetOwner()->GetConfig();
 }
 
 bool FSVOBoxNavigationDataGenerator::DoWork()
 {
+    FSVOBoundsNavigationDataGenerationSettings generation_settings;
+    generation_settings.GenerationSettings = ParentGenerator.GetGenerationSettings();
+    generation_settings.World = ParentGenerator.GetWorld();
+    generation_settings.VoxelSize = FMath::Max( NavDataConfig.AgentHeight, NavDataConfig.AgentRadius );
+
+    BoundsNavigationData.GenerateNavigationData( VolumeBounds, generation_settings );
+
     return true;
 }
 
@@ -27,7 +35,7 @@ FSVONavigationDataGenerator::~FSVONavigationDataGenerator()
 
 void FSVONavigationDataGenerator::Init()
 {
-    BuildConfig = NavigationData.Config;
+    GenerationSettings = NavigationData.GenerationSettings;
 
     UpdateNavigationBounds();
 
@@ -61,12 +69,13 @@ void FSVONavigationDataGenerator::Init()
 
 bool FSVONavigationDataGenerator::RebuildAll()
 {
+    NavigationData.RequestDrawingUpdate();
     return true;
 }
 
 void FSVONavigationDataGenerator::EnsureBuildCompletion()
 {
-    const bool bHadTasks = GetNumRemaningBuildTasks() > 0;
+    const bool had_taks = GetNumRemaningBuildTasks() > 0;
 
     do
     {
@@ -79,6 +88,11 @@ void FSVONavigationDataGenerator::EnsureBuildCompletion()
             element.AsyncTask->EnsureCompletion();
         }
     } while ( GetNumRemaningBuildTasks() > 0 );
+
+    if ( had_taks )
+    {
+        NavigationData.RequestDrawingUpdate();
+    }
 }
 
 void FSVONavigationDataGenerator::CancelBuild()
@@ -115,6 +129,7 @@ void FSVONavigationDataGenerator::TickAsyncBuild( float delta_seconds )
     if ( finished_boxes.Num() > 0 )
     {
         NavigationData.OnNavigationDataUpdatedInBounds( finished_boxes );
+        NavigationData.RequestDrawingUpdate();
     }
 }
 
@@ -141,7 +156,7 @@ void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDi
         }
 
         FPendingBoxElement pending_box_element;
-        pending_box_element.Box = dirty_area.Bounds;
+        pending_box_element.VolumeBounds = dirty_area.Bounds;
         dirty_bounds_elements.Emplace( pending_box_element );
     }
 
@@ -149,9 +164,7 @@ void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDi
     {
         for ( auto index = NavigationData.NavigationBoundsData.Num() - 1; index >= 0; --index )
         {
-            NavigationData.NavigationBoundsData.RemoveAll( [ &bound_to_delete ]( const auto & element ) {
-                return element.GetBox() == bound_to_delete;
-            } );
+            NavigationData.NavigationBoundsData.Remove( bound_to_delete );
         }
     }
 
@@ -231,14 +244,14 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( int32 task_to_pro
     for ( int32 element_index = PendingDirtyBoxes.Num() - 1; element_index >= 0 && processed_tasks_count < task_to_process_count; element_index-- )
     {
         FPendingBoxElement & PendingElement = PendingDirtyBoxes[ element_index ];
-        FRunningBoxElement running_element( PendingElement.Box );
+        FRunningBoxElement running_element( PendingElement.VolumeBounds );
 
         if ( RunningDirtyBoxes.Contains( running_element ) )
         {
             continue;
         }
 
-        TUniquePtr< FSVOBoxGeneratorTask > task = MakeUnique< FSVOBoxGeneratorTask >( CreateBoxNavigationGenerator( PendingElement.Box ) );
+        TUniquePtr< FSVOBoxGeneratorTask > task = MakeUnique< FSVOBoxGeneratorTask >( CreateBoxNavigationGenerator( PendingElement.VolumeBounds ) );
 
         running_element.AsyncTask = task.Release();
 
@@ -261,27 +274,28 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( int32 task_to_pro
     {
         //QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMeshGenerator_ProcessTileTasks_FinishedTasks );
 
-        FRunningBoxElement & Element = RunningDirtyBoxes[ index ];
-        check( Element.AsyncTask != nullptr );
+        FRunningBoxElement & element = RunningDirtyBoxes[ index ];
+        check( element.AsyncTask != nullptr );
 
-        if ( !Element.AsyncTask->IsDone() )
+        if ( !element.AsyncTask->IsDone() )
         {
             continue;
         }
 
-        if ( Element.ShouldDiscard )
+        if ( element.ShouldDiscard )
         {
             continue;
         }
 
-        auto & box_generator = *Element.AsyncTask->GetTask().BoxNavigationDataGenerator;
+        auto & box_generator = *element.AsyncTask->GetTask().BoxNavigationDataGenerator;
 
-        NavigationData.NavigationBoundsData.Add( box_generator.GetNavigationData() );
+        const auto & bounds_navigation_data = box_generator.GetBoundsNavigationData();
+        NavigationData.NavigationBoundsData.Add( bounds_navigation_data.GetVolumeBounds(), bounds_navigation_data );
 
-        finished_boxes.Emplace( MoveTemp( Element.Box ) );
+        finished_boxes.Emplace( MoveTemp( element.VolumeBounds ) );
 
-        delete Element.AsyncTask;
-        Element.AsyncTask = nullptr;
+        delete element.AsyncTask;
+        element.AsyncTask = nullptr;
         RunningDirtyBoxes.RemoveAtSwap( index, 1, false );
     }
 

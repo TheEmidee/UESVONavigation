@@ -89,13 +89,13 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
 
     DebugInfos = navigation_data.GetDebugInfos();
 
-    /*const auto & navigation_bounds = navigation_data.GetNavigationBoundsData();
+    const auto & navigation_bounds = navigation_data.GetNavigationBoundsData();
 
     if ( DebugInfos.ItDebugDrawsBounds )
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
-            OctreeBounds.Emplace( FBoxCenterAndExtent( bounds_data.Value.GetBox() ) );
+            OctreeBounds.Emplace( FBoxCenterAndExtent( bounds_data.Value.GetNavigationBounds() ) );
         }
     }
 
@@ -220,7 +220,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                 }
             }
         }
-    }*/
+    }
 }
 
 SIZE_T FSVONavigationMeshSceneProxy::GetTypeHash() const
@@ -302,6 +302,7 @@ USVONavDataRenderingComponent::USVONavDataRenderingComponent()
 
     bIsEditorOnly = true;
     bSelectable = false;
+    ItForcesUpdate = false;
 }
 
 FPrimitiveSceneProxy * USVONavDataRenderingComponent::CreateSceneProxy()
@@ -335,12 +336,12 @@ FBoxSphereBounds USVONavDataRenderingComponent::CalcBounds( const FTransform & L
 
     if ( ASVONavigationData * navigation_data = Cast< ASVONavigationData >( GetOwner() ) )
     {
-        /*const auto & navigation_bounds = navigation_data->GetNavigationBoundsData();
+        const auto & navigation_bounds = navigation_data->GetNavigationBoundsData();
 
         for ( const auto & bounds : navigation_bounds )
         {
-            bounding_box += bounds.Value.GetBox();
-        }*/
+            bounding_box += bounds.Value.GetNavigationBounds();
+        }
     }
 
     return FBoxSphereBounds( bounding_box );

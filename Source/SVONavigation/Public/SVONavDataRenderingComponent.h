@@ -99,12 +99,26 @@ class SVONAVIGATION_API USVONavDataRenderingComponent : public UPrimitiveCompone
 public:
     USVONavDataRenderingComponent();
 
+    void ForceUpdate();
+    bool IsForcingUpdate() const;
+
     FPrimitiveSceneProxy * CreateSceneProxy() override;
     FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const override;
-    void ForceUpdate();
 
     static bool IsNavigationShowFlagSet( const UWorld * world );
 
 private:
     void GatherData( FSVONavigationSceneProxyData & proxy_data, const ASVONavigationData & navigation_data ) const;
+
+    uint8 ItForcesUpdate : 1;
 };
+
+FORCEINLINE void USVONavDataRenderingComponent::ForceUpdate()
+{
+    ItForcesUpdate = true;
+}
+
+FORCEINLINE bool USVONavDataRenderingComponent::IsForcingUpdate() const
+{
+    return ItForcesUpdate;
+}
