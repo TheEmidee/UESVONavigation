@@ -1,12 +1,15 @@
 #include "SVONavigationData.h"
 
-#include "NavigationSystem.h"
 #include "SVONavDataRenderingComponent.h"
 #include "SVONavigationDataGenerator.h"
 #include "SVONavigationPath.h"
 #include "SVONavigationSettings.h"
 
 #include <AI/NavDataGenerator.h>
+#include <NavigationSystem.h>
+#if WITH_EDITOR
+#include <ObjectEditorUtils.h>
+#endif
 
 ASVONavigationData::ASVONavigationData()
 {
@@ -46,18 +49,6 @@ void ASVONavigationData::CleanUp()
 {
     Super::CleanUp();
     ResetGenerator();
-}
-
-FBox ASVONavigationData::GetBounds() const
-{
-    FBox result( EForceInit::ForceInit );
-
-    /*for ( const auto & key_pair : NavigationBoundsData )
-    {
-        result += key_pair.Value.GetBox();
-    }*/
-
-    return result;
 }
 
 FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const
@@ -148,33 +139,27 @@ UPrimitiveComponent * ASVONavigationData::ConstructRenderingComponent()
 
 void ASVONavigationData::OnStreamingLevelAdded( ULevel * level, UWorld * world )
 {
-    // :TODO:
-    ensure( false );
+    Super::OnStreamingLevelAdded( level, world );
 }
 
 void ASVONavigationData::OnStreamingLevelRemoved( ULevel * level, UWorld * world )
 {
-    // :TODO:
-    ensure( false );
+    Super::OnStreamingLevelRemoved( level, world );
 }
 
 void ASVONavigationData::OnNavAreaChanged()
 {
-    // :TODO:
-    ensure( false );
+    Super::OnNavAreaChanged();
 }
 
 void ASVONavigationData::OnNavAreaAdded( const UClass * nav_area_class, int32 agent_index )
 {
-    // :TODO:
-    ensure( false );
+    Super::OnNavAreaAdded( nav_area_class, agent_index );
 }
 
 int32 ASVONavigationData::GetNewAreaID( const UClass * nav_area_class ) const
 {
-    // :TODO:
-    ensure( false );
-    return -1;
+    return Super::GetNewAreaID( nav_area_class );
 }
 
 int32 ASVONavigationData::GetMaxSupportedAreas() const
@@ -192,15 +177,19 @@ void ASVONavigationData::PostEditChangeProperty( FPropertyChangedEvent & propert
         return;
     }
 
-    const FName property_name = property_changed_event.Property->GetFName();
-
-    if ( property_name == GET_MEMBER_NAME_CHECKED( ASVONavigationData, GenerationSettings ) )
+    if ( property_changed_event.Property != nullptr )
     {
-        if ( auto * settings = GetDefault< USVONavigationSettings >() )
+        const FName category_name = FObjectEditorUtils::GetCategoryFName( property_changed_event.Property );
+        static const FName NAME_Generation = FName( TEXT( "Generation" ) );
+
+        if ( category_name == NAME_Generation )
         {
-            if ( !HasAnyFlags( RF_ClassDefaultObject ) && settings->NavigationAutoUpdateEnabled )
+            if ( auto * settings = GetDefault< USVONavigationSettings >() )
             {
-                RebuildAll();
+                if ( !HasAnyFlags( RF_ClassDefaultObject ) && settings->NavigationAutoUpdateEnabled )
+                {
+                    RebuildAll();
+                }
             }
         }
     }

@@ -314,7 +314,7 @@ FPrimitiveSceneProxy * USVONavDataRenderingComponent::CreateSceneProxy()
     {
         if ( const ASVONavigationData * navigation_data = Cast< ASVONavigationData >( GetOwner() ) )
         {
-            if ( navigation_data->GetDebugInfos().ItHasDebugDrawingEnabled )
+            if ( navigation_data->IsDrawingEnabled() )
             {
                 FSVONavigationSceneProxyData ProxyData;
                 GatherData( ProxyData, *navigation_data );

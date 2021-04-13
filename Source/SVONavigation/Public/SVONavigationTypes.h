@@ -78,7 +78,6 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
     GENERATED_USTRUCT_BODY()
 
     FSVONavigationBoundsDataDebugInfos() :
-        ItHasDebugDrawingEnabled( false ),
         ItDebugDrawsBounds( false ),
         ItDebugDrawsLayers( false ),
         LayerIndexToDraw( 1 ),
@@ -92,36 +91,33 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
     friend FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataDebugInfos & data );
 
     UPROPERTY( EditInstanceOnly )
-    bool ItHasDebugDrawingEnabled;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled" ) )
     bool ItDebugDrawsBounds;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled" ) )
+    UPROPERTY( EditInstanceOnly )
     bool ItDebugDrawsLayers;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled && ItDebugDrawsLayers", ClampMin = "1", UIMin = "1" ) )
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsLayers", ClampMin = "1", UIMin = "1" ) )
     uint8 LayerIndexToDraw;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled" ) )
+    UPROPERTY( EditInstanceOnly )
     bool ItDebugDrawsLeaves;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled" ) )
+    UPROPERTY( EditInstanceOnly )
     bool ItDebugDrawsOccludedLeaves;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled" ) )
+    UPROPERTY( EditInstanceOnly )
     bool ItDebugDrawsLinks;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled && ItDebugDrawsLinks", ClampMin = "1", UIMin = "1" ) )
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsLinks", ClampMin = "1", UIMin = "1" ) )
     uint8 LinksLayerIndexToDraw;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled && ItDebugDrawsLinks" ) )
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsLinks" ) )
     bool ItDebugDrawsNeighborLinks;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled && ItDebugDrawsLinks" ) )
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsLinks" ) )
     bool ItDebugDrawsParentLinks;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled && ItDebugDrawsLinks" ) )
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsLinks" ) )
     bool ItDebugDrawsFirstChildLinks;
 
     UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled", ClampMin = "1", UIMin = "1" ) )
@@ -130,7 +126,6 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataDebugInfos & data )
 {
-    archive << data.ItHasDebugDrawingEnabled;
     archive << data.ItDebugDrawsBounds;
     archive << data.ItDebugDrawsLayers;
     archive << data.LayerIndexToDraw;
