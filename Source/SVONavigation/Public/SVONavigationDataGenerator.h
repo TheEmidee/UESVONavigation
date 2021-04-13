@@ -2,6 +2,9 @@
 
 #include "SVONavigationData.h"
 #include "SVONavigationTypes.h"
+#include "Chaos/AABB.h"
+#include "Chaos/AABB.h"
+
 
 #include <AI/NavDataGenerator.h>
 
@@ -9,10 +12,10 @@ class ASVONavigationData;
 
 class FSVONavigationDataGenerator;
 
-struct FSVOBoxNavigationDataGenerator : public FNoncopyable
+struct FSVOBoundsNavigationDataGenerator : public FNoncopyable
 {
 public:
-    FSVOBoxNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds );
+    FSVOBoundsNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds );
 
     const FBox & GetNavigationBounds() const;
     const FSVOBoundsNavigationData & GetBoundsNavigationData() const;
@@ -20,7 +23,6 @@ public:
     bool DoWork();
 
 private:
-    
     FSVONavigationDataGenerator & ParentGenerator;
     FSVOBoundsNavigationData BoundsNavigationData;
     FBox VolumeBounds;
@@ -28,16 +30,16 @@ private:
     FNavDataConfig NavDataConfig;
 };
 
-const FSVOBoundsNavigationData & FSVOBoxNavigationDataGenerator::GetBoundsNavigationData() const
+const FSVOBoundsNavigationData & FSVOBoundsNavigationDataGenerator::GetBoundsNavigationData() const
 {
     return BoundsNavigationData;
 }
 
 struct SVONAVIGATION_API FSVOBoxGeneratorWrapper : public FNonAbandonableTask
 {
-    TSharedRef< FSVOBoxNavigationDataGenerator > BoxNavigationDataGenerator;
+    TSharedRef< FSVOBoundsNavigationDataGenerator > BoxNavigationDataGenerator;
 
-    FSVOBoxGeneratorWrapper( TSharedRef< FSVOBoxNavigationDataGenerator > box_navigation_generator ) :
+    FSVOBoxGeneratorWrapper( TSharedRef< FSVOBoundsNavigationDataGenerator > box_navigation_generator ) :
         BoxNavigationDataGenerator( box_navigation_generator )
     {
     }
@@ -55,12 +57,12 @@ struct SVONAVIGATION_API FSVOBoxGeneratorWrapper : public FNonAbandonableTask
 
 typedef FAsyncTask< FSVOBoxGeneratorWrapper > FSVOBoxGeneratorTask;
 
-struct FPendingBoxElement
+struct FPendingBoundsDataGenerationElement
 {
     FBox VolumeBounds;
     float SeedDistance;
 
-    FPendingBoxElement() :
+    FPendingBoundsDataGenerationElement() :
         VolumeBounds( EForceInit::ForceInit ),
         SeedDistance( MAX_flt )
     {
@@ -71,39 +73,39 @@ struct FPendingBoxElement
         return VolumeBounds == other_box;
     }
 
-    bool operator==( const FPendingBoxElement & other ) const
+    bool operator==( const FPendingBoundsDataGenerationElement & other ) const
     {
         return VolumeBounds == other.VolumeBounds;
     }
 
-    bool operator<( const FPendingBoxElement & other ) const
+    bool operator<( const FPendingBoundsDataGenerationElement & other ) const
     {
         return other.SeedDistance < SeedDistance;
     }
 
-    friend uint32 GetTypeHash( const FPendingBoxElement & element )
+    friend uint32 GetTypeHash( const FPendingBoundsDataGenerationElement & element )
     {
         return HashCombine( GetTypeHash( element.VolumeBounds.GetCenter() ), GetTypeHash( element.VolumeBounds.GetExtent() ) );
     }
 };
 
-struct FRunningBoxElement
+struct FRunningBoundsDataGenerationElement
 {
-    FRunningBoxElement() :
+    FRunningBoundsDataGenerationElement() :
         VolumeBounds( EForceInit::ForceInit ),
         ShouldDiscard( false ),
         AsyncTask( nullptr )
     {
     }
 
-    FRunningBoxElement( const FBox & volume_bounds ) :
+    FRunningBoundsDataGenerationElement( const FBox & volume_bounds ) :
         VolumeBounds( volume_bounds ),
         ShouldDiscard( false ),
         AsyncTask( nullptr )
     {
     }
 
-    bool operator==( const FRunningBoxElement & other ) const
+    bool operator==( const FRunningBoundsDataGenerationElement & other ) const
     {
         return VolumeBounds == other.VolumeBounds;
     }
@@ -135,28 +137,25 @@ public:
     bool IsBuildInProgressCheckDirty() const override;
     int32 GetNumRemaningBuildTasks() const override;
     int32 GetNumRunningBuildTasks() const override;
-    uint32 LogMemUsed() const override;
 
 private:
+    void GetSeedLocations( TArray< FVector2D > & seed_locations, UWorld & world ) const;
+    void SortPendingBounds();
     void UpdateNavigationBounds();
     TArray< FBox > ProcessAsyncTasks( int32 task_to_process_count );
-    TSharedRef< FSVOBoxNavigationDataGenerator > CreateBoxNavigationGenerator( const FBox & box );
+    TSharedRef< FSVOBoundsNavigationDataGenerator > CreateBoxNavigationGenerator( const FBox & box );
 
     ASVONavigationData & NavigationData;
     FSVODataGenerationSettings GenerationSettings;
-    int MaxBoxGeneratorTasks;
+    int MaximumGeneratorTaskCount;
     uint8 IsInitialized : 1;
 
     /** Total bounding box that includes all volumes, in unreal units. */
-    FBox TotalNavBounds;
+    FBox TotalNavigationBounds;
 
-    /** Bounding geometry definition. */
-    TNavStatArray< FBox > RegisteredBounds;
-
-    TNavStatArray< FPendingBoxElement > PendingDirtyBoxes;
-
-    /** List of dirty tiles currently being regenerated */
-    TNavStatArray< FRunningBoxElement > RunningDirtyBoxes;
+    TNavStatArray< FBox > RegisteredNavigationBounds;
+    TNavStatArray< FPendingBoundsDataGenerationElement > PendingBoundsDataGenerationElements;
+    TNavStatArray< FRunningBoundsDataGenerationElement > RunningBoundsDataGenerationElements;
 };
 
 FORCEINLINE const ASVONavigationData * FSVONavigationDataGenerator::GetOwner() const

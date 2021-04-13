@@ -4,14 +4,14 @@
 
 #include <NavigationSystem.h>
 
-FSVOBoxNavigationDataGenerator::FSVOBoxNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds ) :
+FSVOBoundsNavigationDataGenerator::FSVOBoundsNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds ) :
     ParentGenerator( navigation_data_generator ),
     VolumeBounds( volume_bounds )
 {
     NavDataConfig = navigation_data_generator.GetOwner()->GetConfig();
 }
 
-bool FSVOBoxNavigationDataGenerator::DoWork()
+bool FSVOBoundsNavigationDataGenerator::DoWork()
 {
     FSVOBoundsNavigationDataGenerationSettings generation_settings;
     generation_settings.GenerationSettings = ParentGenerator.GetGenerationSettings();
@@ -40,9 +40,9 @@ void FSVONavigationDataGenerator::Init()
     UpdateNavigationBounds();
 
     ///** setup maximum number of active tile generator*/
-    //const int32 NumberOfWorkerThreads = FTaskGraphInterface::Get().GetNumWorkerThreads();
-    //MaxBoxGeneratorTasks = FMath::Min( FMath::Max( NumberOfWorkerThreads * 2, 1 ), NavigationData.MaxSimultaneousBoxGenerationJobsCount );
-    //UE_LOG( LogNavigation, Log, TEXT( "Using max of %d workers to build SVO navigation." ), MaxBoxGeneratorTasks );
+    const int32 worker_threads_count = FTaskGraphInterface::Get().GetNumWorkerThreads();
+    MaximumGeneratorTaskCount = FMath::Min( FMath::Max( worker_threads_count * 2, 1 ), NavigationData.MaxSimultaneousBoxGenerationJobsCount );
+    UE_LOG( LogNavigation, Log, TEXT( "Using max of %d workers to build SVO navigation." ), MaximumGeneratorTaskCount );
 
     //IsInitialized = true;
 
@@ -79,11 +79,11 @@ void FSVONavigationDataGenerator::EnsureBuildCompletion()
 
     do
     {
-        const int32 tasks_to_process_count = MaxBoxGeneratorTasks - RunningDirtyBoxes.Num();
+        const int32 tasks_to_process_count = MaximumGeneratorTaskCount - RunningBoundsDataGenerationElements.Num();
         ProcessAsyncTasks( tasks_to_process_count );
 
         // Block until tasks are finished
-        for ( auto & element : RunningDirtyBoxes )
+        for ( auto & element : RunningBoundsDataGenerationElements )
         {
             element.AsyncTask->EnsureCompletion();
         }
@@ -97,9 +97,9 @@ void FSVONavigationDataGenerator::EnsureBuildCompletion()
 
 void FSVONavigationDataGenerator::CancelBuild()
 {
-    PendingDirtyBoxes.Empty();
+    PendingBoundsDataGenerationElements.Empty();
 
-    for ( auto & element : RunningDirtyBoxes )
+    for ( auto & element : RunningBoundsDataGenerationElements )
     {
         if ( element.AsyncTask )
         {
@@ -109,7 +109,7 @@ void FSVONavigationDataGenerator::CancelBuild()
         }
     }
 
-    RunningDirtyBoxes.Empty();
+    RunningBoundsDataGenerationElements.Empty();
 }
 
 void FSVONavigationDataGenerator::TickAsyncBuild( float delta_seconds )
@@ -120,11 +120,11 @@ void FSVONavigationDataGenerator::TickAsyncBuild( float delta_seconds )
         return;
     }
 
-    const int32 NumRunningTasks = navigation_system->GetNumRunningBuildTasks();
+    const int32 running_tasks_count = navigation_system->GetNumRunningBuildTasks();
 
-    const int32 NumTasksToSubmit = MaxBoxGeneratorTasks - NumRunningTasks;
+    const int32 tasks_to_submit_count = MaximumGeneratorTaskCount - running_tasks_count;
 
-    const auto finished_boxes = ProcessAsyncTasks( NumTasksToSubmit );
+    const auto finished_boxes = ProcessAsyncTasks( tasks_to_submit_count );
 
     if ( finished_boxes.Num() > 0 )
     {
@@ -140,12 +140,12 @@ void FSVONavigationDataGenerator::OnNavigationBoundsChanged()
 
 void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDirtyArea > & dirty_areas )
 {
-    TSet< FPendingBoxElement > dirty_bounds_elements;
+    TSet< FPendingBoundsDataGenerationElement > dirty_bounds_elements;
     TSet< FBox > bounds_to_delete;
 
     for ( const auto & dirty_area : dirty_areas )
     {
-        auto * existing_bounds = RegisteredBounds.FindByPredicate( [ &dirty_area ]( const FBox & box ) {
+        auto * existing_bounds = RegisteredNavigationBounds.FindByPredicate( [ &dirty_area ]( const FBox & box ) {
             return box == dirty_area.Bounds;
         } );
 
@@ -155,7 +155,7 @@ void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDi
             continue;
         }
 
-        FPendingBoxElement pending_box_element;
+        FPendingBoundsDataGenerationElement pending_box_element;
         pending_box_element.VolumeBounds = dirty_area.Bounds;
         dirty_bounds_elements.Emplace( pending_box_element );
     }
@@ -168,37 +168,76 @@ void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDi
         }
     }
 
-    PendingDirtyBoxes.Reserve( PendingDirtyBoxes.Num() + dirty_bounds_elements.Num() );
+    PendingBoundsDataGenerationElements.Reserve( PendingBoundsDataGenerationElements.Num() + dirty_bounds_elements.Num() );
     for ( const auto & dirty_box : dirty_bounds_elements )
     {
-        PendingDirtyBoxes.Emplace( dirty_box );
+        PendingBoundsDataGenerationElements.Emplace( dirty_box );
     }
 
-    //// Sort tiles by proximity to players
-    //if ( NumTilesMarked > 0 )
-    //{
-    //    SortPendingBuildTiles();
-    //}
+    // Sort tiles by proximity to players
+    if ( PendingBoundsDataGenerationElements.Num() > 0 )
+    {
+        SortPendingBounds();
+    }
 }
 
 bool FSVONavigationDataGenerator::IsBuildInProgressCheckDirty() const
 {
-    return RunningDirtyBoxes.Num() || PendingDirtyBoxes.Num();
+    return RunningBoundsDataGenerationElements.Num() || PendingBoundsDataGenerationElements.Num();
 }
 
 int32 FSVONavigationDataGenerator::GetNumRemaningBuildTasks() const
 {
-    return RunningDirtyBoxes.Num() + PendingDirtyBoxes.Num();
+    return RunningBoundsDataGenerationElements.Num() + PendingBoundsDataGenerationElements.Num();
 }
 
 int32 FSVONavigationDataGenerator::GetNumRunningBuildTasks() const
 {
-    return RunningDirtyBoxes.Num();
+    return RunningBoundsDataGenerationElements.Num();
 }
 
-uint32 FSVONavigationDataGenerator::LogMemUsed() const
+void FSVONavigationDataGenerator::GetSeedLocations( TArray< FVector2D > & seed_locations, UWorld & world ) const
 {
-    return 0;
+    // Collect players positions
+    for ( FConstPlayerControllerIterator player_iterator = world.GetPlayerControllerIterator(); player_iterator; ++player_iterator )
+    {
+        if ( APlayerController * player_controller = player_iterator->Get() )
+        {
+            if ( auto * pawn = player_controller->GetPawn() )
+            {
+                const FVector2D seed_location( pawn->GetActorLocation() );
+                seed_locations.Add( seed_location );
+            }
+        }
+    }
+}
+
+void FSVONavigationDataGenerator::SortPendingBounds()
+{
+    if ( UWorld * current_world = GetWorld() )
+    {
+        TArray< FVector2D > seed_locations;
+        GetSeedLocations( seed_locations, *current_world );
+
+        if ( seed_locations.Num() == 0 )
+        {
+            seed_locations.Add( FVector2D( TotalNavigationBounds.GetCenter() ) );
+        }
+
+        if ( seed_locations.Num() > 0 )
+        {
+            for ( auto & element : PendingBoundsDataGenerationElements )
+            {
+                FVector2D tile_center_2d = FVector2D( element.VolumeBounds.GetCenter() );
+                for ( const auto & seed_location : seed_locations )
+                {
+                    element.SeedDistance = FMath::Min( element.SeedDistance, FVector2D::DistSquared( tile_center_2d, seed_location ) );
+                }
+            }
+
+            PendingBoundsDataGenerationElements.Sort();
+        }
+    }
 }
 
 void FSVONavigationDataGenerator::UpdateNavigationBounds()
@@ -207,33 +246,34 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
     {
         if ( !navigation_system->ShouldGenerateNavigationEverywhere() )
         {
-            FBox BoundsSum( ForceInit );
+            FBox bounds_sum( ForceInit );
             {
-                TArray< FBox > SupportedBounds;
-                navigation_system->GetNavigationBoundsForNavData( NavigationData, SupportedBounds );
-                RegisteredBounds.Reset( SupportedBounds.Num() );
+                TArray< FBox > supported_navigation_bounds;
+                navigation_system->GetNavigationBoundsForNavData( NavigationData, supported_navigation_bounds );
 
-                for ( const FBox & Box : SupportedBounds )
+                RegisteredNavigationBounds.Reset( supported_navigation_bounds.Num() );
+
+                for ( const FBox & Box : supported_navigation_bounds )
                 {
-                    RegisteredBounds.Add( Box );
-                    BoundsSum += Box;
+                    RegisteredNavigationBounds.Add( Box );
+                    bounds_sum += Box;
                 }
             }
-            TotalNavBounds = BoundsSum;
+            TotalNavigationBounds = bounds_sum;
         }
         else
         {
-            RegisteredBounds.Reset( 1 );
-            TotalNavBounds = navigation_system->GetWorldBounds();
-            if ( !TotalNavBounds.IsValid )
+            RegisteredNavigationBounds.Reset( 1 );
+            TotalNavigationBounds = navigation_system->GetWorldBounds();
+            if ( !TotalNavigationBounds.IsValid )
             {
-                RegisteredBounds.Add( TotalNavBounds );
+                RegisteredNavigationBounds.Add( TotalNavigationBounds );
             }
         }
     }
     else
     {
-        TotalNavBounds = FBox( ForceInit );
+        TotalNavigationBounds = FBox( ForceInit );
     }
 }
 
@@ -241,12 +281,12 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( int32 task_to_pro
 {
     int32 processed_tasks_count = 0;
     // Submit pending tile elements
-    for ( int32 element_index = PendingDirtyBoxes.Num() - 1; element_index >= 0 && processed_tasks_count < task_to_process_count; element_index-- )
+    for ( int32 element_index = PendingBoundsDataGenerationElements.Num() - 1; element_index >= 0 && processed_tasks_count < task_to_process_count; element_index-- )
     {
-        FPendingBoxElement & PendingElement = PendingDirtyBoxes[ element_index ];
-        FRunningBoxElement running_element( PendingElement.VolumeBounds );
+        FPendingBoundsDataGenerationElement & PendingElement = PendingBoundsDataGenerationElements[ element_index ];
+        FRunningBoundsDataGenerationElement running_element( PendingElement.VolumeBounds );
 
-        if ( RunningDirtyBoxes.Contains( running_element ) )
+        if ( RunningBoundsDataGenerationElements.Contains( running_element ) )
         {
             continue;
         }
@@ -257,24 +297,24 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( int32 task_to_pro
 
         running_element.AsyncTask->StartBackgroundTask();
 
-        RunningDirtyBoxes.Add( running_element );
+        RunningBoundsDataGenerationElements.Add( running_element );
 
-        PendingDirtyBoxes.RemoveAt( element_index, 1, /*bAllowShrinking=*/false );
+        PendingBoundsDataGenerationElements.RemoveAt( element_index, 1, /*bAllowShrinking=*/false );
         processed_tasks_count++;
     }
 
-    if ( processed_tasks_count > 0 && PendingDirtyBoxes.Num() == 0 )
+    if ( processed_tasks_count > 0 && PendingBoundsDataGenerationElements.Num() == 0 )
     {
-        PendingDirtyBoxes.Empty( 64 );
+        PendingBoundsDataGenerationElements.Empty( 64 );
     }
 
     TArray< FBox > finished_boxes;
 
-    for ( int32 index = RunningDirtyBoxes.Num() - 1; index >= 0; --index )
+    for ( int32 index = RunningBoundsDataGenerationElements.Num() - 1; index >= 0; --index )
     {
         //QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMeshGenerator_ProcessTileTasks_FinishedTasks );
 
-        FRunningBoxElement & element = RunningDirtyBoxes[ index ];
+        FRunningBoundsDataGenerationElement & element = RunningBoundsDataGenerationElements[ index ];
         check( element.AsyncTask != nullptr );
 
         if ( !element.AsyncTask->IsDone() )
@@ -296,16 +336,16 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( int32 task_to_pro
 
         delete element.AsyncTask;
         element.AsyncTask = nullptr;
-        RunningDirtyBoxes.RemoveAtSwap( index, 1, false );
+        RunningBoundsDataGenerationElements.RemoveAtSwap( index, 1, false );
     }
 
     return finished_boxes;
 }
 
-TSharedRef< FSVOBoxNavigationDataGenerator > FSVONavigationDataGenerator::CreateBoxNavigationGenerator( const FBox & box )
+TSharedRef< FSVOBoundsNavigationDataGenerator > FSVONavigationDataGenerator::CreateBoxNavigationGenerator( const FBox & box )
 {
     //SCOPE_CYCLE_COUNTER(STAT_SVONavigation_CreateBoxNavigationGenerator);
 
-    TSharedRef< FSVOBoxNavigationDataGenerator > box_navigation_data_generator = MakeShareable( new FSVOBoxNavigationDataGenerator( *this, box ) );
+    TSharedRef< FSVOBoundsNavigationDataGenerator > box_navigation_data_generator = MakeShareable( new FSVOBoundsNavigationDataGenerator( *this, box ) );
     return box_navigation_data_generator;
 }
