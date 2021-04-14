@@ -162,10 +162,10 @@ void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDi
 
     for ( const auto & bound_to_delete : bounds_to_delete )
     {
-        for ( auto index = NavigationData.NavigationBoundsData.Num() - 1; index >= 0; --index )
+        NavigationData.NavigationBoundsData.RemoveAll( [ &bound_to_delete ] ( const FSVOBoundsNavigationData & data )
         {
-            NavigationData.NavigationBoundsData.Remove( bound_to_delete );
-        }
+            return data.GetVolumeBounds() == bound_to_delete;
+        });
     }
 
     PendingBoundsDataGenerationElements.Reserve( PendingBoundsDataGenerationElements.Num() + dirty_bounds_elements.Num() );
@@ -330,7 +330,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( int32 task_to_pro
         auto & box_generator = *element.AsyncTask->GetTask().BoxNavigationDataGenerator;
 
         const auto & bounds_navigation_data = box_generator.GetBoundsNavigationData();
-        NavigationData.NavigationBoundsData.Add( bounds_navigation_data.GetVolumeBounds(), bounds_navigation_data );
+        NavigationData.NavigationBoundsData.Add( bounds_navigation_data );
 
         finished_boxes.Emplace( MoveTemp( element.VolumeBounds ) );
 

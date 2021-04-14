@@ -22,6 +22,12 @@ public:
     float GetLayerVoxelHalfSize( LayerIndex layer_index ) const;
     uint32 GetLayerNodeCount( LayerIndex layer_index ) const;
     const TArray< FSVOOctreeNode > & GetLayerNodes( LayerIndex layer_index ) const;
+    const FSVOOctreeNode & GetNodeFromLink( const FSVOOctreeLink & link ) const;
+    const FSVOOctreeLeaf & GetLeafNode( LeafIndex leaf_index ) const;
+    TOptional< FSVOOctreeLink > GetLinkFromPosition( const FVector & position ) const;
+    bool GetLinkPosition( FVector & position, const FSVOOctreeLink & link ) const;
+    void GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
+    void GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOBoundsNavigationDataGenerationSettings & generation_settings );
 
@@ -110,4 +116,14 @@ FORCEINLINE TArray< FSVOOctreeNode > & FSVOBoundsNavigationData::GetLayerNodes( 
 FORCEINLINE int32 FSVOBoundsNavigationData::GetLayerMaxNodeCount( LayerIndex layer_index ) const
 {
     return FMath::Pow( 2, VoxelExponent - layer_index );
+}
+
+FORCEINLINE const FSVOOctreeNode & FSVOBoundsNavigationData::GetNodeFromLink( const FSVOOctreeLink & link ) const
+{
+    return SVOData.NodesByLayers[ link.LayerIndex ][ link.NodeIndex ];
+}
+
+FORCEINLINE const FSVOOctreeLeaf & FSVOBoundsNavigationData::GetLeafNode( LeafIndex leaf_index ) const
+{
+    return SVOData.Leaves[ leaf_index ];
 }

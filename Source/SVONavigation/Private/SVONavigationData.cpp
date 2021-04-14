@@ -4,6 +4,10 @@
 #include "SVONavigationDataGenerator.h"
 #include "SVONavigationPath.h"
 #include "SVONavigationSettings.h"
+#include "SVOPathFinder.h"
+#include "NavMesh/NavMeshPath.h"
+
+
 
 #include <AI/NavDataGenerator.h>
 #include <NavigationSystem.h>
@@ -14,6 +18,24 @@
 ASVONavigationData::ASVONavigationData()
 {
     PrimaryActorTick.bCanEverTick = false;
+
+    if ( !HasAnyFlags( RF_ClassDefaultObject ) )
+    {
+        FindPathImplementation = FindPath;
+        /*FindHierarchicalPathImplementation = FindPath;
+
+        TestPathImplementation = TestPath;
+        TestHierarchicalPathImplementation = TestHierarchicalPath;*/
+
+        //RaycastImplementation = NavMeshRaycast;
+
+        //RecastNavMeshImpl = new FPImplRecastNavMesh( this );
+
+        //// add predefined areas up front
+        //SupportedAreas.Add( FSupportedAreaData( UNavArea_Null::StaticClass(), RECAST_NULL_AREA ) );
+        //SupportedAreas.Add( FSupportedAreaData( UNavArea_LowHeight::StaticClass(), RECAST_LOW_AREA ) );
+        //SupportedAreas.Add( FSupportedAreaData( UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA ) );
+    }
 }
 
 void ASVONavigationData::PostInitProperties()
@@ -210,58 +232,6 @@ uint32 ASVONavigationData::LogMemUsed() const
 }
 #endif
 
-FSVOPathFindingResult ASVONavigationData::FindPath( const FSVOPathFindingQuery & path_finding_query ) const
-{
-    const ASVONavigationData * self = path_finding_query.NavigationData.Get();
-
-    if ( self == nullptr )
-    {
-        return FSVOPathFindingResult( ENavigationQueryResult::Error );
-    }
-
-    FSVOPathFindingResult result( ENavigationQueryResult::Error );
-
-    FNavigationPath * navigation_path = path_finding_query.PathInstanceToFill.Get();
-    FSVONavigationPath * svo_navigation_path = navigation_path ? navigation_path->CastPath< FSVONavigationPath >() : nullptr;
-
-    if ( svo_navigation_path )
-    {
-        result.Path = path_finding_query.PathInstanceToFill;
-        svo_navigation_path->ResetForRepath();
-    }
-    else
-    {
-        result.Path = self->CreatePathInstance< FSVONavigationPath >( path_finding_query );
-        navigation_path = result.Path.Get();
-        svo_navigation_path = navigation_path ? navigation_path->CastPath< FSVONavigationPath >() : nullptr;
-    }
-
-    const FNavigationQueryFilter * NavFilter = path_finding_query.QueryFilter.Get();
-
-    if ( svo_navigation_path != nullptr && NavFilter != nullptr )
-    {
-        const FVector adjusted_end_location = NavFilter->GetAdjustedEndLocation( path_finding_query.EndLocation );
-        if ( ( path_finding_query.StartLocation - adjusted_end_location ).IsNearlyZero() )
-        {
-            result.Path->GetPathPoints().Reset();
-            result.Path->GetPathPoints().Add( FNavPathPoint( adjusted_end_location ) );
-            result.Result = ENavigationQueryResult::Success;
-        }
-        else
-        {
-            /*result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath( path_finding_query.StartLocation, adjusted_end_location, path_finding_query.CostLimit, *svo_navigation_path, *NavFilter, path_finding_query.Owner.Get() );
-
-            const bool bPartialPath = result.IsPartial();
-            if ( bPartialPath )
-            {
-                result.Result = path_finding_query.bAllowPartialPaths ? ENavigationQueryResult::Success : ENavigationQueryResult::Fail;
-            }*/
-        }
-    }
-
-    return result;
-}
-
 void ASVONavigationData::ConditionalConstructGenerator()
 {
     ResetGenerator();
@@ -337,4 +307,60 @@ void ASVONavigationData::ResetGenerator( const bool cancel_build )
 void ASVONavigationData::OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_boxes )
 {
     //InvalidateAffectedPaths(ChangedTiles);
+}
+
+FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*agent_properties*/, const FPathFindingQuery & path_finding_query )
+{
+    const auto * self = Cast< ASVONavigationData >( path_finding_query.NavData.Get() );
+
+    if ( self == nullptr )
+    {
+        return ENavigationQueryResult::Error;
+    }
+
+    FPathFindingResult result( ENavigationQueryResult::Error );
+
+    FNavigationPath * navigation_path = path_finding_query.PathInstanceToFill.Get();
+    FNavMeshPath * nav_mesh_path = navigation_path ? navigation_path->CastPath< FNavMeshPath >() : nullptr;
+
+    if ( nav_mesh_path != nullptr )
+    {
+        result.Path = path_finding_query.PathInstanceToFill;
+        nav_mesh_path->ResetForRepath();
+    }
+    else
+    {
+        result.Path = self->CreatePathInstance< FSVONavigationPath >( path_finding_query );
+        navigation_path = result.Path.Get();
+        nav_mesh_path = navigation_path ? navigation_path->CastPath< FNavMeshPath >() : nullptr;
+    }
+
+    if ( nav_mesh_path != nullptr )
+    {
+        if ( const FNavigationQueryFilter * navigation_filter = path_finding_query.QueryFilter.Get() )
+        {
+            const FVector adjusted_end_location = navigation_filter->GetAdjustedEndLocation( path_finding_query.EndLocation );
+            if ( ( path_finding_query.StartLocation - adjusted_end_location ).IsNearlyZero() )
+            {
+                result.Path->GetPathPoints().Reset();
+                result.Path->GetPathPoints().Add( FNavPathPoint( adjusted_end_location ) );
+                result.Result = ENavigationQueryResult::Success;
+            }
+            else
+            {
+                FSVOPathFinder path_finder( *self, path_finding_query.StartLocation, adjusted_end_location, *navigation_filter );
+                result = path_finder.GetPath( *navigation_path );
+
+                /*result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath( path_finding_query.StartLocation, adjusted_end_location, path_finding_query.CostLimit, *svo_navigation_path, *NavFilter, path_finding_query.Owner.Get() );
+
+                const bool bPartialPath = result.IsPartial();
+                if ( bPartialPath )
+                {
+                    result.Result = path_finding_query.bAllowPartialPaths ? ENavigationQueryResult::Success : ENavigationQueryResult::Fail;
+                }*/
+            }
+        }
+    }
+
+    return result;
 }

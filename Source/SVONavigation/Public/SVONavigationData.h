@@ -1,11 +1,9 @@
 #pragma once
 
+#include "SVOBoundsNavigationData.h"
 #include "SVONavigationTypes.h"
 
 #include <CoreMinimal.h>
-
-#include "SVOBoundsNavigationData.h"
-
 #include <NavigationData.h>
 
 #include "SVONavigationData.generated.h"
@@ -39,7 +37,6 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationDataBoundsK
     return archive;
 }
 
-
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
 class SVONAVIGATION_API ASVONavigationData : public ANavigationData
 {
@@ -51,7 +48,7 @@ public:
     friend class FSVONavigationDataGenerator;
 
     const FSVONavigationBoundsDataDebugInfos & GetDebugInfos() const;
-    const TMap< FSVONavigationDataBoundsKey, FSVOBoundsNavigationData > & GetNavigationBoundsData() const;
+    const TArray< FSVOBoundsNavigationData > & GetNavigationBoundsData() const;
 
     void PostInitProperties() override;
     void Serialize( FArchive & archive ) override;
@@ -86,19 +83,18 @@ public:
     uint32 LogMemUsed() const override;
 #endif
 
-    FSVOPathFindingResult FindPath( const FSVOPathFindingQuery & path_finding_query ) const;
-
     void ConditionalConstructGenerator() override;
 
     void RequestDrawingUpdate( bool force = false );
 
 private:
-
     void UpdateDrawing();
     void ResetGenerator( bool cancel_build = true );
     void OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_boxes );
 
-    TMap< FSVONavigationDataBoundsKey, FSVOBoundsNavigationData > NavigationBoundsData;
+    static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
+
+    TArray< FSVOBoundsNavigationData > NavigationBoundsData;
 
     UPROPERTY( EditAnywhere, config, Category = "Display" )
     FSVONavigationBoundsDataDebugInfos DebugInfos;
@@ -115,7 +111,7 @@ FORCEINLINE const FSVONavigationBoundsDataDebugInfos & ASVONavigationData::GetDe
     return DebugInfos;
 }
 
-FORCEINLINE const TMap< FSVONavigationDataBoundsKey, FSVOBoundsNavigationData > & ASVONavigationData::GetNavigationBoundsData() const
+FORCEINLINE const TArray< FSVOBoundsNavigationData > & ASVONavigationData::GetNavigationBoundsData() const
 {
     return NavigationBoundsData;
 }

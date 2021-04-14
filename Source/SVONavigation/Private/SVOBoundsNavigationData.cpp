@@ -13,6 +13,207 @@ static const FIntVector NeighborDirections[ 6 ] = {
     { 0, 0, -1 }
 };
 
+const NodeIndex ChildOffsetsDirections[ 6 ][ 4 ] = {
+    { 0, 4, 2, 6 },
+    { 1, 3, 5, 7 },
+    { 0, 1, 4, 5 },
+    { 2, 3, 6, 7 },
+    { 0, 1, 2, 3 },
+    { 4, 5, 6, 7 }
+};
+
+const NodeIndex LeafChildOffsetsDirections[ 6 ][ 16 ] = {
+    { 0, 2, 16, 18, 4, 6, 20, 22, 32, 34, 48, 50, 36, 38, 52, 54 },
+    { 9, 11, 25, 27, 13, 15, 29, 31, 41, 43, 57, 59, 45, 47, 61, 63 },
+    { 0, 1, 8, 9, 4, 5, 12, 13, 32, 33, 40, 41, 36, 37, 44, 45 },
+    { 18, 19, 26, 27, 22, 23, 30, 31, 50, 51, 58, 59, 54, 55, 62, 63 },
+    { 0, 1, 8, 9, 2, 3, 10, 11, 16, 17, 24, 25, 18, 19, 26, 27 },
+    { 36, 37, 44, 45, 38, 39, 46, 47, 52, 53, 60, 61, 54, 55, 62, 63 }
+
+};
+
+TOptional< FSVOOctreeLink > FSVOBoundsNavigationData::GetLinkFromPosition( const FVector & position ) const
+{
+}
+
+bool FSVOBoundsNavigationData::GetLinkPosition( FVector & position, const FSVOOctreeLink & link ) const
+{
+}
+
+void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const
+{
+    MortonCode leaf_index = link.SubNodeIndex;
+    const FSVOOctreeNode & node = GetNodeFromLink( link );
+    const FSVOOctreeLeaf & leaf = GetLeafNode( node.FirstChild.NodeIndex );
+
+    // Get our starting co-ordinates
+    uint_fast32_t x = 0, y = 0, z = 0;
+    morton3D_64_decode( leaf_index, x, y, z );
+
+    for ( int neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
+    {
+        // Need to switch to signed ints
+        FIntVector neighbor_coords( static_cast< int32 >( x ), static_cast< int32 >( y ), static_cast< int32 >( z ) );
+        neighbor_coords += NeighborDirections[ neighbor_direction ];
+
+        // If the neighbour is in bounds of this leaf node
+        if ( neighbor_coords.X >= 0 && neighbor_coords.X < 4 && neighbor_coords.Y >= 0 && neighbor_coords.Y < 4 && neighbor_coords.Z >= 0 && neighbor_coords.Z < 4 )
+        {
+            MortonCode subnode_index = morton3D_64_encode( neighbor_coords.X, neighbor_coords.Y, neighbor_coords.Z );
+            // If this node is blocked, then no link in this direction, continue
+            if ( leaf.GetSubNode( subnode_index ) )
+            {
+                continue;
+            }
+            else // Otherwise, this is a valid link, add it
+            {
+                neighbors.Emplace( FSVOOctreeLink( 0, link.NodeIndex, subnode_index ) );
+                continue;
+            }
+        }
+        else // the neighbor is out of bounds, we need to find our neighbor
+        {
+            const FSVOOctreeLink & neighbor_link = node.Neighbors[ neighbor_direction ];
+            const FSVOOctreeNode & neighbor_node = GetNodeFromLink( neighbor_link );
+
+            // If the neighbour layer 0 has no leaf nodes, just return it
+            if ( !neighbor_node.FirstChild.IsValid() )
+            {
+                neighbors.Add( neighbor_link );
+                continue;
+            }
+
+            const FSVOOctreeLeaf & leaf_node = GetLeafNode( neighbor_node.FirstChild.NodeIndex );
+
+            if ( leaf_node.IsOccluded() )
+            {
+                // The leaf node is completely blocked, we don't return it
+                continue;
+            }
+            else // Otherwise, we need to find the correct subnode
+            {
+                if ( neighbor_coords.X < 0 )
+                {
+                    neighbor_coords.X = 3;
+                }
+                else if ( neighbor_coords.X > 3 )
+                {
+                    neighbor_coords.X = 0;
+                }
+                else if ( neighbor_coords.Y < 0 )
+                {
+                    neighbor_coords.Y = 3;
+                }
+                else if ( neighbor_coords.Y > 3 )
+                {
+                    neighbor_coords.Y = 0;
+                }
+                else if ( neighbor_coords.Z < 0 )
+                {
+                    neighbor_coords.Z = 3;
+                }
+                else if ( neighbor_coords.Z > 3 )
+                {
+                    neighbor_coords.Z = 0;
+                }
+
+                MortonCode subnode_code = morton3D_64_encode( neighbor_coords.X, neighbor_coords.Y, neighbor_coords.Z );
+
+                // Only return the neighbour if it isn't blocked!
+                if ( !leaf_node.GetSubNode( subnode_code ) )
+                {
+                    neighbors.Emplace( FSVOOctreeLink( 0, neighbor_node.FirstChild.NodeIndex, subnode_code ) );
+                }
+            }
+        }
+    }
+}
+
+void FSVOBoundsNavigationData::GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const
+{
+    const auto & node = GetNodeFromLink( link );
+
+    for ( int neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
+    {
+        const auto & neighbor_link = node.Neighbors[ neighbor_direction ];
+
+        if ( !neighbor_link.IsValid() )
+        {
+            continue;
+        }
+
+        const auto & neighbor = GetNodeFromLink( neighbor_link );
+
+        // If the neighbour has no children, it's empty, we just use it
+        if ( !neighbor.HasChildren() )
+        {
+            neighbors.Add( neighbor_link );
+            continue;
+        }
+
+        // If the node has children, we need to look down the tree to see which children we want to add to the neighbour set
+
+        // Start working set, and put the link into it
+        TArray< FSVOOctreeLink > neighbor_links_working_set;
+        neighbor_links_working_set.Push( neighbor_link );
+
+        while ( neighbor_links_working_set.Num() > 0 )
+        {
+            // Pop off the top of the working set
+            auto this_link = neighbor_links_working_set.Pop();
+
+            const auto & this_node = GetNodeFromLink( this_link );
+
+            // If the node as no children, it's clear, so add to neighbours and continue
+            if ( !this_node.HasChildren() )
+            {
+                neighbors.Add( neighbor_link );
+                continue;
+            }
+
+            // We know it has children
+
+            if ( this_link.LayerIndex > 0 )
+            {
+                // If it's above layer 0, we will need to potentially add 4 children using our offsets
+                for ( const auto & child_index : ChildOffsetsDirections[ neighbor_direction ] )
+                {
+                    // Each of the childnodes
+                    auto child_link = this_node.FirstChild;
+                    child_link.NodeIndex += child_index;
+                    const auto & child_node = GetNodeFromLink( child_link );
+
+                    if ( child_node.HasChildren() ) // If it has children, add them to the working set to keep going down
+                    {
+                        neighbor_links_working_set.Emplace( child_link );
+                    }
+                    else // Or just add to the outgoing links
+                    {
+                        neighbors.Emplace( child_link );
+                    }
+                }
+            }
+            else
+            {
+                // If this is a leaf layer, then we need to add whichever of the 16 facing leaf nodes aren't blocked
+                for ( const auto & leaf_index : LeafChildOffsetsDirections[ neighbor_direction ] )
+                {
+                    // Each of the childnodes
+                    auto child_link = neighbor.FirstChild;
+                    const auto & leaf_node = GetLeafNode( child_link.NodeIndex );
+
+                    child_link.SubNodeIndex = leaf_index;
+
+                    if ( !leaf_node.GetSubNode( leaf_index ) )
+                    {
+                        neighbors.Emplace( child_link );
+                    }
+                }
+            }
+        }
+    }
+}
+
 void FSVOBoundsNavigationData::GenerateNavigationData( const FBox & volume_bounds, const FSVOBoundsNavigationDataGenerationSettings & generation_settings )
 {
     Settings = generation_settings;

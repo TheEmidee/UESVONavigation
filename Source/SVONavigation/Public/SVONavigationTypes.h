@@ -1,12 +1,14 @@
 #pragma once
 
 #include <NavigationSystemTypes.h>
+
 #include "SVONavigationTypes.generated.h"
 
 class ASVONavigationData;
 typedef uint_fast64_t MortonCode;
 typedef uint8 LayerIndex;
 typedef int32 NodeIndex;
+typedef int32 LeafIndex;
 typedef uint8 SubNodeIndex;
 typedef uint8 NeighborDirection;
 
@@ -225,6 +227,11 @@ struct FSVOOctreeLink
 
     bool IsValid() const;
     void Invalidate();
+
+    bool operator==( const FSVOOctreeLink & other ) const
+    {
+        return LayerIndex == other.LayerIndex && NodeIndex == other.NodeIndex && SubNodeIndex == other.SubNodeIndex;
+    }
 
     static FSVOOctreeLink InvalidEdge()
     {

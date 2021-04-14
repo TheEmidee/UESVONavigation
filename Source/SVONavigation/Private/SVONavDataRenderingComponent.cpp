@@ -95,7 +95,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
-            OctreeBounds.Emplace( FBoxCenterAndExtent( bounds_data.Value.GetNavigationBounds() ) );
+            OctreeBounds.Emplace( FBoxCenterAndExtent( bounds_data.GetNavigationBounds() ) );
         }
     }
 
@@ -106,7 +106,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
-            const auto & octree_data = bounds_data.Value.GetOctreeData();
+            const auto & octree_data = bounds_data.GetOctreeData();
 
             if ( octree_data.NodesByLayers.Num() == 0 )
             {
@@ -118,8 +118,8 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                 for ( const auto & node : layer_nodes )
                 {
                     const auto code = node.MortonCode;
-                    const auto node_position = bounds_data.Value.GetNodePosition( layer_index, code );
-                    const auto half_voxel_size = bounds_data.Value.GetLayerVoxelHalfSize( layer_index );
+                    const auto node_position = bounds_data.GetNodePosition( layer_index, code );
+                    const auto half_voxel_size = bounds_data.GetLayerVoxelHalfSize( layer_index );
 
                     array.Emplace( FBoxCenterAndExtent( node_position, FVector( half_voxel_size ) ) );
                 }
@@ -146,8 +146,8 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
-            const auto occluded_leaf_voxel_size = bounds_data.Value.GetLayerVoxelHalfSize( 0 ) * 0.25f;
-            const auto & octree_data = bounds_data.Value.GetOctreeData();
+            const auto occluded_leaf_voxel_size = bounds_data.GetLayerVoxelHalfSize( 0 ) * 0.25f;
+            const auto & octree_data = bounds_data.GetOctreeData();
 
             for ( uint_fast32_t I = 0; I < static_cast< uint_fast32_t >( octree_data.Leaves.Num() ); I++ )
             {
@@ -156,7 +156,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                     if ( octree_data.Leaves[ I ].GetSubNode( J ) )
                     {
                         const FSVOOctreeLink link { 0, I, J };
-                        const auto node_location = bounds_data.Value.GetNodePositionFromLink( link );
+                        const auto node_location = bounds_data.GetNodePositionFromLink( link );
 
                         OccludedLeaves.Emplace( FBoxCenterAndExtent( node_location, FVector( occluded_leaf_voxel_size ) ) );
                     }
@@ -169,7 +169,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
-            const auto & octree_data = bounds_data.Value.GetOctreeData();
+            const auto & octree_data = bounds_data.GetOctreeData();
 
             if ( octree_data.NodesByLayers.Num() == 0 )
             {
@@ -184,7 +184,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                 for ( const auto & node : layer_nodes )
                 {
                     const auto code = node.MortonCode;
-                    const auto node_position = bounds_data.Value.GetNodePosition( layer_index_to_draw, code );
+                    const auto node_position = bounds_data.GetNodePosition( layer_index_to_draw, code );
 
                     const auto add_link = [ &bounds_data, &node_position, line_thickness = DebugInfos.DebugLineThickness ]( TArray< FDebugRenderSceneProxy::FDebugLine > & links, const FSVOOctreeLink & link ) {
                         if ( !link.IsValid() )
@@ -192,7 +192,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                             return;
                         }
 
-                        const auto neighbor_position = bounds_data.Value.GetNodePositionFromLink( link );
+                        const auto neighbor_position = bounds_data.GetNodePositionFromLink( link );
                         links.Emplace( FDebugRenderSceneProxy::FDebugLine( node_position, neighbor_position, FColor::Orange, line_thickness ) );
                     };
 
@@ -340,7 +340,7 @@ FBoxSphereBounds USVONavDataRenderingComponent::CalcBounds( const FTransform & L
 
         for ( const auto & bounds : navigation_bounds )
         {
-            bounding_box += bounds.Value.GetNavigationBounds();
+            bounding_box += bounds.GetNavigationBounds();
         }
     }
 
