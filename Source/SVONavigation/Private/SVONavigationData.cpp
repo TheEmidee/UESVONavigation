@@ -18,6 +18,7 @@
 ASVONavigationData::ASVONavigationData()
 {
     PrimaryActorTick.bCanEverTick = false;
+    MaxSimultaneousBoxGenerationJobsCount = 1024;
 
     if ( !HasAnyFlags( RF_ClassDefaultObject ) )
     {
@@ -335,11 +336,11 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*a
         nav_mesh_path = navigation_path ? navigation_path->CastPath< FNavMeshPath >() : nullptr;
     }
 
-    if ( nav_mesh_path != nullptr )
+    if ( navigation_path != nullptr )
     {
         if ( const FNavigationQueryFilter * navigation_filter = path_finding_query.QueryFilter.Get() )
         {
-            const FVector adjusted_end_location = navigation_filter->GetAdjustedEndLocation( path_finding_query.EndLocation );
+            const FVector adjusted_end_location = path_finding_query.EndLocation;// navigation_filter->GetAdjustedEndLocation( path_finding_query.EndLocation );
             if ( ( path_finding_query.StartLocation - adjusted_end_location ).IsNearlyZero() )
             {
                 result.Path->GetPathPoints().Reset();
@@ -348,8 +349,8 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*a
             }
             else
             {
-                FSVOPathFinder path_finder( *self, path_finding_query.StartLocation, adjusted_end_location, *navigation_filter );
-                result = path_finder.GetPath( *navigation_path );
+                FSVOPathFinder path_finder( *self );
+                result.Result = path_finder.GetPath( *result.Path.Get(), path_finding_query.StartLocation, adjusted_end_location, *navigation_filter );
 
                 /*result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath( path_finding_query.StartLocation, adjusted_end_location, path_finding_query.CostLimit, *svo_navigation_path, *NavFilter, path_finding_query.Owner.Get() );
 

@@ -2,6 +2,12 @@
 
 #include "SVONavigationData.h"
 
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+#include "Engine/Canvas.h"
+#endif
+
+#include "Debug/DebugDrawService.h"
+
 #include <Engine/CollisionProfile.h>
 
 #if WITH_EDITOR
@@ -72,6 +78,19 @@ void FSVONavigationSceneProxyData::Serialize( FArchive & archive )
         archive << Links[ index ].End;
         archive << Links[ index ].Color;
     }
+
+    int32 num_texts = DebugTexts.Num();
+    archive << num_texts;
+    if ( archive.IsLoading() )
+    {
+        DebugTexts.SetNum( num_texts );
+    }
+
+    for ( int32 index = 0; index < num_texts; index++ )
+    {
+        archive << DebugTexts[ index ].Location;
+        archive << DebugTexts[ index ].Text;
+    }
 }
 
 uint32 FSVONavigationSceneProxyData::GetAllocatedSize() const
@@ -80,7 +99,8 @@ uint32 FSVONavigationSceneProxyData::GetAllocatedSize() const
            Layers.GetAllocatedSize() +
            Leaves.GetAllocatedSize() +
            OccludedLeaves.GetAllocatedSize() +
-           Links.GetAllocatedSize();
+           Links.GetAllocatedSize() +
+           DebugTexts.GetAllocatedSize();
 }
 
 void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & navigation_data )
@@ -101,8 +121,9 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
 
     const auto it_draws_layers = DebugInfos.ItDebugDrawsLayers;
     const auto it_draws_leaves = DebugInfos.ItDebugDrawsLeaves;
+    const auto it_draws_morton_codes = DebugInfos.ItDebugDrawsMortonCodes;
 
-    if ( it_draws_layers || it_draws_leaves )
+    if ( it_draws_layers || it_draws_leaves || it_draws_morton_codes )
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
@@ -137,6 +158,22 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                 if ( layer_index_to_draw >= 1 && layer_index_to_draw < octree_data.NodesByLayers.Num() )
                 {
                     fill_array( Layers, layer_index_to_draw );
+                }
+            }
+
+            if ( it_draws_morton_codes )
+            {
+                const auto morton_codes_layer_index = DebugInfos.MortonCodeLayerIndexToDraw;
+
+                if ( morton_codes_layer_index >= 0 && morton_codes_layer_index < octree_data.NodesByLayers.Num() )
+                {
+                    const auto & layer_nodes = octree_data.NodesByLayers[ morton_codes_layer_index ];
+
+                    for ( const auto & node : layer_nodes )
+                    {
+                        DebugTexts.Emplace( FDebugText( bounds_data.GetNodePosition( morton_codes_layer_index, node.MortonCode ),
+                            FString::Printf( TEXT( "%i:%llu" ), morton_codes_layer_index, node.MortonCode ) ) );
+                    }
                 }
             }
         }
@@ -296,6 +333,61 @@ FPrimitiveViewRelevance FSVONavigationMeshSceneProxy::GetViewRelevance( const FS
     return Result;
 }
 
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+
+void FSVODebugDrawDelegateHelper::RegisterDebugDrawDelgate()
+{
+    ensureMsgf( State != RegisteredState, TEXT( "RegisterDebugDrawDelgate is already Registered!" ) );
+    if ( State == InitializedState )
+    {
+        DebugTextDrawingDelegate = FDebugDrawDelegate::CreateRaw( this, &FSVODebugDrawDelegateHelper::DrawDebugLabels );
+        DebugTextDrawingDelegateHandle = UDebugDrawService::Register( TEXT( "Navigation" ), DebugTextDrawingDelegate );
+        State = RegisteredState;
+    }
+}
+
+void FSVODebugDrawDelegateHelper::UnregisterDebugDrawDelgate()
+{
+    ensureMsgf( State != InitializedState, TEXT( "UnegisterDebugDrawDelgate is in an invalid State: %i !" ), State );
+    if ( State == RegisteredState )
+    {
+        check( DebugTextDrawingDelegate.IsBound() );
+        UDebugDrawService::Unregister( DebugTextDrawingDelegateHandle );
+        State = InitializedState;
+    }
+}
+
+void FSVODebugDrawDelegateHelper::DrawDebugLabels( UCanvas * Canvas, APlayerController * )
+{
+    if ( Canvas == nullptr )
+    {
+        return;
+    }
+
+    const bool bVisible = ( Canvas->SceneView && !!Canvas->SceneView->Family->EngineShowFlags.Navigation ); // || bForceRendering;
+    if ( !bVisible /*|| bNeedsNewData*/ || DebugLabels.Num() == 0 )
+    {
+        return;
+    }
+
+    const FColor OldDrawColor = Canvas->DrawColor;
+    Canvas->SetDrawColor( FColor::White );
+    const FSceneView * View = Canvas->SceneView;
+    UFont * Font = GEngine->GetSmallFont();
+    const FDebugText * DebugText = DebugLabels.GetData();
+    for ( int32 Idx = 0; Idx < DebugLabels.Num(); ++Idx, ++DebugText )
+    {
+        if ( View->ViewFrustum.IntersectSphere( DebugText->Location, 1.0f ) )
+        {
+            const FVector ScreenLoc = Canvas->Project( DebugText->Location );
+            Canvas->DrawText( Font, DebugText->Text, ScreenLoc.X, ScreenLoc.Y );
+        }
+    }
+
+    Canvas->SetDrawColor( OldDrawColor );
+}
+#endif
+
 USVONavDataRenderingComponent::USVONavDataRenderingComponent()
 {
     SetCollisionProfileName( UCollisionProfile::NoCollision_ProfileName );
@@ -324,6 +416,12 @@ FPrimitiveSceneProxy * USVONavDataRenderingComponent::CreateSceneProxy()
         }
     }
 
+    if ( proxy != nullptr )
+    {
+        DebugDrawDelegateManager.InitDelegateHelper( proxy );
+        DebugDrawDelegateManager.ReregisterDebugDrawDelgate();
+    }
+
     return proxy;
 #else
     return nullptr;
@@ -345,6 +443,24 @@ FBoxSphereBounds USVONavDataRenderingComponent::CalcBounds( const FTransform & L
     }
 
     return FBoxSphereBounds( bounding_box );
+}
+
+void USVONavDataRenderingComponent::CreateRenderState_Concurrent( FRegisterComponentContext * context )
+{
+    Super::CreateRenderState_Concurrent( context );
+
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+    DebugDrawDelegateManager.RegisterDebugDrawDelgate();
+#endif
+}
+
+void USVONavDataRenderingComponent::DestroyRenderState_Concurrent()
+{
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+    DebugDrawDelegateManager.UnregisterDebugDrawDelgate();
+#endif
+
+    Super::DestroyRenderState_Concurrent();
 }
 
 bool USVONavDataRenderingComponent::IsNavigationShowFlagSet( const UWorld * world )

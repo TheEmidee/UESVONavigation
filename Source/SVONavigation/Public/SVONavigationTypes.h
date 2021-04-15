@@ -87,7 +87,9 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
         ItDebugDrawsOccludedLeaves( false ),
         ItDebugDrawsLinks( false ),
         LinksLayerIndexToDraw( false ),
-        DebugLineThickness( 5.0f )
+        DebugLineThickness( 5.0f ),
+        ItDebugDrawsMortonCodes( false ),
+        MortonCodeLayerIndexToDraw( 0 )
     {}
 
     friend FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataDebugInfos & data );
@@ -124,6 +126,12 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
 
     UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled", ClampMin = "1", UIMin = "1" ) )
     float DebugLineThickness;
+
+    UPROPERTY( EditInstanceOnly )
+    bool ItDebugDrawsMortonCodes;
+
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsMortonCodes" ) )
+    uint8 MortonCodeLayerIndexToDraw;
 };
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataDebugInfos & data )
@@ -138,6 +146,8 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataD
     archive << data.ItDebugDrawsNeighborLinks;
     archive << data.ItDebugDrawsParentLinks;
     archive << data.DebugLineThickness;
+    archive << data.ItDebugDrawsMortonCodes;
+    archive << data.MortonCodeLayerIndexToDraw;
 
     return archive;
 }
@@ -231,6 +241,11 @@ struct FSVOOctreeLink
     bool operator==( const FSVOOctreeLink & other ) const
     {
         return LayerIndex == other.LayerIndex && NodeIndex == other.NodeIndex && SubNodeIndex == other.SubNodeIndex;
+    }
+
+    bool operator!=( const FSVOOctreeLink & other ) const
+    {
+        return !operator==( other );
     }
 
     static FSVOOctreeLink InvalidEdge()

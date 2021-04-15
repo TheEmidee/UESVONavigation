@@ -24,9 +24,8 @@ public:
     const TArray< FSVOOctreeNode > & GetLayerNodes( LayerIndex layer_index ) const;
     const FSVOOctreeNode & GetNodeFromLink( const FSVOOctreeLink & link ) const;
     const FSVOOctreeLeaf & GetLeafNode( LeafIndex leaf_index ) const;
-    TOptional< FSVOOctreeLink > GetLinkFromPosition( const FVector & position ) const;
+    bool GetLinkFromPosition( FSVOOctreeLink & link, const FVector & position ) const;
     bool GetLinkPosition( FVector & position, const FSVOOctreeLink & link ) const;
-    void GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
     void GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOBoundsNavigationDataGenerationSettings & generation_settings );
@@ -43,6 +42,7 @@ private:
     TOptional< NodeIndex > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
     void BuildNeighborLinks( LayerIndex layer_index );
     bool FindNeighborInDirection( FSVOOctreeLink & link, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
+    void GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
 
     FSVOBoundsNavigationDataGenerationSettings Settings;
     int VoxelExponent;

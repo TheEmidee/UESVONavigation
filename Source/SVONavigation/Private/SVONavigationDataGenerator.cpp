@@ -25,6 +25,7 @@ bool FSVOBoundsNavigationDataGenerator::DoWork()
 
 FSVONavigationDataGenerator::FSVONavigationDataGenerator( ASVONavigationData & navigation_data ) :
     NavigationData( navigation_data ),
+    MaximumGeneratorTaskCount( 2 ),
     IsInitialized( false )
 {
 }

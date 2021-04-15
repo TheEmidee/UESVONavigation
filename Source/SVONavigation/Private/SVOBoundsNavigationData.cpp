@@ -32,105 +32,136 @@ const NodeIndex LeafChildOffsetsDirections[ 6 ][ 16 ] = {
 
 };
 
-TOptional< FSVOOctreeLink > FSVOBoundsNavigationData::GetLinkFromPosition( const FVector & position ) const
+bool FSVOBoundsNavigationData::GetLinkFromPosition( FSVOOctreeLink & link, const FVector & position ) const
 {
+    if ( !NavigationBounds.IsInside( position ) )
+    {
+        return false;
+    }
+
+    FVector origin;
+    FVector extent;
+
+    NavigationBounds.GetCenterAndExtents( origin, extent );
+    // The z-order origin of the volume (where code == 0)
+    FVector z_origin = origin - extent;
+    // The local position of the point in volume space
+    FVector local_position = position - z_origin;
+
+    int layer_index = LayerCount - 1;
+    NodeIndex nodeIndex = 0;
+
+    while ( layer_index >= 0 && layer_index < LayerCount )
+    {
+        const auto & layer_nodes = GetLayerNodes( layer_index );
+        const auto voxel_size = GetLayerVoxelSize( layer_index );
+
+        FIntVector voxel_coords;
+        voxel_coords.X = FMath::FloorToInt( ( local_position.X / voxel_size ) );
+        voxel_coords.Y = FMath::FloorToInt( ( local_position.Y / voxel_size ) );
+        voxel_coords.Z = FMath::FloorToInt( ( local_position.Z / voxel_size ) );
+
+        // Get the morton code we want for this layer
+        const auto code = morton3D_64_encode( voxel_coords.X, voxel_coords.Y, voxel_coords.Z );
+        const auto half_voxel_size = GetLayerVoxelHalfSize( layer_index );
+
+        for ( NodeIndex node_index = nodeIndex; node_index < layer_nodes.Num(); node_index++ )
+        {
+            const auto & node = layer_nodes[ node_index ];
+
+            // This is the node we are in
+            if ( node.MortonCode != code )
+            {
+                continue;
+                }
+
+            // There are no child nodes, so this is our nav position
+            if ( !node.FirstChild.IsValid() ) // && layerIndex > 0)
+            {
+                link.LayerIndex = layer_index;
+                link.NodeIndex = node_index;
+                link.SubNodeIndex = 0;
+                return true;
+            }
+
+            // If this is a leaf node, we need to find our subnode
+            if ( layer_index == 0 )
+            {
+                const auto & leaf = GetLeafNode( node.FirstChild.NodeIndex );
+                // We need to calculate the node local position to get the morton code for the leaf
+                // The world position of the 0 node
+                const auto nodePosition = GetNodePosition( layer_index, node.MortonCode );
+                // The morton origin of the node
+                const auto nodeOrigin = nodePosition - FVector( half_voxel_size );
+                // The requested position, relative to the node origin
+                const auto nodeLocalPos = position - nodeOrigin;
+                // Now get our voxel coordinates
+                const auto voxel_quarter_size = voxel_size * 0.25f;
+
+                FIntVector leaf_coords;
+                leaf_coords.X = FMath::FloorToInt( nodeLocalPos.X / voxel_quarter_size );
+                leaf_coords.Y = FMath::FloorToInt( nodeLocalPos.Y / voxel_quarter_size );
+                leaf_coords.Z = FMath::FloorToInt( nodeLocalPos.Z / voxel_quarter_size );
+
+                // So our link is.....*drum roll*
+                link.LayerIndex = 0;         // Layer 0 (leaf)
+                link.NodeIndex = node_index; // This index
+
+                const auto leaf_code = morton3D_64_encode( leaf_coords.X, leaf_coords.Y, leaf_coords.Z ); // This morton code is our key into the 64-bit leaf node
+
+                if ( leaf.GetSubNode( leaf_code ) )
+                {
+                    return false; // This voxel is blocked
+                }
+
+                link.SubNodeIndex = leaf_code;
+
+                return true;
+            }
+
+            // If we've got here, the current node has a child, and isn't a leaf, so lets go down...
+            layer_index = layer_nodes[ node_index ].FirstChild.LayerIndex;
+            nodeIndex = layer_nodes[ node_index ].FirstChild.NodeIndex;
+
+            break; //stop iterating this layer
+        }
+    }
+
+    return false;
 }
 
 bool FSVOBoundsNavigationData::GetLinkPosition( FVector & position, const FSVOOctreeLink & link ) const
 {
-}
+    const auto & layer_nodes = GetLayerNodes( link.LayerIndex );
+    const auto & node = layer_nodes[ link.NodeIndex ];
 
-void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const
-{
-    MortonCode leaf_index = link.SubNodeIndex;
-    const FSVOOctreeNode & node = GetNodeFromLink( link );
-    const FSVOOctreeLeaf & leaf = GetLeafNode( node.FirstChild.NodeIndex );
+    position = GetNodePosition( link.LayerIndex, node.MortonCode );
 
-    // Get our starting co-ordinates
-    uint_fast32_t x = 0, y = 0, z = 0;
-    morton3D_64_decode( leaf_index, x, y, z );
-
-    for ( int neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
+    if ( link.LayerIndex == 0 && node.FirstChild.IsValid() )
     {
-        // Need to switch to signed ints
-        FIntVector neighbor_coords( static_cast< int32 >( x ), static_cast< int32 >( y ), static_cast< int32 >( z ) );
-        neighbor_coords += NeighborDirections[ neighbor_direction ];
+        const auto voxel_size = GetLayerVoxelSize( 0 );
 
-        // If the neighbour is in bounds of this leaf node
-        if ( neighbor_coords.X >= 0 && neighbor_coords.X < 4 && neighbor_coords.Y >= 0 && neighbor_coords.Y < 4 && neighbor_coords.Z >= 0 && neighbor_coords.Z < 4 )
-        {
-            MortonCode subnode_index = morton3D_64_encode( neighbor_coords.X, neighbor_coords.Y, neighbor_coords.Z );
-            // If this node is blocked, then no link in this direction, continue
-            if ( leaf.GetSubNode( subnode_index ) )
-            {
-                continue;
-            }
-            else // Otherwise, this is a valid link, add it
-            {
-                neighbors.Emplace( FSVOOctreeLink( 0, link.NodeIndex, subnode_index ) );
-                continue;
-            }
-        }
-        else // the neighbor is out of bounds, we need to find our neighbor
-        {
-            const FSVOOctreeLink & neighbor_link = node.Neighbors[ neighbor_direction ];
-            const FSVOOctreeNode & neighbor_node = GetNodeFromLink( neighbor_link );
+        uint_fast32_t x, y, z;
+        morton3D_64_decode( link.SubNodeIndex, x, y, z );
 
-            // If the neighbour layer 0 has no leaf nodes, just return it
-            if ( !neighbor_node.FirstChild.IsValid() )
-            {
-                neighbors.Add( neighbor_link );
-                continue;
-            }
-
-            const FSVOOctreeLeaf & leaf_node = GetLeafNode( neighbor_node.FirstChild.NodeIndex );
-
-            if ( leaf_node.IsOccluded() )
-            {
-                // The leaf node is completely blocked, we don't return it
-                continue;
-            }
-            else // Otherwise, we need to find the correct subnode
-            {
-                if ( neighbor_coords.X < 0 )
-                {
-                    neighbor_coords.X = 3;
-                }
-                else if ( neighbor_coords.X > 3 )
-                {
-                    neighbor_coords.X = 0;
-                }
-                else if ( neighbor_coords.Y < 0 )
-                {
-                    neighbor_coords.Y = 3;
-                }
-                else if ( neighbor_coords.Y > 3 )
-                {
-                    neighbor_coords.Y = 0;
-                }
-                else if ( neighbor_coords.Z < 0 )
-                {
-                    neighbor_coords.Z = 3;
-                }
-                else if ( neighbor_coords.Z > 3 )
-                {
-                    neighbor_coords.Z = 0;
-                }
-
-                MortonCode subnode_code = morton3D_64_encode( neighbor_coords.X, neighbor_coords.Y, neighbor_coords.Z );
-
-                // Only return the neighbour if it isn't blocked!
-                if ( !leaf_node.GetSubNode( subnode_code ) )
-                {
-                    neighbors.Emplace( FSVOOctreeLink( 0, neighbor_node.FirstChild.NodeIndex, subnode_code ) );
-                }
-            }
-        }
+        position += FVector( x * voxel_size * 0.25f, y * voxel_size * 0.25f, z * voxel_size * 0.25f ) - FVector( voxel_size * 0.375f );
+        const auto & leaf_node = GetLeafNode( node.FirstChild.NodeIndex );
+        const auto is_blocked = leaf_node.GetSubNode( link.SubNodeIndex );
+        return !is_blocked;
     }
+
+    return true;
 }
 
 void FSVOBoundsNavigationData::GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const
 {
+    const auto & link_node = GetNodeFromLink( link );
+    if ( link.LayerIndex == 0 && link_node.FirstChild.IsValid() )
+    {
+        GetLeafNeighbors( neighbors, link );
+        return;
+    }
+
     const auto & node = GetNodeFromLink( link );
 
     for ( int neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
@@ -141,7 +172,7 @@ void FSVOBoundsNavigationData::GetNeighbors( TArray< FSVOOctreeLink > & neighbor
         {
             continue;
         }
-
+        
         const auto & neighbor = GetNodeFromLink( neighbor_link );
 
         // If the neighbour has no children, it's empty, we just use it
@@ -582,4 +613,93 @@ bool FSVOBoundsNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, c
         }
     }
     return false;
+}
+
+void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const
+{
+    MortonCode leaf_index = link.SubNodeIndex;
+    const FSVOOctreeNode & node = GetNodeFromLink( link );
+    const FSVOOctreeLeaf & leaf = GetLeafNode( node.FirstChild.NodeIndex );
+
+    // Get our starting co-ordinates
+    uint_fast32_t x = 0, y = 0, z = 0;
+    morton3D_64_decode( leaf_index, x, y, z );
+
+    for ( int neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
+    {
+        // Need to switch to signed ints
+        FIntVector neighbor_coords( static_cast< int32 >( x ), static_cast< int32 >( y ), static_cast< int32 >( z ) );
+        neighbor_coords += NeighborDirections[ neighbor_direction ];
+
+        // If the neighbour is in bounds of this leaf node
+        if ( neighbor_coords.X >= 0 && neighbor_coords.X < 4 && neighbor_coords.Y >= 0 && neighbor_coords.Y < 4 && neighbor_coords.Z >= 0 && neighbor_coords.Z < 4 )
+        {
+            MortonCode subnode_index = morton3D_64_encode( neighbor_coords.X, neighbor_coords.Y, neighbor_coords.Z );
+            // If this node is blocked, then no link in this direction, continue
+            if ( leaf.GetSubNode( subnode_index ) )
+            {
+                continue;
+            }
+            else // Otherwise, this is a valid link, add it
+            {
+                neighbors.Emplace( FSVOOctreeLink( 0, link.NodeIndex, subnode_index ) );
+                continue;
+            }
+        }
+        else // the neighbor is out of bounds, we need to find our neighbor
+        {
+            const FSVOOctreeLink & neighbor_link = node.Neighbors[ neighbor_direction ];
+            const FSVOOctreeNode & neighbor_node = GetNodeFromLink( neighbor_link );
+
+            // If the neighbour layer 0 has no leaf nodes, just return it
+            if ( !neighbor_node.FirstChild.IsValid() )
+            {
+                neighbors.Add( neighbor_link );
+                continue;
+            }
+
+            const FSVOOctreeLeaf & leaf_node = GetLeafNode( neighbor_node.FirstChild.NodeIndex );
+
+            if ( leaf_node.IsOccluded() )
+            {
+                // The leaf node is completely blocked, we don't return it
+                continue;
+            }
+            else // Otherwise, we need to find the correct subnode
+            {
+                if ( neighbor_coords.X < 0 )
+                {
+                    neighbor_coords.X = 3;
+                }
+                else if ( neighbor_coords.X > 3 )
+                {
+                    neighbor_coords.X = 0;
+                }
+                else if ( neighbor_coords.Y < 0 )
+                {
+                    neighbor_coords.Y = 3;
+                }
+                else if ( neighbor_coords.Y > 3 )
+                {
+                    neighbor_coords.Y = 0;
+                }
+                else if ( neighbor_coords.Z < 0 )
+                {
+                    neighbor_coords.Z = 3;
+                }
+                else if ( neighbor_coords.Z > 3 )
+                {
+                    neighbor_coords.Z = 0;
+                }
+
+                MortonCode subnode_code = morton3D_64_encode( neighbor_coords.X, neighbor_coords.Y, neighbor_coords.Z );
+
+                // Only return the neighbour if it isn't blocked!
+                if ( !leaf_node.GetSubNode( subnode_code ) )
+                {
+                    neighbors.Emplace( FSVOOctreeLink( 0, neighbor_node.FirstChild.NodeIndex, subnode_code ) );
+                }
+            }
+        }
+    }
 }
