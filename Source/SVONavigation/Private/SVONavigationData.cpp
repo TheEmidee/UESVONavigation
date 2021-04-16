@@ -1,13 +1,12 @@
 #include "SVONavigationData.h"
 
+#include "NavMesh/NavMeshPath.h"
 #include "SVONavDataRenderingComponent.h"
 #include "SVONavigationDataGenerator.h"
 #include "SVONavigationPath.h"
+#include "SVONavigationQueryFilterImpl.h"
 #include "SVONavigationSettings.h"
 #include "SVOPathFinder.h"
-#include "NavMesh/NavMeshPath.h"
-
-
 
 #include <AI/NavDataGenerator.h>
 #include <NavigationSystem.h>
@@ -59,6 +58,18 @@ void ASVONavigationData::PostInitProperties()
     }
 
     Super::PostInitProperties();
+
+    if ( HasAnyFlags( RF_ClassDefaultObject | RF_NeedLoad ) == false )
+    {
+        RecreateDefaultFilter();
+    }
+}
+
+void ASVONavigationData::PostLoad()
+{
+    Super::PostLoad();
+
+    RecreateDefaultFilter();
 }
 
 void ASVONavigationData::Serialize( FArchive & archive )
@@ -72,6 +83,16 @@ void ASVONavigationData::CleanUp()
 {
     Super::CleanUp();
     ResetGenerator();
+}
+
+void ASVONavigationData::EnsureBuildCompletion()
+{
+    Super::EnsureBuildCompletion();
+
+    // Doing this as a safety net solution due to UE-20646, which was basically a result of random
+    // over-releasing of default filter's shared pointer (it seemed). We might have time to get
+    // back to this time some time in next 3 years :D
+    RecreateDefaultFilter();
 }
 
 FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const
@@ -204,6 +225,7 @@ void ASVONavigationData::PostEditChangeProperty( FPropertyChangedEvent & propert
     {
         const FName category_name = FObjectEditorUtils::GetCategoryFName( property_changed_event.Property );
         static const FName NAME_Generation = FName( TEXT( "Generation" ) );
+        static const FName NAME_Query = FName( TEXT( "Query" ) );
 
         if ( category_name == NAME_Generation )
         {
@@ -214,6 +236,10 @@ void ASVONavigationData::PostEditChangeProperty( FPropertyChangedEvent & propert
                     RebuildAll();
                 }
             }
+        }
+        else if ( category_name == NAME_Query )
+        {
+            RecreateDefaultFilter();
         }
     }
 }
@@ -279,6 +305,11 @@ void ASVONavigationData::RequestDrawingUpdate( bool force )
 #endif // !UE_BUILD_SHIPPING
 }
 
+void ASVONavigationData::RecreateDefaultFilter()
+{
+    DefaultQueryFilter->SetFilterType< FSVONavigationQueryFilterImpl >();
+}
+
 void ASVONavigationData::UpdateDrawing()
 {
 #if !UE_BUILD_SHIPPING
@@ -340,7 +371,7 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*a
     {
         if ( const FNavigationQueryFilter * navigation_filter = path_finding_query.QueryFilter.Get() )
         {
-            const FVector adjusted_end_location = path_finding_query.EndLocation;// navigation_filter->GetAdjustedEndLocation( path_finding_query.EndLocation );
+            const FVector adjusted_end_location = path_finding_query.EndLocation; // navigation_filter->GetAdjustedEndLocation( path_finding_query.EndLocation );
             if ( ( path_finding_query.StartLocation - adjusted_end_location ).IsNearlyZero() )
             {
                 result.Path->GetPathPoints().Reset();

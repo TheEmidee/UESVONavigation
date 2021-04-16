@@ -51,9 +51,11 @@ public:
     const TArray< FSVOBoundsNavigationData > & GetNavigationBoundsData() const;
 
     void PostInitProperties() override;
+    void PostLoad() override;
     void Serialize( FArchive & archive ) override;
     void CleanUp() override;
 
+    void EnsureBuildCompletion() override;
     FNavLocation GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const override;
     bool GetRandomReachablePointInRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
     bool GetRandomPointInNavigableRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
@@ -88,6 +90,7 @@ public:
     void RequestDrawingUpdate( bool force = false );
 
 private:
+    void RecreateDefaultFilter();
     void UpdateDrawing();
     void ResetGenerator( bool cancel_build = true );
     void OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_boxes );
