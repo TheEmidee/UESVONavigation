@@ -270,7 +270,7 @@ FORCEINLINE void FSVOOctreeLink::Invalidate()
 
 FORCEINLINE uint32 GetTypeHash( const FSVOOctreeLink & link )
 {
-    return *( uint32 * ) &link;
+    return HashCombine( HashCombine( GetTypeHash( link.LayerIndex ), GetTypeHash( link.NodeIndex ) ), GetTypeHash( link.SubNodeIndex ) );
 }
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeLink & data )
