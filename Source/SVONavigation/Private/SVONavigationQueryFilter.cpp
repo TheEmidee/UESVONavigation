@@ -1,6 +1,15 @@
 #include "SVONavigationQueryFilter.h"
 
 #include "SVONavigationQueryFilterImpl.h"
+#include "SVOPathCostCalculator.h"
+#include "SVOPathHeuristicCalculator.h"
+
+USVONavigationQueryFilter::USVONavigationQueryFilter()
+{
+    PathCostCalculator = USVOPathCostCalculator_Distance::StaticClass();
+    PathHeuristicCalculator = USVOPathHeuristicCalculator_Manhattan::StaticClass();
+    HeuristicScale = 1.0f;
+}
 
 void USVONavigationQueryFilter::InitializeFilter( const ANavigationData & nav_data, const UObject * querier, FNavigationQueryFilter & filter ) const
 {

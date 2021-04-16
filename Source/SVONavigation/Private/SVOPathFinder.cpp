@@ -120,7 +120,7 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigati
     TMap< FSVOOctreeLink, FSVOOctreeLink > came_from;
     TMap< FSVOOctreeLink, float > cost_so_far;
 
-    frontier.Emplace( start_link, 0.0f );
+    frontier.Emplace( start_link, heuristic_calculator->GetHeuristicCost( *bounds_data, start_link, end_link ) );
     came_from.Add( start_link, start_link );
     cost_so_far.Add( start_link, 0.0f );
 

@@ -11,6 +11,10 @@ class SVONAVIGATION_API USVONavigationQueryFilter final : public UNavigationQuer
 {
     GENERATED_BODY()
 
+public:
+
+    USVONavigationQueryFilter();
+
 protected:
 
     void InitializeFilter( const ANavigationData & nav_data, const UObject * querier , FNavigationQueryFilter & filter ) const override;
@@ -22,4 +26,7 @@ private:
 
     UPROPERTY( EditDefaultsOnly )
     TSubclassOf< USVOPathHeuristicCalculator > PathHeuristicCalculator;
+
+    UPROPERTY( EditDefaultsOnly )
+    float HeuristicScale;
 };
