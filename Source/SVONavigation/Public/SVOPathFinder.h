@@ -2,11 +2,6 @@
 
 #include "SVOBoundsNavigationData.h"
 #include "SVONavigationTypes.h"
-#include "Chaos/AABB.h"
-#include "Chaos/AABB.h"
-#include "Chaos/AABB.h"
-#include "Chaos/AABB.h"
-
 
 #include <NavigationData.h>
 
@@ -21,15 +16,8 @@ public:
 
 private:
     ENavigationQueryResult::Type BuildPath( FNavigationPath & path, const ::FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start_link, const FSVOOctreeLink & end_link, const TMap< FSVOOctreeLink, FSVOOctreeLink > & came_from ) const;
-    //void ProcessLink( const FSVOOctreeLink & current_link, const FSVOOctreeLink & neighbor_link );
     float GetHeuristicScore( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const;
     float GetCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const;
 
-    /*TSet< FSVOOctreeLink > OpenSet;
-    TSet< FSVOOctreeLink > ClosedSet;
-    TMap< FSVOOctreeLink, FSVOOctreeLink > Parent;
-    TMap< FSVOOctreeLink, float > GScore;
-    TMap< FSVOOctreeLink, float > FScore;
-    FSVOOctreeLink EndLink;*/
     const ASVONavigationData & NavigationData;
 };
