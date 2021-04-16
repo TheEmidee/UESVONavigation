@@ -1,15 +1,12 @@
 #pragma once
 
-#include <AI/Navigation/NavQueryFilter.h>
+#include "SVONavigationTypes.h"
 
-class USVOPathCostCalculator;
-class USVOPathHeuristicCalculator;
+#include <AI/Navigation/NavQueryFilter.h>
 
 class SVONAVIGATION_API FSVONavigationQueryFilterImpl : public INavigationQueryFilterInterface, public TSharedFromThis< FSVONavigationQueryFilterImpl >
 {
 public:
-    FSVONavigationQueryFilterImpl();
-
     void Reset() override;
     void SetAreaCost( uint8 AreaType, float Cost ) override;
     void SetFixedAreaEnteringCost( uint8 AreaType, float Cost ) override;
@@ -26,6 +23,5 @@ public:
     uint16 GetExcludeFlags() const override;
     INavigationQueryFilterInterface * CreateCopy() const override;
 
-    TSubclassOf< USVOPathCostCalculator > PathCostCalculator;
-    TSubclassOf< USVOPathHeuristicCalculator > PathHeuristicCalculator;
+    FSVONavigationQueryFilterSettings QueryFilterSettings;
 };

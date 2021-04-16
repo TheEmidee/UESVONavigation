@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SVONavigationTypes.h"
+
 #include <NavFilters/NavigationQueryFilter.h>
 
 #include "SVONavigationQueryFilter.generated.h"
@@ -11,10 +13,6 @@ class SVONAVIGATION_API USVONavigationQueryFilter final : public UNavigationQuer
 {
     GENERATED_BODY()
 
-public:
-
-    USVONavigationQueryFilter();
-
 protected:
 
     void InitializeFilter( const ANavigationData & nav_data, const UObject * querier , FNavigationQueryFilter & filter ) const override;
@@ -22,11 +20,5 @@ protected:
 private:
 
     UPROPERTY( EditDefaultsOnly )
-    TSubclassOf< USVOPathCostCalculator > PathCostCalculator;
-
-    UPROPERTY( EditDefaultsOnly )
-    TSubclassOf< USVOPathHeuristicCalculator > PathHeuristicCalculator;
-
-    UPROPERTY( EditDefaultsOnly )
-    float HeuristicScale;
+    FSVONavigationQueryFilterSettings QueryFilterSettings;
 };

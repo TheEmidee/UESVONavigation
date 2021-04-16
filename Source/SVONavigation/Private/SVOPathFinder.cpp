@@ -58,20 +58,22 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigati
         return ENavigationQueryResult::Error;
     }
 
-    if ( query_filter_impl->PathHeuristicCalculator == nullptr )
+    const auto & query_filter_settings = query_filter_impl->QueryFilterSettings;
+
+    if ( query_filter_settings.PathHeuristicCalculator == nullptr )
     {
         UE_LOG( LogNavigation, Error, TEXT( "Pathfinding the SVO requires the navigation query filter to have a path heuristic calculator defined" ) );
         return ENavigationQueryResult::Error;
     }
 
-    if ( query_filter_impl->PathCostCalculator == nullptr )
+    if ( query_filter_settings.PathCostCalculator == nullptr )
     {
         UE_LOG( LogNavigation, Error, TEXT( "Pathfinding the SVO requires the navigation query filter to have a path cost calculator defined" ) );
         return ENavigationQueryResult::Error;
     }
 
-    const auto * heuristic_calculator = Cast< USVOPathHeuristicCalculator >( query_filter_impl->PathHeuristicCalculator->ClassDefaultObject );
-    const auto * cost_calculator = Cast< USVOPathCostCalculator >( query_filter_impl->PathCostCalculator->ClassDefaultObject );
+    const auto * heuristic_calculator = Cast< USVOPathHeuristicCalculator >( query_filter_settings.PathHeuristicCalculator->ClassDefaultObject );
+    const auto * cost_calculator = Cast< USVOPathCostCalculator >( query_filter_settings.PathCostCalculator->ClassDefaultObject );
 
     const auto & navigation_bounds_data = NavigationData.GetNavigationBoundsData();
 
@@ -120,7 +122,7 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigati
     TMap< FSVOOctreeLink, FSVOOctreeLink > came_from;
     TMap< FSVOOctreeLink, float > cost_so_far;
 
-    frontier.Emplace( start_link, heuristic_calculator->GetHeuristicCost( *bounds_data, start_link, end_link ) );
+    frontier.Emplace( start_link, heuristic_calculator->GetHeuristicCost( *bounds_data, start_link, end_link ) * navigation_query_filter.GetHeuristicScale() );
     came_from.Add( start_link, start_link );
     cost_so_far.Add( start_link, 0.0f );
 
@@ -145,7 +147,7 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigati
             if ( !cost_so_far.Contains( next ) || new_cost < cost_so_far[ next ] )
             {
                 cost_so_far.FindOrAdd( next ) = new_cost;
-                const auto priority = new_cost + heuristic_calculator->GetHeuristicCost( *bounds_data, next, end_link );
+                const auto priority = new_cost + heuristic_calculator->GetHeuristicCost( *bounds_data, next, end_link ) * navigation_query_filter.GetHeuristicScale();
                 frontier.Emplace( next, priority );
                 frontier.Sort();
                 came_from.FindOrAdd( next ) = current.Link;

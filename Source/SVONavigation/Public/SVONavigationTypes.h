@@ -4,6 +4,8 @@
 
 #include "SVONavigationTypes.generated.h"
 
+class USVOPathHeuristicCalculator;
+class USVOPathCostCalculator;
 class ASVONavigationData;
 typedef uint_fast64_t MortonCode;
 typedef uint8 LayerIndex;
@@ -327,3 +329,20 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeData & data )
 
     return archive;
 }
+
+USTRUCT()
+struct SVONAVIGATION_API FSVONavigationQueryFilterSettings
+{
+    GENERATED_USTRUCT_BODY()
+
+    FSVONavigationQueryFilterSettings();
+
+    UPROPERTY( EditDefaultsOnly )
+    TSubclassOf< USVOPathCostCalculator > PathCostCalculator;
+
+    UPROPERTY( EditDefaultsOnly )
+    TSubclassOf< USVOPathHeuristicCalculator > PathHeuristicCalculator;
+
+    UPROPERTY( EditDefaultsOnly )
+    float HeuristicScale;
+};

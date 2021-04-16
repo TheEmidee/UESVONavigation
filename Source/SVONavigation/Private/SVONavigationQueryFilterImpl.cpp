@@ -1,14 +1,5 @@
 #include "SVONavigationQueryFilterImpl.h"
 
-#include "SVOPathCostCalculator.h"
-#include "SVOPathHeuristicCalculator.h"
-
-FSVONavigationQueryFilterImpl::FSVONavigationQueryFilterImpl()
-{
-    PathHeuristicCalculator = USVOPathHeuristicCalculator_Manhattan::StaticClass();
-    PathCostCalculator = USVOPathCostCalculator_Distance::StaticClass();
-}
-
 void FSVONavigationQueryFilterImpl::Reset()
 {
 }
@@ -44,7 +35,7 @@ bool FSVONavigationQueryFilterImpl::IsBacktrackingEnabled() const
 
 float FSVONavigationQueryFilterImpl::GetHeuristicScale() const
 {
-    return 1.0f;
+    return QueryFilterSettings.HeuristicScale;
 }
 
 bool FSVONavigationQueryFilterImpl::IsEqual( const INavigationQueryFilterInterface * Other ) const

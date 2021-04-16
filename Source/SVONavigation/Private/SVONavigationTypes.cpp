@@ -1,5 +1,10 @@
 #include "SVONavigationTypes.h"
 
+
+#include "SVOPathCostCalculator.h"
+#include "SVOPathHeuristicCalculator.h"
+
+
 #include <libmorton/morton.h>
 
 bool FSVOOctreeLeaf::GetSubNodeAt( uint_fast32_t X, uint_fast32_t Y, uint_fast32_t Z ) const
@@ -20,4 +25,11 @@ void FSVOOctreeData::Reset()
 {
     NodesByLayers.Reset();
     Leaves.Reset();
+}
+
+FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings()
+{
+    PathCostCalculator = USVOPathCostCalculator_Distance::StaticClass();
+    PathHeuristicCalculator = USVOPathHeuristicCalculator_Manhattan::StaticClass();
+    HeuristicScale = 1.0f;
 }
