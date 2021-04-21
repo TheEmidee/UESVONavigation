@@ -2,6 +2,9 @@
 
 #include <Components/PrimitiveComponent.h>
 #include <CoreMinimal.h>
+
+#include "SVOPathFinder.h"
+
 #include <DebugRenderSceneProxy.h>
 
 #include "SVOPathfindingRenderingComponent.generated.h"
@@ -13,6 +16,12 @@ struct SVONAVIGATION_API FSVOPathFindingSceneProxyData : public TSharedFromThis<
 {
     FSVOPathFindingSceneProxyData()
     {}
+
+    void GatherData( const ASVOPathFinderTest & path_finder_test );
+
+    FVector StartLocation;
+    FVector EndLocation;
+    TArray< FSVOPathFinderDebugStep > DebugSteps;
 };
 
 class SVONAVIGATION_API FSVOPathFindingSceneProxy final : public FDebugRenderSceneProxy

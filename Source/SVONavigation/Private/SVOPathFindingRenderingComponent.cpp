@@ -4,12 +4,38 @@
 
 #include <Engine/Canvas.h>
 
+void FSVOPathFindingSceneProxyData::GatherData( const ASVOPathFinderTest & path_finder_test )
+{
+    StartLocation = path_finder_test.GetStartLocation();
+    EndLocation = path_finder_test.GetEndLocation();
+    DebugSteps = path_finder_test.GetDebugSteps();
+}
+
 FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent & component, const FSVOPathFindingSceneProxyData & proxy_data ) :
     FDebugRenderSceneProxy( &component )
 {
     DrawType = SolidAndWireMeshes;
     TextWithoutShadowDistance = 1500;
     bWantsSelectionOutline = false;
+
+    const auto add_text = [ texts = &Texts ]( const FVector & start, const FVector & end, const FString & text )
+    {
+        texts->Emplace( FText3d( text, /*( start + end ) / 2.0f*/ FVector( 0, 0, 500 ), FLinearColor::White ) );
+    };
+
+    FVector previous_location = proxy_data.StartLocation;
+    for ( const auto & debug_step : proxy_data.DebugSteps )
+    {
+        Lines.Emplace( FDebugLine( previous_location, debug_step.CurrentLocationCost.Location, FColor::Blue, 5.0f ) );
+        Texts.Emplace( FText3d( FString::Printf( TEXT( "Hello - %f" ), debug_step.CurrentLocationCost.Cost ), /*( start + end ) / 2.0f*/ FVector( 0, 0, 500 ), FLinearColor::White ) );
+
+        previous_location = debug_step.CurrentLocationCost.Location;
+
+        for ( const auto & neighbor_cost : debug_step.NeighborLocationCosts )
+        {
+            Lines.Emplace( FDebugLine( debug_step.CurrentLocationCost.Location, neighbor_cost.Location, neighbor_cost.WasEvaluated ? FColor::Green : FColor::Orange, 2.0f ) );
+        }
+    }
 
     //Spheres = InSpheres;
     //Texts = InTexts;
@@ -116,6 +142,7 @@ FBoxSphereBounds USVOPathFindingRenderingComponent::CalcBounds( const FTransform
 
 void USVOPathFindingRenderingComponent::GatherData( FSVOPathFindingSceneProxyData & proxy_data, const ASVOPathFinderTest & path_finder_test )
 {
+    proxy_data.GatherData( path_finder_test );
 }
 
 void FSVOPathFindingRenderingDebugDrawDelegateHelper::DrawDebugLabels( UCanvas * Canvas, APlayerController * PC )

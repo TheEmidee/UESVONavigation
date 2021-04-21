@@ -131,21 +131,42 @@ void ASVOPathFinderTest::DoPathFinding()
         {
             if ( auto * svo_navigation_data = Cast< ASVONavigationData >( navigation_data ) )
             {
-                FSVOPathFinder path_finder( *svo_navigation_data );
-                FNavigationPath path;
-
                 const auto path_start = StartLocationComponent->GetComponentLocation();
                 const auto path_end = EndLocationComponent->GetComponentLocation();
 
                 const FPathFindingQuery Query( this, *svo_navigation_data, path_start, path_end, UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter ) );
 
-                const auto result = path_finder.GetPath( path, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), *Query.QueryFilter );
+                PathFinder = MakeShared< FSVOPathFinder >( *svo_navigation_data, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), *Query.QueryFilter );
+                DebugSteps.Reset();
+
+                NavigationPath.ResetForRepath();
+                bFoundPath = false;
+
+                UpdateDrawing();
                 return;
             }
         }
     }
 
     ensureAlwaysMsgf( false, TEXT( "Impossible to get the SVO navigation data. Check your NavAgentProperties" ) );
+}
+
+void ASVOPathFinderTest::StepPathFinder()
+{
+    if ( PathFinder.IsValid() && !bFoundPath )
+    {
+        ENavigationQueryResult::Type result;
+        FSVOPathFinderDebugStep debug_step;
+        if ( PathFinder->GetPathByStep( result, NavigationPath, debug_step ) )
+        {
+            DebugSteps.Emplace( MoveTemp( debug_step ) );
+            UpdateDrawing();
+        }
+        else if ( result == ENavigationQueryResult::Success )
+        {
+            bFoundPath = true;
+        }
+    }
 }
 
 #if WITH_EDITOR
