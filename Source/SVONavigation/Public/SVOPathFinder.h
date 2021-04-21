@@ -1,7 +1,5 @@
 #pragma once
 
-#include "SVONavigationTypes.h"
-
 #include <NavigationData.h>
 
 class ASVONavigationData;

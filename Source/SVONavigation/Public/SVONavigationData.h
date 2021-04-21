@@ -1,7 +1,6 @@
 #pragma once
 
 #include "SVOBoundsNavigationData.h"
-#include "SVONavigationTypes.h"
 
 #include <CoreMinimal.h>
 #include <NavigationData.h>

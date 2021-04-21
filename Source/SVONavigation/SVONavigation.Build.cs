@@ -7,6 +7,8 @@ public class SVONavigation : ModuleRules
     public SVONavigation(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
+        bUseUnity = true;
+        bEnforceIWYU = true;
 
         PublicIncludePaths.AddRange(
             new string[] {
@@ -60,7 +62,6 @@ public class SVONavigation : ModuleRules
         {
             // @todo api: Only public because of WITH_EDITOR and UNREALED_API
             PublicDependencyModuleNames.Add("UnrealEd");
-            CircularlyReferencedDependentModules.Add("UnrealEd");
         }
     }
 }

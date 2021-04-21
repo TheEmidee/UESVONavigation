@@ -5,6 +5,7 @@
 #include <Components/PrimitiveComponent.h>
 #include <CoreMinimal.h>
 #include <DebugRenderSceneProxy.h>
+#include <Math/GenericOctree.h>
 
 #include "SVONavDataRenderingComponent.generated.h"
 

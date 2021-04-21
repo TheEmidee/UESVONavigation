@@ -1,12 +1,10 @@
 #pragma once
 
-#include <NavigationSystemTypes.h>
-
 #include "SVONavigationTypes.generated.h"
 
 class USVOPathHeuristicCalculator;
 class USVOPathCostCalculator;
-class ASVONavigationData;
+
 typedef uint_fast64_t MortonCode;
 typedef uint8 LayerIndex;
 typedef int32 NodeIndex;
@@ -32,49 +30,6 @@ FORCEINLINE bool FSVOPathFindingResult::IsSuccessful() const
 {
     return Result == ENavigationQueryResult::Success;
 }
-
-struct SVONAVIGATION_API FSVOPathFindingQuery : public FPathFindingQueryData
-{
-    FSVOPathFindingQuery()
-    {}
-
-    FSVOPathFindingQuery( const UObject * owner, const ASVONavigationData & navigation_data, const FVector & start, const FVector & end, FNavPathSharedPtr path_to_fill = nullptr ) :
-        FPathFindingQueryData( owner, start, end ),
-        NavigationData( &navigation_data ),
-        PathInstanceToFill( path_to_fill )
-    {}
-
-    TWeakObjectPtr< const ASVONavigationData > NavigationData;
-    FNavPathSharedPtr PathInstanceToFill;
-};
-
-struct SVONAVIGATION_API FSVOAsyncPathFindingQuery : public FSVOPathFindingQuery
-{
-    const uint32 QueryID;
-    const FSVONavigationPathQueryDelegate OnDoneDelegate;
-    FSVOPathFindingResult Result;
-
-    FSVOAsyncPathFindingQuery() :
-        QueryID( INVALID_NAVQUERYID )
-    {}
-
-    FSVOAsyncPathFindingQuery( const FSVOPathFindingQuery & path_finding_query, const FSVONavigationPathQueryDelegate & on_done_delegate ) :
-        FSVOPathFindingQuery( path_finding_query ),
-        QueryID( GetUniqueID() ),
-        OnDoneDelegate( on_done_delegate )
-    {
-    }
-
-protected:
-    FORCEINLINE static uint32 GetUniqueID()
-    {
-        return ++LastPathFindingUniqueID;
-    }
-
-    static uint32 LastPathFindingUniqueID;
-};
-
-uint32 FSVOAsyncPathFindingQuery::LastPathFindingUniqueID = 0;
 
 USTRUCT()
 struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
