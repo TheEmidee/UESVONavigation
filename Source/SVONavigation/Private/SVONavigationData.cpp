@@ -253,9 +253,20 @@ bool ASVONavigationData::ShouldExport()
 #if !UE_BUILD_SHIPPING
 uint32 ASVONavigationData::LogMemUsed() const
 {
-    // :TODO:
-    ensure( false );
-    return Super::LogMemUsed();
+    const auto super_mem_used = Super::LogMemUsed();
+
+    auto navigation_mem_size = 0;
+    for ( const auto & nav_bounds_data : NavigationBoundsData )
+    {
+        const auto octree_data_mem_size = nav_bounds_data.GetOctreeData().GetAllocatedSize();
+        navigation_mem_size += octree_data_mem_size;
+    }
+
+    const auto mem_used = super_mem_used + navigation_mem_size;
+    
+    UE_LOG( LogNavigation, Warning, TEXT("%s: ASVONavigationData: %u\n    self: %d"), *GetName(), mem_used, sizeof(ASVONavigationData));
+    
+    return super_mem_used + navigation_mem_size;
 }
 #endif
 

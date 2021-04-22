@@ -27,6 +27,18 @@ void FSVOOctreeData::Reset()
     Leaves.Reset();
 }
 
+int FSVOOctreeData::GetAllocatedSize() const
+{
+    int size = Leaves.Num() * sizeof( FSVOOctreeLeaf );
+
+    for ( const auto & layer_nodes : NodesByLayers )
+    {
+        size += layer_nodes.Num() * sizeof( FSVOOctreeNode );
+    }
+    
+    return size;
+}
+
 FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings()
 {
     PathCostCalculator = USVOPathCostCalculator_Distance::StaticClass();
