@@ -2,18 +2,16 @@
 
 #include <CoreMinimal.h>
 
-
 #include "SVOPathFinder.h"
 #include "SVOPathfindingRenderingComponent.h"
-#include "Components/BillboardComponent.h"
 
+#include <Components/BillboardComponent.h>
 #include <GameFramework/Actor.h>
 
 #include "SVOPathFinderTest.generated.h"
 
 class FSVOPathFinder;
 class USphereComponent;
-class USVOPathFindingRenderingComponent;
 
 UCLASS()
 class SVONAVIGATION_API ASVOPathFinderTest : public AActor
@@ -27,7 +25,8 @@ public:
 
     FVector GetStartLocation() const;
     FVector GetEndLocation() const;
-    const TArray< FSVOPathFinderDebugStep > GetDebugSteps() const;
+    const FSVOPathFinderDebugInfos & GetPathFinderDebugInfos() const;
+    const FSVOPathRenderingDebugDrawOptions & GetDebugDrawOptions() const;
 
 private:
     void UpdateDrawing();
@@ -37,10 +36,13 @@ private:
 #endif
 
     UFUNCTION( CallInEditor )
-    void DoPathFinding();
+    void InitPathFinding();
 
     UFUNCTION( CallInEditor )
-    void StepPathFinder();
+    void Step();
+
+    UFUNCTION( CallInEditor )
+    void AutoComplete();
 
     UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( AllowPrivateAccess = "true" ) )
     UBillboardComponent * StartLocationComponent;
@@ -59,10 +61,21 @@ private:
     UPROPERTY( EditAnywhere )
     TSubclassOf< UNavigationQueryFilter > NavigationQueryFilter;
 
+    UPROPERTY( EditAnywhere )
+    FSVOPathRenderingDebugDrawOptions DebugDrawOptions;
+
+    UPROPERTY( EditAnywhere )
+    float AutoStepTimer;    
+
     TSharedPtr< FSVOPathFinder > PathFinder;
     FNavigationPath NavigationPath;
-    TArray< FSVOPathFinderDebugStep > DebugSteps;
+
+    UPROPERTY( VisibleInstanceOnly, AdvancedDisplay )
+    FSVOPathFinderDebugInfos PathFinderDebugInfos;
+    
     uint8 bFoundPath : 1;
+    uint8 bAutoComplete : 1;
+    FTimerHandle AutoCompleteTimerHandle;
 };
 
 FORCEINLINE FVector ASVOPathFinderTest::GetStartLocation() const
@@ -75,7 +88,12 @@ FORCEINLINE FVector ASVOPathFinderTest::GetEndLocation() const
     return EndLocationComponent->GetComponentLocation();
 }
 
-FORCEINLINE const TArray< FSVOPathFinderDebugStep > ASVOPathFinderTest::GetDebugSteps() const
+FORCEINLINE const FSVOPathFinderDebugInfos & ASVOPathFinderTest::GetPathFinderDebugInfos() const
 {
-    return DebugSteps;
+    return PathFinderDebugInfos;
+}
+
+FORCEINLINE const FSVOPathRenderingDebugDrawOptions & ASVOPathFinderTest::GetDebugDrawOptions() const
+{
+    return DebugDrawOptions;
 }

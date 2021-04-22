@@ -8,7 +8,7 @@ void FSVOPathFindingSceneProxyData::GatherData( const ASVOPathFinderTest & path_
 {
     StartLocation = path_finder_test.GetStartLocation();
     EndLocation = path_finder_test.GetEndLocation();
-    DebugSteps = path_finder_test.GetDebugSteps();
+    DebugInfos = path_finder_test.GetPathFinderDebugInfos();
 }
 
 FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent & component, const FSVOPathFindingSceneProxyData & proxy_data ) :
@@ -17,48 +17,54 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
     DrawType = SolidAndWireMeshes;
     TextWithoutShadowDistance = 1500;
     bWantsSelectionOutline = false;
+    ViewFlagName = TEXT( "Navigation" );
+    ViewFlagIndex = static_cast< uint32 >( FEngineShowFlags::FindIndexByName( *ViewFlagName ) );
 
-    const auto add_text = [ texts = &Texts ]( const FVector & start, const FVector & end, const FString & text )
-    {
-        texts->Emplace( FText3d( text, /*( start + end ) / 2.0f*/ FVector( 0, 0, 500 ), FLinearColor::White ) );
+    RenderingComponent = MakeWeakObjectPtr( const_cast< USVOPathFindingRenderingComponent * >( Cast< USVOPathFindingRenderingComponent >( &component ) ) );
+    PathFinderTest = RenderingComponent->GetPathFinderTest();
+    DebugDrawOptions = PathFinderTest->GetDebugDrawOptions();
+    
+    const auto add_text = [ texts = &Texts ]( const FVector & start, const FVector & end, const FString & text ) {
+        texts->Emplace( FText3d( text, FVector( 0.0f, 0.0f, 50.0f ) + ( start + end ) / 2.0f, FLinearColor::White ) );
     };
 
+    const auto & debug_steps = proxy_data.DebugInfos.DebugSteps;
     FVector previous_location = proxy_data.StartLocation;
-    for ( const auto & debug_step : proxy_data.DebugSteps )
+
+    auto iteration = 0;
+    
+    for ( const auto & debug_step : debug_steps )
     {
-        Lines.Emplace( FDebugLine( previous_location, debug_step.CurrentLocationCost.Location, FColor::Blue, 5.0f ) );
-        Texts.Emplace( FText3d( FString::Printf( TEXT( "Hello - %f" ), debug_step.CurrentLocationCost.Cost ), /*( start + end ) / 2.0f*/ FVector( 0, 0, 500 ), FLinearColor::White ) );
+        Lines.Emplace( FDebugLine( previous_location, debug_step.CurrentLocationCost.Location, FColor::Blue, 4.0f ) );
+
+        if ( DebugDrawOptions.bDrawCurrentCost )
+        {
+            add_text( previous_location, debug_step.CurrentLocationCost.Location, FString::Printf( TEXT( "Cost : %f" ), debug_step.CurrentLocationCost.Cost ) );   
+        }
 
         previous_location = debug_step.CurrentLocationCost.Location;
 
         for ( const auto & neighbor_cost : debug_step.NeighborLocationCosts )
         {
             Lines.Emplace( FDebugLine( debug_step.CurrentLocationCost.Location, neighbor_cost.Location, neighbor_cost.WasEvaluated ? FColor::Green : FColor::Orange, 2.0f ) );
+
+            if ( DebugDrawOptions.bDrawNeighborsCost && ( !DebugDrawOptions.bDrawOnlyLastNeighborsCost || iteration == debug_steps.Num() - 1 ) )
+            {
+                add_text( debug_step.CurrentLocationCost.Location, neighbor_cost.Location, FString::Printf( TEXT( "NeighborCost - %f" ), neighbor_cost.Cost ) );
+            }
         }
+
+        iteration++;
     }
 
-    //Spheres = InSpheres;
-    //Texts = InTexts;
+    const auto & best_path_points = proxy_data.DebugInfos.CurrentBestPath.GetPathPoints();
 
-    RenderingComponent = MakeWeakObjectPtr( const_cast< USVOPathFindingRenderingComponent * >( Cast< USVOPathFindingRenderingComponent >( &component ) ) );
-    bDrawOnlyWhenSelected = RenderingComponent.IsValid() && RenderingComponent->DrawOnlyWhenSelected();
-
-    Lines.Emplace( FDebugLine( RenderingComponent->GetPathFinderTest()->GetStartLocation(), RenderingComponent->GetPathFinderTest()->GetEndLocation(), FColor::Red, 5.0f ) );
+    for ( auto index = 0; index < best_path_points.Num() - 1; index++ )
+    {
+        Lines.Emplace( FDebugLine( best_path_points[ index ], best_path_points[ index + 1 ], FColor::Red, 6.0f ) );
+    }
 
     ActorOwner = component.GetOwner();
-    /*QueryDataSource = Cast< const IEQSQueryResultSourceInterface >( ActorOwner );
-    if ( QueryDataSource == nullptr )
-    {
-        QueryDataSource = Cast< const IEQSQueryResultSourceInterface >( &component );
-    }*/
-
-    //#if USE_EQS_DEBUGGER
-    //    if ( Spheres.Num() == 0 && Texts.Num() == 0 && QueryDataSource != nullptr )
-    //    {
-    //        TArray< EQSDebug::FDebugHelper > DebugItems;
-    //        FEQSSceneProxy::CollectEQSData( &component, QueryDataSource, Spheres, Texts, DebugItems );
-    //    }
-    //#endif
 }
 
 SIZE_T FSVOPathFindingSceneProxy::GetTypeHash() const
@@ -70,7 +76,7 @@ SIZE_T FSVOPathFindingSceneProxy::GetTypeHash() const
 FPrimitiveViewRelevance FSVOPathFindingSceneProxy::GetViewRelevance( const FSceneView * view ) const
 {
     FPrimitiveViewRelevance Result;
-    Result.bDrawRelevance = /*view->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex) &&*/ IsShown( view ) && ( !bDrawOnlyWhenSelected || SafeIsActorSelected() );
+    Result.bDrawRelevance = /*view->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex) &&*/ IsShown( view ) && ( !DebugDrawOptions.bDrawOnlyWhenSelected || SafeIsActorSelected() );
     Result.bDynamicRelevance = true;
     // ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
     Result.bSeparateTranslucency = Result.bNormalTranslucency = IsShown( view );
@@ -89,8 +95,6 @@ bool FSVOPathFindingSceneProxy::SafeIsActorSelected() const
 
 USVOPathFindingRenderingComponent::USVOPathFindingRenderingComponent()
 {
-    DrawFlagName = "Navigation";
-    bDrawOnlyWhenSelected = true;
 }
 
 FPrimitiveSceneProxy * USVOPathFindingRenderingComponent::CreateSceneProxy()
@@ -102,7 +106,7 @@ FPrimitiveSceneProxy * USVOPathFindingRenderingComponent::CreateSceneProxy()
     {
         if ( IsInGameThread() )
         {
-            RenderingDebugDrawDelegateHelper.InitDelegateHelper( new_scene_proxy );
+            RenderingDebugDrawDelegateHelper.InitDelegateHelper( *new_scene_proxy );
             RenderingDebugDrawDelegateHelper.ReregisterDebugDrawDelgate();
         }
 
@@ -145,11 +149,18 @@ void USVOPathFindingRenderingComponent::GatherData( FSVOPathFindingSceneProxyDat
     proxy_data.GatherData( path_finder_test );
 }
 
+void FSVOPathFindingRenderingDebugDrawDelegateHelper::InitDelegateHelper( const FSVOPathFindingSceneProxy & InSceneProxy )
+{
+    Super::InitDelegateHelper( &InSceneProxy );
+
+    ActorOwner = InSceneProxy.ActorOwner;
+    //QueryDataSource = InSceneProxy->QueryDataSource;
+    DebugDrawOptions = InSceneProxy.DebugDrawOptions;
+}
+
 void FSVOPathFindingRenderingDebugDrawDelegateHelper::DrawDebugLabels( UCanvas * Canvas, APlayerController * PC )
 {
-    if ( !ActorOwner || ( ActorOwner->IsSelected() == false && bDrawOnlyWhenSelected == true )
-        // || (QueryDataSource && QueryDataSource->GetShouldDebugDrawLabels() == false)
-    )
+    if ( !ActorOwner || ( ActorOwner->IsSelected() == false && DebugDrawOptions.bDrawOnlyWhenSelected == true ) )
     {
         return;
     }

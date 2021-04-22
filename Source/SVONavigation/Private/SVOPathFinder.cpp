@@ -43,6 +43,14 @@ namespace
     }
 }
 
+void FSVOPathFinderDebugInfos::Reset()
+{
+    DebugSteps.Reset();
+    CurrentBestPath.ResetForRepath();
+    Iterations = 0;
+    VisitedNodes = 0;
+}
+
 FSVOPathFinder::FSVOPathFinder( const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FNavigationQueryFilter & navigation_query_filter ) :
     NavigationData( navigation_data ),
     StartLocation( start_location ),
@@ -69,17 +77,23 @@ FSVOPathFinder::FSVOPathFinder( const ASVONavigationData & navigation_data, cons
         return;
     }
 
-    BoundsNavigationData->GetLinkFromPosition( StartLink, start_location );
-    BoundsNavigationData->GetLinkFromPosition( EndLink, end_location );
+    BoundsNavigationData->GetLinkFromPosition( StartLink, StartLocation );
+    BoundsNavigationData->GetLinkFromPosition( EndLink, EndLocation );
 
-    Frontier.Emplace( StartLink, HeuristicCalculator->GetHeuristicCost( *BoundsNavigationData, StartLink, EndLink ) * NavigationQueryFilter.GetHeuristicScale() );
-    CameFrom.Add( StartLink, StartLink );
-    CostSoFar.Add( StartLink, 0.0f );
+    if ( StartLink.IsValid() && EndLink.IsValid() )
+    {
+        Frontier.Emplace( StartLink, HeuristicCalculator->GetHeuristicCost( *BoundsNavigationData, StartLink, EndLink ) * NavigationQueryFilter.GetHeuristicScale() );
+        CameFrom.Add( StartLink, StartLink );
+        CostSoFar.Add( StartLink, 0.0f );
+    }
 }
 
 ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigation_path )
 {
-    if ( BoundsNavigationData == nullptr )
+    if ( BoundsNavigationData == nullptr 
+        || !StartLink.IsValid() 
+        || !EndLink.IsValid() 
+        )
     {
         return ENavigationQueryResult::Fail;
     }
@@ -121,11 +135,13 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigati
     return ENavigationQueryResult::Fail;
 }
 
-bool FSVOPathFinder::GetPathByStep( ENavigationQueryResult::Type & result, FNavigationPath & navigation_path, FSVOPathFinderDebugStep & step_debug )
+bool FSVOPathFinder::GetPathByStep( ENavigationQueryResult::Type & result, FSVOPathFinderDebugInfos & debug_infos )
 {
-    check( BoundsNavigationData != nullptr );
-
-    if ( Frontier.Num() == 0 )
+    if ( BoundsNavigationData == nullptr 
+        || !StartLink.IsValid() 
+        || !EndLink.IsValid()
+        || Frontier.Num() == 0
+        )
     {
         result = ENavigationQueryResult::Fail;
         return false;
@@ -133,15 +149,13 @@ bool FSVOPathFinder::GetPathByStep( ENavigationQueryResult::Type & result, FNavi
 
     const auto current = Frontier.Pop();
 
-    step_debug.CurrentLocationCost.Cost = current.Cost;
-    BoundsNavigationData->GetLinkPosition( step_debug.CurrentLocationCost.Location, current.Link );
+    FSVOPathFinderDebugStep debug_step;
+
+    debug_step.CurrentLocationCost.Cost = current.Cost;
+    BoundsNavigationData->GetLinkPosition( debug_step.CurrentLocationCost.Location, current.Link );
 
     if ( current.Link == EndLink )
     {
-        BuildPath( navigation_path, *BoundsNavigationData, StartLink, EndLink, CameFrom );
-        AdjustPathEnds( navigation_path, StartLocation, EndLocation );
-        navigation_path.MarkReady();
-
         result = ENavigationQueryResult::Success;
         return false;
     }
@@ -166,11 +180,18 @@ bool FSVOPathFinder::GetPathByStep( ENavigationQueryResult::Type & result, FNavi
             Frontier.Sort();
             CameFrom.FindOrAdd( neighbor ) = current.Link;
 
+            debug_infos.CurrentBestPath.ResetForRepath();
+            BuildPath( debug_infos.CurrentBestPath, *BoundsNavigationData, StartLink, current.Link, CameFrom );
+
             neighbor_debug_cost.WasEvaluated = true;
         }
 
-        step_debug.NeighborLocationCosts.Emplace( MoveTemp( neighbor_debug_cost ) );
+        debug_step.NeighborLocationCosts.Emplace( MoveTemp( neighbor_debug_cost ) );
+        debug_infos.VisitedNodes++;
     }
+
+    debug_infos.DebugSteps.Emplace( MoveTemp( debug_step ) );
+    debug_infos.Iterations++;
 
     return true;
 }

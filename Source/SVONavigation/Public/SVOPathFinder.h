@@ -4,6 +4,8 @@
 
 #include <NavigationData.h>
 
+#include "SVOPathFinder.generated.h"
+
 class FSVOBoundsNavigationData;
 class USVOPathCostCalculator;
 class USVOPathHeuristicCalculator;
@@ -21,6 +23,23 @@ struct FSVOPathFinderDebugStep
 {
     FSVOPathFinderDebugCost CurrentLocationCost;
     TArray< FSVOPathFinderDebugCost, TInlineAllocator< 6 > > NeighborLocationCosts;
+};
+
+USTRUCT()
+struct SVONAVIGATION_API FSVOPathFinderDebugInfos
+{
+    GENERATED_USTRUCT_BODY()
+    
+    void Reset();
+
+    TArray< FSVOPathFinderDebugStep > DebugSteps;
+    FNavigationPath CurrentBestPath;
+
+    UPROPERTY( VisibleAnywhere )
+    int Iterations;
+
+    UPROPERTY( VisibleAnywhere )
+    int VisitedNodes;
 };
 
 class SVONAVIGATION_API FSVOPathFinder
@@ -46,7 +65,7 @@ public:
     FSVOPathFinder( const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FNavigationQueryFilter & navigation_query_filter );
 
     ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path );
-    bool GetPathByStep( ENavigationQueryResult::Type & result, FNavigationPath & navigation_path, FSVOPathFinderDebugStep & step_debug );
+    bool GetPathByStep( ENavigationQueryResult::Type & result, FSVOPathFinderDebugInfos & debug_infos );
 
 private:
     const ASVONavigationData & NavigationData;

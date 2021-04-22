@@ -275,6 +275,8 @@ struct FSVOOctreeData
 
     TArray< TArray< FSVOOctreeNode > > NodesByLayers;
     TArray< FSVOOctreeLeaf > Leaves;
+
+    int GetAllocatedSize() const;
 };
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeData & data )

@@ -12,6 +12,31 @@
 class USVOPathFindingRenderingComponent;
 class ASVOPathFinderTest;
 
+USTRUCT()
+struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
+{
+    GENERATED_USTRUCT_BODY()
+    
+    FSVOPathRenderingDebugDrawOptions() :
+        bDrawOnlyWhenSelected( false  ),
+        bDrawCurrentCost( true ),
+        bDrawNeighborsCost( true ),
+        bDrawOnlyLastNeighborsCost( true )
+    {}
+    
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawOnlyWhenSelected : 1;
+
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawCurrentCost : 1;
+
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawNeighborsCost : 1;
+
+    UPROPERTY( EditAnywhere, meta = ( EditCondition = "bDrawNeighborsCost" ) )
+    uint8 bDrawOnlyLastNeighborsCost : 1;
+};
+
 struct SVONAVIGATION_API FSVOPathFindingSceneProxyData : public TSharedFromThis< FSVOPathFindingSceneProxyData, ESPMode::ThreadSafe >
 {
     FSVOPathFindingSceneProxyData()
@@ -21,7 +46,7 @@ struct SVONAVIGATION_API FSVOPathFindingSceneProxyData : public TSharedFromThis<
 
     FVector StartLocation;
     FVector EndLocation;
-    TArray< FSVOPathFinderDebugStep > DebugSteps;
+    FSVOPathFinderDebugInfos DebugInfos;
 };
 
 class SVONAVIGATION_API FSVOPathFindingSceneProxy final : public FDebugRenderSceneProxy
@@ -39,9 +64,8 @@ private:
     bool SafeIsActorSelected() const;
 
     AActor* ActorOwner;
-	//const IEQSQueryResultSourceInterface* QueryDataSource;
-	uint32 bDrawOnlyWhenSelected : 1;
-
+	FSVOPathRenderingDebugDrawOptions DebugDrawOptions;
+    TWeakObjectPtr< ASVOPathFinderTest > PathFinderTest;
     TWeakObjectPtr< USVOPathFindingRenderingComponent > RenderingComponent;
 };
 
@@ -51,9 +75,7 @@ class FSVOPathFindingRenderingDebugDrawDelegateHelper : public FDebugDrawDelegat
 
 public:
     FSVOPathFindingRenderingDebugDrawDelegateHelper() :
-        ActorOwner( nullptr ),
-        //QueryDataSource( nullptr ),
-        bDrawOnlyWhenSelected( false )
+        ActorOwner( nullptr )
     {
     }
 
@@ -62,14 +84,7 @@ public:
         check( 0 );
     }
 
-    void InitDelegateHelper( const FSVOPathFindingSceneProxy * InSceneProxy )
-    {
-        Super::InitDelegateHelper( InSceneProxy );
-
-        ActorOwner = InSceneProxy->ActorOwner;
-        //QueryDataSource = InSceneProxy->QueryDataSource;
-        bDrawOnlyWhenSelected = InSceneProxy->bDrawOnlyWhenSelected;
-    }
+    void InitDelegateHelper( const FSVOPathFindingSceneProxy & InSceneProxy );
 
 protected:
     SVONAVIGATION_API void DrawDebugLabels( UCanvas * Canvas, APlayerController * ) override;
@@ -77,8 +92,7 @@ protected:
 private:
     // can be 0
     AActor * ActorOwner;
-    //const IEQSQueryResultSourceInterface * QueryDataSource;
-    uint32 bDrawOnlyWhenSelected : 1;
+    FSVOPathRenderingDebugDrawOptions DebugDrawOptions;
 };
 
 UCLASS()
@@ -92,7 +106,6 @@ public:
 
     ASVOPathFinderTest * GetPathFinderTest() const;
     FPrimitiveSceneProxy * CreateSceneProxy() override;
-    bool DrawOnlyWhenSelected() const;
 
     void CreateRenderState_Concurrent( FRegisterComponentContext * Context ) override;
     void DestroyRenderState_Concurrent() override;
@@ -101,15 +114,8 @@ public:
 private:
     void GatherData( FSVOPathFindingSceneProxyData & proxy_data, const ASVOPathFinderTest & path_finder_test );
 
-    FString DrawFlagName;
-	uint32 bDrawOnlyWhenSelected : 1;
     FSVOPathFindingRenderingDebugDrawDelegateHelper RenderingDebugDrawDelegateHelper;
 };
-
-FORCEINLINE bool USVOPathFindingRenderingComponent::DrawOnlyWhenSelected() const
-{
-    return bDrawOnlyWhenSelected;
-}
 
 FORCEINLINE ASVOPathFinderTest * USVOPathFindingRenderingComponent::GetPathFinderTest() const
 {
