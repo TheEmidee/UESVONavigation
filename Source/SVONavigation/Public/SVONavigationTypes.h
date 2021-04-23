@@ -310,4 +310,17 @@ struct SVONAVIGATION_API FSVONavigationQueryFilterSettings
      */
     UPROPERTY( EditDefaultsOnly )
     float HeuristicScale;
+
+    /*
+     * Enable node size compensation to make both the cost and estimation values adjusted depending on the size of the node, to make it
+     * cheaper to go through large nodes than small ones
+     */
+    UPROPERTY( EditDefaultsOnly )
+    uint8 UseNodeSizeCompensation : 1;
+
+    /*
+     * How much of node size compensation to apply
+     */
+    UPROPERTY( EditDefaultsOnly )
+    float NodeSizeCompensation;
 };

@@ -44,4 +44,6 @@ FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings()
     PathCostCalculator = USVOPathCostCalculator_Distance::StaticClass();
     PathHeuristicCalculator = USVOPathHeuristicCalculator_Manhattan::StaticClass();
     HeuristicScale = 1.0f;
+    UseNodeSizeCompensation = true;
+    NodeSizeCompensation = 1.0f;
 }
