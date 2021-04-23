@@ -120,7 +120,9 @@ FORCEINLINE int32 FSVOBoundsNavigationData::GetLayerMaxNodeCount( LayerIndex lay
 
 FORCEINLINE const FSVOOctreeNode & FSVOBoundsNavigationData::GetNodeFromLink( const FSVOOctreeLink & link ) const
 {
-    return SVOData.NodesByLayers[ link.LayerIndex ][ link.NodeIndex ];
+    return link.LayerIndex < 15
+        ? SVOData.NodesByLayers[ link.LayerIndex ][ link.NodeIndex ]
+        : SVOData.NodesByLayers.Last()[ 0 ];
 }
 
 FORCEINLINE const FSVOOctreeLeaf & FSVOBoundsNavigationData::GetLeafNode( LeafIndex leaf_index ) const
