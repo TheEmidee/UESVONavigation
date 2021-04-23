@@ -656,7 +656,7 @@ void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
     for ( int neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
     {
         // Need to switch to signed ints
-        FIntVector neighbor_coords( static_cast< int32 >( x ), static_cast< int32 >( y ), static_cast< int32 >( z ) );
+        FIntVector neighbor_coords( x, y, z );
         neighbor_coords += NeighborDirections[ neighbor_direction ];
 
         // If the neighbour is in bounds of this leaf node
