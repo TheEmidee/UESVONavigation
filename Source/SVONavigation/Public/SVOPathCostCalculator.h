@@ -24,7 +24,12 @@ public:
     float GetCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const override;
 };
 
-UCLASS( Blueprintable )
+/*
+ * Applies a fixed cost to node traversal.
+ * This  means  that  no  matter  how  big  the  node  is,  traveling  through it has the same cost.
+ * This effectively biases the search even more toward exploring through large nodes.
+ */
+UCLASS( Blueprintable,  HideDropdown )
 class SVONAVIGATION_API USVOPathCostCalculator_Fixed final : public USVOPathCostCalculator
 {
     GENERATED_BODY()

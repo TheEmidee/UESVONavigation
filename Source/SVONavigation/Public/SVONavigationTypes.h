@@ -21,7 +21,8 @@ struct FSVOPathFindingResult
 
     explicit FSVOPathFindingResult( ENavigationQueryResult::Type result = ENavigationQueryResult::Invalid ) :
         Result( result )
-    {}
+    {
+    }
 
     bool IsSuccessful() const;
 };
@@ -47,7 +48,8 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
         DebugLineThickness( 5.0f ),
         ItDebugDrawsMortonCodes( false ),
         MortonCodeLayerIndexToDraw( 0 )
-    {}
+    {
+    }
 
     friend FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataDebugInfos & data );
 
@@ -184,13 +186,15 @@ struct FSVOOctreeLink
         LayerIndex( 15 ),
         NodeIndex( 0 ),
         SubNodeIndex( 0 )
-    {}
+    {
+    }
 
     FSVOOctreeLink( const LayerIndex layer_index, const MortonCode node_index, const SubNodeIndex sub_node_index ) :
         LayerIndex( layer_index ),
         NodeIndex( node_index ),
         SubNodeIndex( sub_node_index )
-    {}
+    {
+    }
 
     bool IsValid() const;
     void Invalidate();
@@ -247,7 +251,8 @@ struct FSVOOctreeNode
         MortonCode( 0 ),
         Parent( FSVOOctreeLink::InvalidEdge() ),
         FirstChild( FSVOOctreeLink::InvalidEdge() )
-    {}
+    {
+    }
 
     bool HasChildren() const
     {
@@ -300,6 +305,9 @@ struct SVONAVIGATION_API FSVONavigationQueryFilterSettings
     UPROPERTY( EditDefaultsOnly )
     TSubclassOf< USVOPathHeuristicCalculator > PathHeuristicCalculator;
 
+    /*
+     * Setting this to more than 1.0f makes the algorithm favor paths it estimates are better, than using the travelled distance 
+     */
     UPROPERTY( EditDefaultsOnly )
     float HeuristicScale;
 };

@@ -663,7 +663,7 @@ void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
         if ( neighbor_coords.X >= 0 && neighbor_coords.X < 4 && neighbor_coords.Y >= 0 && neighbor_coords.Y < 4 && neighbor_coords.Z >= 0 && neighbor_coords.Z < 4 )
         {
             MortonCode subnode_index = morton3D_64_encode( neighbor_coords.X, neighbor_coords.Y, neighbor_coords.Z );
-            // If this node is not blocked, his is a valid link, add it. Otherwise, no link in this direction, continue
+            // If this node is not blocked, this is a valid link, add it. Otherwise, no link in this direction, continue
             if ( !leaf.GetSubNode( subnode_index ) )
             {
                 neighbors.Emplace( FSVOOctreeLink( 0, link.NodeIndex, subnode_index ) );
