@@ -62,7 +62,7 @@ public:
         }
     };
 
-    FSVOPathFinder( const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FNavigationQueryFilter & navigation_query_filter );
+    FSVOPathFinder( const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query );
 
     ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path );
     bool GetPathByStep( ENavigationQueryResult::Type & result, FSVOPathFinderDebugInfos & debug_infos );

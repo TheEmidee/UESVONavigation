@@ -391,7 +391,7 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*a
             }
             else
             {
-                FSVOPathFinder path_finder( *self, path_finding_query.StartLocation, adjusted_end_location, *navigation_filter );
+                FSVOPathFinder path_finder( *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query );
                 result.Result = path_finder.GetPath( *result.Path.Get() );
 
                 /*result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath( path_finding_query.StartLocation, adjusted_end_location, path_finding_query.CostLimit, *svo_navigation_path, *NavFilter, path_finding_query.Owner.Get() );

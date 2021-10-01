@@ -51,12 +51,12 @@ void FSVOPathFinderDebugInfos::Reset()
     VisitedNodes = 0;
 }
 
-FSVOPathFinder::FSVOPathFinder( const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FNavigationQueryFilter & navigation_query_filter ) :
+FSVOPathFinder::FSVOPathFinder( const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query ) :
     NavigationData( navigation_data ),
     StartLocation( start_location ),
     EndLocation( end_location ),
-    NavigationQueryFilter( navigation_query_filter ),
-    QueryFilterImplementation( static_cast< const FSVONavigationQueryFilterImpl * >( navigation_query_filter.GetImplementation() ) )
+    NavigationQueryFilter( *path_finding_query.QueryFilter ),
+    QueryFilterImplementation( static_cast< const FSVONavigationQueryFilterImpl * >( path_finding_query.QueryFilter->GetImplementation() ) )
 {
     const auto & query_filter_settings = QueryFilterImplementation->QueryFilterSettings;
 

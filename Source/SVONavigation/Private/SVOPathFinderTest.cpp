@@ -138,7 +138,7 @@ void ASVOPathFinderTest::InitPathFinding()
 
                 const FPathFindingQuery Query( this, *svo_navigation_data, path_start, path_end, UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter ) );
 
-                PathFinder = MakeShared< FSVOPathFinder >( *svo_navigation_data, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), *Query.QueryFilter );
+                PathFinder = MakeShared< FSVOPathFinder >( *svo_navigation_data, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), Query );
                 PathFinderDebugInfos.Reset();
 
                 NavigationPath.ResetForRepath();
