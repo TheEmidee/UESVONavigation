@@ -94,6 +94,12 @@ private:
     void ResetGenerator( bool cancel_build = true );
     void OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_boxes );
 
+    UFUNCTION( CallInEditor )
+    void ClearNavigationData();
+
+    UFUNCTION( CallInEditor )
+    void BuildNavigationData();
+
     static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
 
     TArray< FSVOBoundsNavigationData > NavigationBoundsData;

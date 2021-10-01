@@ -12,12 +12,11 @@ class ASVONavigationData;
 
 class FSVONavigationDataGenerator;
 
-struct FSVOBoundsNavigationDataGenerator : public FNoncopyable
+struct FSVOBoundsNavigationDataGenerator final : public FNoncopyable
 {
 public:
     FSVOBoundsNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds );
 
-    const FBox & GetNavigationBounds() const;
     const FSVOBoundsNavigationData & GetBoundsNavigationData() const;
 
     bool DoWork();
@@ -116,11 +115,10 @@ struct FRunningBoundsDataGenerationElement
     FSVOBoxGeneratorTask * AsyncTask;
 };
 
-class SVONAVIGATION_API FSVONavigationDataGenerator : public FNavDataGenerator, public FNoncopyable
+class SVONAVIGATION_API FSVONavigationDataGenerator final : public FNavDataGenerator, public FNoncopyable
 {
 public:
     explicit FSVONavigationDataGenerator( ASVONavigationData & navigation_data );
-    virtual ~FSVONavigationDataGenerator();
 
     const ASVONavigationData * GetOwner() const;
     UWorld * GetWorld() const;

@@ -31,10 +31,6 @@ FSVONavigationDataGenerator::FSVONavigationDataGenerator( ASVONavigationData & n
 {
 }
 
-FSVONavigationDataGenerator::~FSVONavigationDataGenerator()
-{
-}
-
 void FSVONavigationDataGenerator::Init()
 {
     GenerationSettings = NavigationData.GenerationSettings;
@@ -71,6 +67,18 @@ void FSVONavigationDataGenerator::Init()
 
 bool FSVONavigationDataGenerator::RebuildAll()
 {
+    UpdateNavigationBounds();
+
+    TArray<FNavigationDirtyArea> dirty_areas;
+    dirty_areas.Reserve( RegisteredNavigationBounds.Num() );
+
+    for ( const auto & registered_navigation_bounds : RegisteredNavigationBounds )
+    {
+        dirty_areas.Emplace( FNavigationDirtyArea( registered_navigation_bounds, 0 ) );
+    }
+
+    RebuildDirtyAreas( dirty_areas );
+
     NavigationData.RequestDrawingUpdate();
     return true;
 }
@@ -278,7 +286,7 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
     }
 }
 
-TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( int32 task_to_process_count )
+TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_to_process_count )
 {
     int32 processed_tasks_count = 0;
     // Submit pending tile elements

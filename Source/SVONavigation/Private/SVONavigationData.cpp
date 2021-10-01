@@ -352,6 +352,17 @@ void ASVONavigationData::OnNavigationDataUpdatedInBounds( const TArray< FBox > &
     //InvalidateAffectedPaths(ChangedTiles);
 }
 
+void ASVONavigationData::ClearNavigationData()
+{
+    NavigationBoundsData.Reset();
+    RequestDrawingUpdate();
+}
+
+void ASVONavigationData::BuildNavigationData()
+{
+    RebuildAll();
+}
+
 FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*agent_properties*/, const FPathFindingQuery & path_finding_query )
 {
     const auto * self = Cast< ASVONavigationData >( path_finding_query.NavData.Get() );
