@@ -8,6 +8,16 @@
 
 namespace
 {
+    void ApplyVerticalOffset( FNavigationPath & path, const float vertical_offset )
+    {
+        auto & path_points = path.GetPathPoints();
+
+        for ( auto & path_point : path_points )
+        {
+            path_point.Location.Z += vertical_offset;
+        }
+    }
+
     void BuildPath( FNavigationPath & path, const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start_link, const FSVOOctreeLink & end_link, const TMap< FSVOOctreeLink, FSVOOctreeLink > & came_from )
     {
         auto & path_points = path.GetPathPoints();
@@ -86,6 +96,10 @@ FSVOPathFinder::FSVOPathFinder( const ASVONavigationData & navigation_data, cons
         CameFrom.Add( StartLink, StartLink );
         CostSoFar.Add( StartLink, 0.0f );
     }
+
+    VerticalOffset = query_filter_settings.bOffsetPathVerticallyByAgentRadius
+        ? -path_finding_query.NavAgentProperties.AgentRadius
+        : 0.0f;
 }
 
 ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigation_path )
@@ -108,6 +122,11 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigati
         {
             BuildPath( navigation_path, *BoundsNavigationData, StartLink, EndLink, CameFrom );
             AdjustPathEnds( navigation_path, StartLocation, EndLocation );
+            if ( VerticalOffset != 0.0f )
+            {
+                ApplyVerticalOffset( navigation_path, VerticalOffset );
+            }
+
             navigation_path.MarkReady();
 
             return ENavigationQueryResult::Success;

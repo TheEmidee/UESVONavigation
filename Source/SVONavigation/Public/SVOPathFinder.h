@@ -82,4 +82,5 @@ private:
     TMap< FSVOOctreeLink, FSVOOctreeLink > CameFrom;
     TMap< FSVOOctreeLink, float > CostSoFar;
     FNavigationPath NavigationPath;
+    float VerticalOffset;
 };

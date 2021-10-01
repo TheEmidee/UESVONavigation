@@ -316,4 +316,7 @@ struct SVONAVIGATION_API FSVONavigationQueryFilterSettings
 
     UPROPERTY( EditDefaultsOnly )
     float NodeSizeCompensation;
+
+    UPROPERTY( EditDefaultsOnly )
+    uint8 bOffsetPathVerticallyByAgentRadius : 1;
 };
