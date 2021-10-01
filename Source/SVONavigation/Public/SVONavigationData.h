@@ -37,7 +37,7 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationDataBoundsK
 }
 
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
-class SVONAVIGATION_API ASVONavigationData : public ANavigationData
+class SVONAVIGATION_API ASVONavigationData final : public ANavigationData
 {
     GENERATED_BODY()
 

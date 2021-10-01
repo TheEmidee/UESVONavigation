@@ -27,11 +27,6 @@ struct FDebugText
 
 struct SVONAVIGATION_API FSVONavigationSceneProxyData : public TSharedFromThis< FSVONavigationSceneProxyData, ESPMode::ThreadSafe >
 {
-    FSVONavigationSceneProxyData() :
-        bDataGathered( false ),
-        bNeedsNewData( true )
-    {}
-
     const TArray< FBoxCenterAndExtent > & GetOctreeBounds() const;
     const TArray< FBoxCenterAndExtent > & GetLayers() const;
     const TArray< FBoxCenterAndExtent > & GetLeaves() const;
@@ -53,9 +48,6 @@ private:
     TArray< FDebugRenderSceneProxy::FDebugLine > Links;
     TArray< FDebugText > DebugTexts;
 
-    FBox Bounds;
-    uint32 bDataGathered : 1;
-    uint32 bNeedsNewData : 1;
     FSVONavigationBoundsDataDebugInfos DebugInfos;
 };
 
@@ -101,7 +93,7 @@ public:
     const FSVONavigationSceneProxyData & GetProxyData() const;
 
     FSVONavigationMeshSceneProxy( const UPrimitiveComponent * component, FSVONavigationSceneProxyData * proxy_data /* , bool ForceToRender = false */ );
-    virtual ~FSVONavigationMeshSceneProxy();
+    virtual ~FSVONavigationMeshSceneProxy() override;
 
     void GetDynamicMeshElements( const TArray< const FSceneView * > & views, const FSceneViewFamily & view_family, uint32 visibility_map, FMeshElementCollector & collector ) const override;
 
@@ -119,7 +111,7 @@ FORCEINLINE const FSVONavigationSceneProxyData & FSVONavigationMeshSceneProxy::G
 }
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-class FSVODebugDrawDelegateHelper : public FDebugDrawDelegateHelper
+class FSVODebugDrawDelegateHelper final : public FDebugDrawDelegateHelper
 {
     typedef FDebugDrawDelegateHelper Super;
 
@@ -159,7 +151,7 @@ private:
 #endif
 
 UCLASS()
-class SVONAVIGATION_API USVONavDataRenderingComponent : public UPrimitiveComponent
+class SVONAVIGATION_API USVONavDataRenderingComponent final : public UPrimitiveComponent
 {
     GENERATED_BODY()
 

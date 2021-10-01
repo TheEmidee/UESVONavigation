@@ -45,6 +45,9 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
         ItDebugDrawsOccludedLeaves( false ),
         ItDebugDrawsLinks( false ),
         LinksLayerIndexToDraw( false ),
+        ItDebugDrawsNeighborLinks( false ),
+        ItDebugDrawsParentLinks( false ),
+        ItDebugDrawsFirstChildLinks( false ),
         DebugLineThickness( 5.0f ),
         ItDebugDrawsMortonCodes( false ),
         MortonCodeLayerIndexToDraw( 0 )
