@@ -326,7 +326,7 @@ void ASVONavigationData::UpdateDrawing()
 #if !UE_BUILD_SHIPPING
     if ( USVONavDataRenderingComponent * rendering_component = Cast< USVONavDataRenderingComponent >( RenderingComp ) )
     {
-        if ( rendering_component->GetVisibleFlag() && ( rendering_component->IsForcingUpdate() || USVONavDataRenderingComponent::IsNavigationShowFlagSet( GetWorld() ) ) )
+        if ( rendering_component->GetVisibleFlag() && ( rendering_component->UpdateIsForced() || USVONavDataRenderingComponent::IsNavigationShowFlagSet( GetWorld() ) ) )
         {
             rendering_component->MarkRenderStateDirty();
         }

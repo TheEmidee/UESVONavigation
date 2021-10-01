@@ -394,7 +394,7 @@ USVONavDataRenderingComponent::USVONavDataRenderingComponent()
 
     bIsEditorOnly = true;
     bSelectable = false;
-    ItForcesUpdate = false;
+    bForcesUpdate = false;
 }
 
 FPrimitiveSceneProxy * USVONavDataRenderingComponent::CreateSceneProxy()

@@ -167,7 +167,7 @@ public:
     USVONavDataRenderingComponent();
 
     void ForceUpdate();
-    bool IsForcingUpdate() const;
+    bool UpdateIsForced() const;
 
     FPrimitiveSceneProxy * CreateSceneProxy() override;
     FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const override;
@@ -180,7 +180,7 @@ public:
 private:
     void GatherData( FSVONavigationSceneProxyData & proxy_data, const ASVONavigationData & navigation_data ) const;
 
-    uint8 ItForcesUpdate : 1;
+    uint8 bForcesUpdate : 1;
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
     FSVODebugDrawDelegateHelper DebugDrawDelegateManager;
@@ -189,10 +189,10 @@ private:
 
 FORCEINLINE void USVONavDataRenderingComponent::ForceUpdate()
 {
-    ItForcesUpdate = true;
+    bForcesUpdate = true;
 }
 
-FORCEINLINE bool USVONavDataRenderingComponent::IsForcingUpdate() const
+FORCEINLINE bool USVONavDataRenderingComponent::UpdateIsForced() const
 {
-    return ItForcesUpdate;
+    return bForcesUpdate;
 }
