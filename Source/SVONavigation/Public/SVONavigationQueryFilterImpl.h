@@ -4,7 +4,7 @@
 
 #include <AI/Navigation/NavQueryFilter.h>
 
-class SVONAVIGATION_API FSVONavigationQueryFilterImpl : public INavigationQueryFilterInterface, public TSharedFromThis< FSVONavigationQueryFilterImpl >
+class SVONAVIGATION_API FSVONavigationQueryFilterImpl final : public INavigationQueryFilterInterface
 {
 public:
     void Reset() override;

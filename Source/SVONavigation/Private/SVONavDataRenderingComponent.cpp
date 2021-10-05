@@ -109,7 +109,8 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
 
     DebugInfos = navigation_data.GetDebugInfos();
 
-    const auto & navigation_bounds = navigation_data.GetNavigationBoundsData();
+    const auto & svo_data = navigation_data.GetSVOData();
+    const auto & navigation_bounds = svo_data.GetNavigationBoundsData();
 
     if ( DebugInfos.ItDebugDrawsBounds )
     {
@@ -434,12 +435,7 @@ FBoxSphereBounds USVONavDataRenderingComponent::CalcBounds( const FTransform & L
 
     if ( ASVONavigationData * navigation_data = Cast< ASVONavigationData >( GetOwner() ) )
     {
-        const auto & navigation_bounds = navigation_data->GetNavigationBoundsData();
-
-        for ( const auto & bounds : navigation_bounds )
-        {
-            bounding_box += bounds.GetNavigationBounds();
-        }
+        bounding_box = navigation_data->GetSVOData().GetBoundingBox();
     }
 
     return FBoxSphereBounds( bounding_box );

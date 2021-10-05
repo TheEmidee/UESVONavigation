@@ -17,7 +17,7 @@ struct FSVOBoundsNavigationDataGenerator final : public FNoncopyable
 public:
     FSVOBoundsNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds );
 
-    const FSVOBoundsNavigationData & GetBoundsNavigationData() const;
+    FSVOBoundsNavigationData GetBoundsNavigationData() const;
 
     bool DoWork();
 
@@ -29,7 +29,7 @@ private:
     FNavDataConfig NavDataConfig;
 };
 
-const FSVOBoundsNavigationData & FSVOBoundsNavigationDataGenerator::GetBoundsNavigationData() const
+FORCEINLINE FSVOBoundsNavigationData FSVOBoundsNavigationDataGenerator::GetBoundsNavigationData() const
 {
     return BoundsNavigationData;
 }

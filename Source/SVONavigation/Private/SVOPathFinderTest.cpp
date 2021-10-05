@@ -1,6 +1,7 @@
 #include "SVOPathFinderTest.h"
 
 #include "NavigationSystem.h"
+#include "SVONavigationData.h"
 #include "SVOPathFinder.h"
 #include "SVOPathFindingRenderingComponent.h"
 

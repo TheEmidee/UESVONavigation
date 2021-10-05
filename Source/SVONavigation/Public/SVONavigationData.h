@@ -3,6 +3,9 @@
 #include "SVOBoundsNavigationData.h"
 
 #include <CoreMinimal.h>
+
+#include "SVOData.h"
+
 #include <NavigationData.h>
 
 #include "SVONavigationData.generated.h"
@@ -47,7 +50,7 @@ public:
     friend class FSVONavigationDataGenerator;
 
     const FSVONavigationBoundsDataDebugInfos & GetDebugInfos() const;
-    const TArray< FSVOBoundsNavigationData > & GetNavigationBoundsData() const;
+    const FSVOData & GetSVOData() const;
 
     void PostInitProperties() override;
     void PostLoad() override;
@@ -76,7 +79,7 @@ public:
     int32 GetMaxSupportedAreas() const override;
 
 #if WITH_EDITOR
-    void PostEditChangeProperty( FPropertyChangedEvent & property_changed_event );
+    void PostEditChangeProperty( FPropertyChangedEvent & property_changed_event ) override;
     bool ShouldExport() override;
 #endif
 
@@ -102,7 +105,7 @@ private:
 
     static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
 
-    TArray< FSVOBoundsNavigationData > NavigationBoundsData;
+    FUniqueSVODataPtr SVODataPtr;
 
     UPROPERTY( EditAnywhere, config, Category = "Display" )
     FSVONavigationBoundsDataDebugInfos DebugInfos;
@@ -119,7 +122,7 @@ FORCEINLINE const FSVONavigationBoundsDataDebugInfos & ASVONavigationData::GetDe
     return DebugInfos;
 }
 
-FORCEINLINE const TArray< FSVOBoundsNavigationData > & ASVONavigationData::GetNavigationBoundsData() const
+FORCEINLINE const FSVOData & ASVONavigationData::GetSVOData() const
 {
-    return NavigationBoundsData;
+    return *SVODataPtr.Get();
 }

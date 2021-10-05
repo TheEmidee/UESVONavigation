@@ -36,6 +36,8 @@ ASVONavigationData::ASVONavigationData()
         //SupportedAreas.Add( FSupportedAreaData( UNavArea_LowHeight::StaticClass(), RECAST_LOW_AREA ) );
         //SupportedAreas.Add( FSupportedAreaData( UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA ) );
     }
+
+    SVODataPtr = MakeUnique< FSVOData >();
 }
 
 void ASVONavigationData::PostInitProperties()
@@ -75,7 +77,9 @@ void ASVONavigationData::PostLoad()
 void ASVONavigationData::Serialize( FArchive & archive )
 {
     Super::Serialize( archive );
-    archive << NavigationBoundsData;
+
+    SVODataPtr->Serialize( archive );
+
     archive << DebugInfos;
 }
 
@@ -255,18 +259,11 @@ uint32 ASVONavigationData::LogMemUsed() const
 {
     const auto super_mem_used = Super::LogMemUsed();
 
-    auto navigation_mem_size = 0;
-    for ( const auto & nav_bounds_data : NavigationBoundsData )
-    {
-        const auto octree_data_mem_size = nav_bounds_data.GetOctreeData().GetAllocatedSize();
-        navigation_mem_size += octree_data_mem_size;
-    }
-
-    const auto mem_used = super_mem_used + navigation_mem_size;
+    const auto mem_used = super_mem_used + SVODataPtr->GetAllocatedSize();
     
     UE_LOG( LogNavigation, Warning, TEXT("%s: ASVONavigationData: %u\n    self: %d"), *GetName(), mem_used, sizeof(ASVONavigationData));
     
-    return super_mem_used + navigation_mem_size;
+    return mem_used;
 }
 #endif
 
@@ -354,7 +351,7 @@ void ASVONavigationData::OnNavigationDataUpdatedInBounds( const TArray< FBox > &
 
 void ASVONavigationData::ClearNavigationData()
 {
-    NavigationBoundsData.Reset();
+    SVODataPtr->ClearData();
     RequestDrawingUpdate();
 }
 

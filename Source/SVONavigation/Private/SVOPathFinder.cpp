@@ -76,7 +76,7 @@ FSVOPathFinder::FSVOPathFinder( const ASVONavigationData & navigation_data, cons
     HeuristicCalculator = Cast< USVOPathHeuristicCalculator >( query_filter_settings.PathHeuristicCalculator->ClassDefaultObject );
     CostCalculator = Cast< USVOPathCostCalculator >( query_filter_settings.PathCostCalculator->ClassDefaultObject );
 
-    const auto & navigation_bounds_data = NavigationData.GetNavigationBoundsData();
+    const auto & navigation_bounds_data = NavigationData.GetSVOData().GetNavigationBoundsData();
 
     BoundsNavigationData = navigation_bounds_data.FindByPredicate( [ this, &start_location, &end_location ]( const FSVOBoundsNavigationData & data ) {
         return data.GetNavigationBounds().IsInside( start_location ) && data.GetNavigationBounds().IsInside( end_location );
