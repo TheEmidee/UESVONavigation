@@ -1,22 +1,21 @@
 #include "SVONavigationTypes.h"
 
-
 #include "SVOPathCostCalculator.h"
+#include "SVOPathFindingAlgorithm.h"
 #include "SVOPathHeuristicCalculator.h"
-
 
 #include <libmorton/morton.h>
 
 bool FSVOOctreeLeaf::GetSubNodeAt( uint_fast32_t X, uint_fast32_t Y, uint_fast32_t Z ) const
 {
-    const uint_fast64_t MortonCode = 0;
+    constexpr uint_fast64_t MortonCode = 0;
     morton3D_64_decode( MortonCode, X, Y, Z );
     return ( SubNodes & 1ULL << morton3D_64_encode( X, Y, Z ) ) != 0;
 }
 
 void FSVOOctreeLeaf::SetSubNodeAt( uint_fast32_t X, uint_fast32_t Y, uint_fast32_t Z )
 {
-    const uint_fast64_t MortonCode = 0;
+    constexpr uint_fast64_t MortonCode = 0;
     morton3D_64_decode( MortonCode, X, Y, Z );
     SubNodes |= 1ULL << morton3D_64_encode( X, Y, Z );
 }
@@ -41,10 +40,11 @@ int FSVOOctreeData::GetAllocatedSize() const
 
 FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings()
 {
-    PathCostCalculator = USVOPathCostCalculator_Distance::StaticClass();
-    PathHeuristicCalculator = USVOPathHeuristicCalculator_Manhattan::StaticClass();
+    PathFinderClass = USVOPathFindingAlgorithm::StaticClass();
+    PathCostCalculatorClass = USVOPathCostCalculator_Distance::StaticClass();
+    PathHeuristicCalculatorClass = USVOPathHeuristicCalculator_Manhattan::StaticClass();
     HeuristicScale = 1.0f;
-    UseNodeSizeCompensation = true;
+    bUseNodeSizeCompensation = true;
     NodeSizeCompensation = 1.0f;
     bOffsetPathVerticallyByAgentRadius = true;
 }

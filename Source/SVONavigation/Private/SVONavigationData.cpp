@@ -7,6 +7,7 @@
 #include "SVONavigationQueryFilterImpl.h"
 #include "SVONavigationSettings.h"
 #include "SVOPathFinder.h"
+#include "SVOPathFindingAlgorithm.h"
 
 #include <AI/NavDataGenerator.h>
 #include <NavigationSystem.h>
@@ -399,16 +400,7 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*a
             }
             else
             {
-                FSVOPathFinder path_finder( *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query );
-                result.Result = path_finder.GetPath( *result.Path.Get() );
-
-                /*result.Result = RecastNavMesh->RecastNavMeshImpl->FindPath( path_finding_query.StartLocation, adjusted_end_location, path_finding_query.CostLimit, *svo_navigation_path, *NavFilter, path_finding_query.Owner.Get() );
-
-                const bool bPartialPath = result.IsPartial();
-                if ( bPartialPath )
-                {
-                    result.Result = path_finding_query.bAllowPartialPaths ? ENavigationQueryResult::Success : ENavigationQueryResult::Fail;
-                }*/
+                result.Result = FSVOPathFinder::GetPath( *result.Path.Get(), *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query );
             }
         }
     }

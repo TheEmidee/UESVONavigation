@@ -13,8 +13,9 @@ public:
     void Serialize( FArchive & archive );
     void ClearData();
     void RemoveDataInBounds( const FBox & bounds );
-    void AddNavigationBoundsData( FSVOBoundsNavigationData && data );
+    void AddNavigationBoundsData( FSVOBoundsNavigationData data );
     FBox GetBoundingBox() const;
+    const ::FSVOBoundsNavigationData * GetBoundsNavigationDataContainingPoints( const TArray< FVector > & points ) const;
 
 #if !UE_BUILD_SHIPPING
     uint32 GetAllocatedSize() const;

@@ -2,6 +2,7 @@
 
 #include "SVONavigationTypes.generated.h"
 
+class USVOPathFindingAlgorithm;
 class USVOPathHeuristicCalculator;
 class USVOPathCostCalculator;
 
@@ -303,16 +304,19 @@ struct SVONAVIGATION_API FSVONavigationQueryFilterSettings
     FSVONavigationQueryFilterSettings();
 
     UPROPERTY( EditDefaultsOnly )
-    TSubclassOf< USVOPathCostCalculator > PathCostCalculator;
+    TSubclassOf< USVOPathFindingAlgorithm > PathFinderClass;
+    
+    UPROPERTY( EditDefaultsOnly )
+    TSubclassOf< USVOPathCostCalculator > PathCostCalculatorClass;
 
     UPROPERTY( EditDefaultsOnly )
-    TSubclassOf< USVOPathHeuristicCalculator > PathHeuristicCalculator;
+    TSubclassOf< USVOPathHeuristicCalculator > PathHeuristicCalculatorClass;
 
     UPROPERTY( EditDefaultsOnly )
     float HeuristicScale;
 
     UPROPERTY( EditDefaultsOnly )
-    uint8 UseNodeSizeCompensation : 1;
+    uint8 bUseNodeSizeCompensation : 1;
 
     UPROPERTY( EditDefaultsOnly )
     float NodeSizeCompensation;

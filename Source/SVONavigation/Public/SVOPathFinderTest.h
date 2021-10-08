@@ -2,7 +2,7 @@
 
 #include <CoreMinimal.h>
 
-#include "SVOPathFinder.h"
+#include "SVOPathFindingAlgorithm.h"
 #include "SVOPathfindingRenderingComponent.h"
 
 #include <Components/BillboardComponent.h>

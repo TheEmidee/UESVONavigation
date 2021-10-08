@@ -2,7 +2,7 @@
 
 #include "NavigationSystem.h"
 #include "SVONavigationData.h"
-#include "SVOPathFinder.h"
+#include "SVOPathFindingAlgorithm.h"
 #include "SVOPathFindingRenderingComponent.h"
 
 #include <Components/BillboardComponent.h>

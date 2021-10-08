@@ -17,7 +17,7 @@ void FSVOData::RemoveDataInBounds( const FBox & bounds )
     } );
 }
 
-void FSVOData::AddNavigationBoundsData( FSVOBoundsNavigationData && data )
+void FSVOData::AddNavigationBoundsData( FSVOBoundsNavigationData data )
 {
     NavigationBoundsData.Emplace( MoveTemp( data ) );
 }
@@ -32,6 +32,21 @@ FBox FSVOData::GetBoundingBox() const
     }
 
     return bounding_box;
+}
+
+const FSVOBoundsNavigationData * FSVOData::GetBoundsNavigationDataContainingPoints( const TArray< FVector > & points ) const
+{
+    return NavigationBoundsData.FindByPredicate( [ this, &points ]( const FSVOBoundsNavigationData & data ) {
+        const auto & bounds = data.GetNavigationBounds();
+        for ( const auto & point : points )
+        {
+            if ( !bounds.IsInside( point ) )
+            {
+                return false;
+            }
+        }
+        return true;
+    } );
 }
 
 #if !UE_BUILD_SHIPPING

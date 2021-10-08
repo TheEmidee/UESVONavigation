@@ -3,7 +3,7 @@
 #include <Components/PrimitiveComponent.h>
 #include <CoreMinimal.h>
 
-#include "SVOPathFinder.h"
+#include "SVOPathFindingAlgorithm.h"
 
 #include <DebugRenderSceneProxy.h>
 
