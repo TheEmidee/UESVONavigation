@@ -2,6 +2,7 @@
 
 #include "NavigationSystem.h"
 #include "SVONavigationData.h"
+#include "SVOPathFinder.h"
 #include "SVOPathFindingAlgorithm.h"
 #include "SVOPathFindingRenderingComponent.h"
 
@@ -142,14 +143,16 @@ void ASVOPathFinderTest::InitPathFinding()
     {
         if ( auto * navigation_data = navigation_system->GetNavDataForProps( NavAgentProperties ) )
         {
-            if ( auto * svo_navigation_data = Cast< ASVONavigationData >( navigation_data ) )
+            if ( const auto * svo_navigation_data = Cast< ASVONavigationData >( navigation_data ) )
             {
                 const auto path_start = StartLocationComponent->GetComponentLocation();
                 const auto path_end = EndLocationComponent->GetComponentLocation();
 
                 const FPathFindingQuery Query( this, *svo_navigation_data, path_start, path_end, UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter ) );
 
-                PathFinder = MakeShared< FSVOPathFinder >( *svo_navigation_data, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), Query );
+                auto path_stepper = FSVOPathFinder::GetPathStepper( NavigationPath, *svo_navigation_data, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), Query );
+
+                //PathStepper = Cast< TSVOPathFindingAlgorithmStepperAStar< FSVOPathFindingAlgorithmStepperAStarVisitorDebug > >( path_stepper.Get() ); 
                 PathFinderDebugInfos.Reset();
 
                 NavigationPath.ResetForRepath();
@@ -166,23 +169,23 @@ void ASVOPathFinderTest::InitPathFinding()
 
 void ASVOPathFinderTest::Step()
 {
-    if ( PathFinder.IsValid() && !bFoundPath )
+    if ( PathStepper.IsValid() && !bFoundPath )
     {
-        ENavigationQueryResult::Type result;
-        if ( PathFinder->GetPathByStep( result, PathFinderDebugInfos ) )
-        {
-            UpdateDrawing();
-
-            if ( bAutoComplete )
-            {
-                GetWorld()->GetTimerManager().SetTimer( AutoCompleteTimerHandle, this, &ASVOPathFinderTest::Step, AutoStepTimer, false );
-                return;
-            }
-        }
-        else if ( result == ENavigationQueryResult::Success )
-        {
-            bFoundPath = true;
-        }
+        ENavigationQueryResult::Type result = ENavigationQueryResult::Fail;
+        // if ( PathStepper->Step( result, PathFinderDebugInfos ) )
+        // {
+        //     UpdateDrawing();
+        //
+        //     if ( bAutoComplete )
+        //     {
+        //         GetWorld()->GetTimerManager().SetTimer( AutoCompleteTimerHandle, this, &ASVOPathFinderTest::Step, AutoStepTimer, false );
+        //         return;
+        //     }
+        // }
+        // else if ( result == ENavigationQueryResult::Success )
+        // {
+        //     bFoundPath = true;
+        // }
     }
 
     bAutoComplete = false;

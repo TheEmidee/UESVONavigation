@@ -69,7 +69,7 @@ private:
     UPROPERTY( EditAnywhere )
     float AutoStepTimer;    
 
-    TSharedPtr< FSVOPathFinder > PathFinder;
+    TSharedPtr< TSVOPathFindingAlgorithmStepperAStar< FSVOPathFindingAlgorithmStepperAStarVisitorDebug > > PathStepper;
     FNavigationPath NavigationPath;
 
     UPROPERTY( VisibleInstanceOnly, AdvancedDisplay )
