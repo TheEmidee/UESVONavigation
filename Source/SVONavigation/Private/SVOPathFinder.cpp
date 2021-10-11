@@ -24,10 +24,11 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigati
         return ENavigationQueryResult::Error;
     }
 
-    return query_filter_settings.PathFinderClass->GetDefaultObject< USVOPathFindingAlgorithm >()->GetPath( navigation_path, navigation_data, start_location, end_location, path_finding_query );
+    const FSVOPathFindingParameters params( navigation_data, start_location, end_location, path_finding_query );
+    return query_filter_settings.PathFinderClass->GetDefaultObject< USVOPathFindingAlgorithm >()->GetPath( navigation_path, params );
 }
 
-TSharedPtr<FSVOPathFindingAlgorithmStepper> FSVOPathFinder::GetPathStepper( FNavigationPath & navigation_path, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query )
+TSharedPtr< FSVOPathFindingAlgorithmStepper > FSVOPathFinder::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query )
 {
     if (!path_finding_query.QueryFilter.IsValid())
     {
@@ -48,5 +49,6 @@ TSharedPtr<FSVOPathFindingAlgorithmStepper> FSVOPathFinder::GetPathStepper( FNav
         return nullptr;
     }
 
-    return query_filter_settings.PathFinderClass->GetDefaultObject< USVOPathFindingAlgorithm >()->GetDebugPathStepper( navigation_path, navigation_data, start_location, end_location, path_finding_query );    
+    const FSVOPathFindingParameters params( navigation_data, start_location, end_location, path_finding_query );
+    return query_filter_settings.PathFinderClass->GetDefaultObject< USVOPathFindingAlgorithm >()->GetDebugPathStepper( debug_infos, params );    
 }

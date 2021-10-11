@@ -44,7 +44,10 @@ private:
     void Step();
 
     UFUNCTION( CallInEditor )
-    void AutoComplete();
+    void AutoCompleteStepByStep();
+
+    UFUNCTION( CallInEditor )
+    void AutoCompleteInstantly();
 
     UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( AllowPrivateAccess = "true" ) )
     UBillboardComponent * StartLocationComponent;
@@ -66,10 +69,11 @@ private:
     UPROPERTY( EditAnywhere )
     FSVOPathRenderingDebugDrawOptions DebugDrawOptions;
 
+    TSharedPtr< FSVOPathFindingAlgorithmStepper > Stepper;
+
     UPROPERTY( EditAnywhere )
     float AutoStepTimer;    
-
-    TSharedPtr< TSVOPathFindingAlgorithmStepperAStar< FSVOPathFindingAlgorithmStepperAStarVisitorDebug > > PathStepper;
+    
     FNavigationPath NavigationPath;
 
     UPROPERTY( VisibleInstanceOnly, AdvancedDisplay )

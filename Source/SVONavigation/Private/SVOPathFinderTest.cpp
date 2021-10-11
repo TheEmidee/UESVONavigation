@@ -149,12 +149,8 @@ void ASVOPathFinderTest::InitPathFinding()
                 const auto path_end = EndLocationComponent->GetComponentLocation();
 
                 const FPathFindingQuery Query( this, *svo_navigation_data, path_start, path_end, UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter ) );
-
-                auto path_stepper = FSVOPathFinder::GetPathStepper( NavigationPath, *svo_navigation_data, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), Query );
-
-                //PathStepper = Cast< TSVOPathFindingAlgorithmStepperAStar< FSVOPathFindingAlgorithmStepperAStarVisitorDebug > >( path_stepper.Get() ); 
-                PathFinderDebugInfos.Reset();
-
+                Stepper = FSVOPathFinder::GetDebugPathStepper( PathFinderDebugInfos, *svo_navigation_data, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), Query );
+                
                 NavigationPath.ResetForRepath();
                 bFoundPath = false;
 
@@ -169,33 +165,54 @@ void ASVOPathFinderTest::InitPathFinding()
 
 void ASVOPathFinderTest::Step()
 {
-    if ( PathStepper.IsValid() && !bFoundPath )
+    if ( Stepper.IsValid() && !bFoundPath )
     {
         ENavigationQueryResult::Type result = ENavigationQueryResult::Fail;
-        // if ( PathStepper->Step( result, PathFinderDebugInfos ) )
-        // {
-        //     UpdateDrawing();
-        //
-        //     if ( bAutoComplete )
-        //     {
-        //         GetWorld()->GetTimerManager().SetTimer( AutoCompleteTimerHandle, this, &ASVOPathFinderTest::Step, AutoStepTimer, false );
-        //         return;
-        //     }
-        // }
-        // else if ( result == ENavigationQueryResult::Success )
-        // {
-        //     bFoundPath = true;
-        // }
+        if ( Stepper->Step( result ) )
+        {
+            UpdateDrawing();
+        
+            if ( bAutoComplete )
+            {
+                GetWorld()->GetTimerManager().SetTimer( AutoCompleteTimerHandle, this, &ASVOPathFinderTest::Step, AutoStepTimer, false );
+                return;
+            }
+        }
+        else if ( result == ENavigationQueryResult::Success )
+        {
+            bFoundPath = true;
+        }
     }
 
     bAutoComplete = false;
     GetWorld()->GetTimerManager().ClearAllTimersForObject( this );
 }
 
-void ASVOPathFinderTest::AutoComplete()
+void ASVOPathFinderTest::AutoCompleteStepByStep()
 {
     bAutoComplete = true;
     Step();
+}
+
+void ASVOPathFinderTest::AutoCompleteInstantly()
+{
+    if ( Stepper.IsValid() && !bFoundPath )
+    {
+        ENavigationQueryResult::Type result = ENavigationQueryResult::Fail;
+
+        while ( Stepper->Step( result ) )
+        {
+        }
+
+        UpdateDrawing();
+        
+        if ( result == ENavigationQueryResult::Success )
+        {
+            bFoundPath = true;
+        }
+    }
+
+    GetWorld()->GetTimerManager().ClearAllTimersForObject( this );
 }
 
 #if WITH_EDITOR
