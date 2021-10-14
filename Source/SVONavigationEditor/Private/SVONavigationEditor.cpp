@@ -10,12 +10,12 @@ DEFINE_LOG_CATEGORY(LogSVONavigationEditor)
 
 void FSVONavigationEditorModule::StartupModule()
 {
-	UE_LOG(LogSVONavigationEditor, Warning, TEXT("SVONavigationEditor: Module Startup"));
+	UE_LOG(LogSVONavigationEditor, Verbose, TEXT("SVONavigationEditor: Module Startup"));
 }
 
 void FSVONavigationEditorModule::ShutdownModule()
 {
-	UE_LOG(LogSVONavigationEditor, Warning, TEXT("SVONavigationEditor: Module Shutdown"));
+	UE_LOG(LogSVONavigationEditor, Verbose, TEXT("SVONavigationEditor: Module Shutdown"));
 }
 
 #undef LOCTEXT_NAMESPACE
