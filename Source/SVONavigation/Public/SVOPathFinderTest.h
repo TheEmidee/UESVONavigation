@@ -21,7 +21,9 @@ class SVONAVIGATION_API ASVOPathFinderTest : public AActor
 public:
     ASVOPathFinderTest();
 
+#if WITH_EDITOR
     void PostEditChangeProperty( FPropertyChangedEvent & property_changed_event ) override;
+#endif
 
     FVector GetStartLocation() const;
     FVector GetEndLocation() const;

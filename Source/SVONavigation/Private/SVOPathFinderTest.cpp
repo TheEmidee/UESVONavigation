@@ -37,9 +37,13 @@ ASVOPathFinderTest::ASVOPathFinderTest()
     StartLocationComponent->Sprite = ConstructorStatics_Start.TextureObject.Get();
     StartLocationComponent->SetRelativeScale3D( FVector( 1, 1, 1 ) );
     StartLocationComponent->bHiddenInGame = true;
+
     //SpriteComponent->Mobility = EComponentMobility::Static;
+#if WITH_EDITORONLY_DATA
     StartLocationComponent->SpriteInfo.Category = ConstructorStatics_Start.ID_Misc;
     StartLocationComponent->SpriteInfo.DisplayName = ConstructorStatics_Start.NAME_Misc;
+#endif
+    
     StartLocationComponent->bIsScreenSizeScaled = true;
 
     struct FConstructorStatics_TargetObject
@@ -63,8 +67,12 @@ ASVOPathFinderTest::ASVOPathFinderTest()
     EndLocationComponent->SetRelativeScale3D( FVector( 1, 1, 1 ) );
     EndLocationComponent->bHiddenInGame = true;
     //SpriteComponent->Mobility = EComponentMobility::Static;
+    
+#if WITH_EDITORONLY_DATA
     EndLocationComponent->SpriteInfo.Category = ConstructorStatics_Target.ID_Misc;
     EndLocationComponent->SpriteInfo.DisplayName = ConstructorStatics_Target.NAME_Misc;
+#endif
+    
     EndLocationComponent->bIsScreenSizeScaled = true;
 
 #if WITH_EDITORONLY_DATA
@@ -88,6 +96,7 @@ ASVOPathFinderTest::ASVOPathFinderTest()
     bAutoComplete = false;
 }
 
+#if WITH_EDITOR
 void ASVOPathFinderTest::PostEditChangeProperty( FPropertyChangedEvent & property_changed_event )
 {
     static const FName NAME_NavigationQueryFilter = GET_MEMBER_NAME_CHECKED( ASVOPathFinderTest, NavigationQueryFilter );
@@ -103,6 +112,7 @@ void ASVOPathFinderTest::PostEditChangeProperty( FPropertyChangedEvent & propert
 
     Super::PostEditChangeProperty( property_changed_event );
 }
+#endif
 
 void ASVOPathFinderTest::UpdateDrawing()
 {
