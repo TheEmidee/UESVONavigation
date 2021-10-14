@@ -13,7 +13,7 @@
 class FSVOPathFinder;
 class USphereComponent;
 
-UCLASS()
+UCLASS(hidecategories=(Object, Actor, Input, Rendering, Replication, LOD, Cooking, Physics, Collision, Lighting, VirtualTexture, HLOD ), showcategories=("Input|MouseInput", "Input|TouchInput"), Blueprintable)
 class SVONAVIGATION_API ASVOPathFinderTest : public AActor
 {
     GENERATED_BODY()

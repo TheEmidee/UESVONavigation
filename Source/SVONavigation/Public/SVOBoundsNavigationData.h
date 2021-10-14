@@ -13,6 +13,7 @@ class SVONAVIGATION_API FSVOBoundsNavigationData
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOBoundsNavigationData & data );
 
+    const FSVOBoundsNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
     const FBox & GetNavigationBounds() const;
     const FSVOOctreeData & GetOctreeData() const;
@@ -71,6 +72,11 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOBoundsNavigationData 
 
     archive << data.VolumeBounds;
     return archive;
+}
+
+FORCEINLINE const FSVOBoundsNavigationDataGenerationSettings & FSVOBoundsNavigationData::GetDataGenerationSettings() const
+{
+    return Settings;
 }
 
 FORCEINLINE const FBox & FSVOBoundsNavigationData::GetVolumeBounds() const

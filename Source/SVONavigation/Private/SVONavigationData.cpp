@@ -361,7 +361,7 @@ void ASVONavigationData::BuildNavigationData()
     RebuildAll();
 }
 
-FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*agent_properties*/, const FPathFindingQuery & path_finding_query )
+FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query )
 {
     const auto * self = Cast< ASVONavigationData >( path_finding_query.NavData.Get() );
 
@@ -400,7 +400,7 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*a
             }
             else
             {
-                result.Result = FSVOPathFinder::GetPath( *result.Path.Get(), *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query );
+                result.Result = FSVOPathFinder::GetPath( *result.Path.Get(), agent_properties, *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query );
             }
         }
     }

@@ -57,11 +57,14 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
         iteration++;
     }
 
-    const auto & best_path_points = proxy_data.DebugInfos.CurrentBestPath.GetPathPoints();
-
-    for ( auto index = 0; index < best_path_points.Num() - 1; index++ )
+    if ( DebugDrawOptions.bDrawBestPath )
     {
-        Lines.Emplace( FDebugLine( best_path_points[ index ], best_path_points[ index + 1 ], FColor::Red, 6.0f ) );
+        const auto & best_path_points = proxy_data.DebugInfos.CurrentBestPath.GetPathPoints();
+
+        for ( auto index = 0; index < best_path_points.Num() - 1; index++ )
+        {
+            Lines.Emplace( FDebugLine( best_path_points[ index ], best_path_points[ index + 1 ], FColor::Red, 6.0f ) );
+        }        
     }
 
     ActorOwner = component.GetOwner();

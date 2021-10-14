@@ -149,10 +149,12 @@ void ASVOPathFinderTest::InitPathFinding()
                 const auto path_end = EndLocationComponent->GetComponentLocation();
 
                 const FPathFindingQuery Query( this, *svo_navigation_data, path_start, path_end, UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter ) );
-                Stepper = FSVOPathFinder::GetDebugPathStepper( PathFinderDebugInfos, *svo_navigation_data, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), Query );
-                
+                Stepper = FSVOPathFinder::GetDebugPathStepper( PathFinderDebugInfos, Query.NavAgentProperties.AgentRadius, *svo_navigation_data, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), Query );
+
+                PathFinderDebugInfos.Reset();
                 NavigationPath.ResetForRepath();
                 bFoundPath = false;
+                bAutoComplete = false;
 
                 UpdateDrawing();
                 return;
@@ -181,6 +183,7 @@ void ASVOPathFinderTest::Step()
         else if ( result == ENavigationQueryResult::Success )
         {
             bFoundPath = true;
+            UpdateDrawing();
         }
     }
 

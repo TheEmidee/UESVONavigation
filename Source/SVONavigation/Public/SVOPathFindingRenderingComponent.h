@@ -21,7 +21,8 @@ struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
         bDrawOnlyWhenSelected( false  ),
         bDrawCurrentCost( true ),
         bDrawNeighborsCost( true ),
-        bDrawOnlyLastNeighborsCost( true )
+        bDrawOnlyLastNeighborsCost( true ),
+        bDrawBestPath( true )
     {}
     
     UPROPERTY( EditAnywhere )
@@ -35,13 +36,13 @@ struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
 
     UPROPERTY( EditAnywhere, meta = ( EditCondition = "bDrawNeighborsCost" ) )
     uint8 bDrawOnlyLastNeighborsCost : 1;
+
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawBestPath : 1;
 };
 
 struct SVONAVIGATION_API FSVOPathFindingSceneProxyData : public TSharedFromThis< FSVOPathFindingSceneProxyData, ESPMode::ThreadSafe >
 {
-    FSVOPathFindingSceneProxyData()
-    {}
-
     void GatherData( const ASVOPathFinderTest & path_finder_test );
 
     FVector StartLocation;
