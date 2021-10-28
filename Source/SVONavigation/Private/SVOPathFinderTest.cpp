@@ -169,8 +169,8 @@ void ASVOPathFinderTest::Step()
 {
     if ( Stepper.IsValid() && !bFoundPath )
     {
-        ENavigationQueryResult::Type result = ENavigationQueryResult::Fail;
-        if ( Stepper->Step( result ) )
+        EGraphAStarResult result = EGraphAStarResult::SearchFail;
+        if ( Stepper->Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
         {
             UpdateDrawing();
         
@@ -201,9 +201,9 @@ void ASVOPathFinderTest::AutoCompleteInstantly()
 {
     if ( Stepper.IsValid() && !bFoundPath )
     {
-        ENavigationQueryResult::Type result = ENavigationQueryResult::Fail;
+        EGraphAStarResult result = EGraphAStarResult::SearchFail;
 
-        while ( Stepper->Step( result ) )
+        while ( Stepper->Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
         {
         }
 

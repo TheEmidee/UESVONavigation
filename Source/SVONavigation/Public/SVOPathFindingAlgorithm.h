@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Chaos/AABB.h"
 #include "GraphAStar.h"
 #include "SVONavigationTypes.h"
 
@@ -7,34 +8,12 @@
 
 #include "SVOPathFindingAlgorithm.generated.h"
 
+struct FSVOLinkWithCost;
 class FSVOBoundsNavigationData;
 class USVOPathCostCalculator;
 class USVOPathHeuristicCalculator;
 class FSVONavigationQueryFilterImpl;
 class ASVONavigationData;
-
-class FSVOPathFindingParameters;
-
-class FSVOGraphQueryFilter
-{
-public:
-    explicit FSVOGraphQueryFilter( FSVOPathFindingParameters & parameters );
-
-    float GetHeuristicCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
-    float GetHeuristicScale() const;
-    bool WantsPartialSolution() const;
-    bool IsTraversalAllowed( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
-    float GetTraversalCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
-private:
-    FSVOPathFindingParameters & Parameters;
-};
-
-struct FAStar : FGraphAStar< FSVOBoundsNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOBoundsNavigationData > >
-{
-    explicit FAStar( const FSVOBoundsNavigationData & graph );
-    bool ProcessSingleNode( const FSVOOctreeLink end_node, const bool is_bound, const FSVOGraphQueryFilter & query_filter, int32 & best_node_index, float & best_node_cost );
-    EGraphAStarResult FindPath( TArray< FSVOOctreeLink > & path, const FSVOOctreeLink start_node, const FSVOOctreeLink end_node, const FSVOGraphQueryFilter & filter );
-};
 
 struct FSVOLinkWithLocation
 {
@@ -131,12 +110,29 @@ struct FSVOPathFindingParameters
     float VerticalOffset;
 };
 
+enum class ESVOPathFindingAlgorithmState : uint8
+{
+    Init,
+    ProcessNode,
+    ProcessNeighbor,
+    Ended
+};
+
+enum class ESVOPathFindingAlgorithmStepperStatus : uint8
+{
+    MustContinue,
+    IsStopped
+};
+
+class FSVOPathFindingAlgorithmStepper;
+
 class FSVOPathFindingAlgorithmObserver
 {
 public:
-    FSVOPathFindingAlgorithmObserver() = default;
+    explicit FSVOPathFindingAlgorithmObserver( const FSVOPathFindingAlgorithmStepper & stepper );
 
     virtual ~FSVOPathFindingAlgorithmObserver() = default;
+
     virtual void OnOpenNode( const FSVOLinkWithCost & link_with_cost )
     {}
     virtual void OnNeighborCostComputed( const FSVOOctreeLink & link, float cost )
@@ -147,118 +143,144 @@ public:
     {}
     virtual void OnEndLinkReached()
     {}
-    virtual void OnEndStep()
+    virtual void OnSearchSuccess( const TArray< FSVOOctreeLink > & link_path )
     {}
-};
-
-template < typename _ALGO_ >
-class TSVOPathFindingAlgorithmObserver : public FSVOPathFindingAlgorithmObserver
-{
-public:
-    explicit TSVOPathFindingAlgorithmObserver( _ALGO_ & algo );
 
 protected:
-    _ALGO_ & Algo;
+    const FSVOPathFindingAlgorithmStepper & Stepper;
 };
 
-class FSVOPathFindingAlgorithmStepper
+class FSVOPathFindingAlgorithmStepper : protected FGraphAStar< FSVOBoundsNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOBoundsNavigationData > >
 {
 public:
-    explicit FSVOPathFindingAlgorithmStepper( const FSVOPathFindingParameters & params );
+    explicit FSVOPathFindingAlgorithmStepper( const FSVOPathFindingParameters & parameters );
 
-    const FSVOPathFindingParameters & GetParams() const;
-
-    virtual ~FSVOPathFindingAlgorithmStepper() = default;
-    virtual bool Step( ENavigationQueryResult::Type & result ) = 0;
-
+    const FSVOPathFindingParameters & GetParameters() const;
+    ESVOPathFindingAlgorithmStepperStatus Step( EGraphAStarResult & result );
     void AddObserver( TSharedPtr< FSVOPathFindingAlgorithmObserver > observer );
 
 protected:
-    FSVOPathFindingParameters Params;
+    ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result );
+    ESVOPathFindingAlgorithmStepperStatus ProcessSingleNode( EGraphAStarResult & result );
+    ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor();
+    ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result );
+
+    void SetState( ESVOPathFindingAlgorithmState new_state );
+
+private:
+    ESVOPathFindingAlgorithmState State;
+    const FSVOPathFindingParameters & Parameters;
+    int32 ConsideredNodeIndex;
+    int32 BestNodeIndex;
+    float BestNodeCost;
+    TArray< FSVOOctreeLink > Neighbors;
+    int NeighborIndex;
     TArray< TSharedPtr< FSVOPathFindingAlgorithmObserver > > Observers;
 };
 
-FORCEINLINE const FSVOPathFindingParameters & FSVOPathFindingAlgorithmStepper::GetParams() const
+FORCEINLINE const FSVOPathFindingParameters & FSVOPathFindingAlgorithmStepper::GetParameters() const
 {
-    return Params;
+    return Parameters;
 }
 
-class FSVOPathFindingAlgorithmStepper_AStar : public FSVOPathFindingAlgorithmStepper
+//class FSVOPathFindingAlgorithmStepper
+//{
+//public:
+//    explicit FSVOPathFindingAlgorithmStepper( const FSVOPathFindingParameters & params );
+//
+//    const FSVOPathFindingParameters & GetParams() const;
+//
+//    virtual ~FSVOPathFindingAlgorithmStepper() = default;
+//    virtual bool Step( ENavigationQueryResult::Type & result ) = 0;
+//
+//    void AddObserver( TSharedPtr< FSVOPathFindingAlgorithmObserver > observer );
+//
+//protected:
+//    FSVOPathFindingParameters Params;
+//    TArray< TSharedPtr< FSVOPathFindingAlgorithmObserver > > Observers;
+//};
+//
+//FORCEINLINE const FSVOPathFindingParameters & FSVOPathFindingAlgorithmStepper::GetParams() const
+//{
+//    return Params;
+//}
+//
+//class FSVOPathFindingAlgorithmStepper_AStar : public FSVOPathFindingAlgorithmStepper
+//{
+//public:
+//    explicit FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & params );
+//
+//    const TMap< FSVOLinkWithLocation, FSVOLinkWithLocation > & GetCameFrom() const;
+//    bool Step( ENavigationQueryResult::Type & result ) override;
+//
+//protected:
+//    virtual void ProcessNeighbor( FSVOLinkWithLocation current, FSVOOctreeLink neighbor );
+//
+//    TArray< FSVOLinkWithCost > OpenSet;
+//    TMap< FSVOLinkWithLocation, FSVOLinkWithLocation > CameFrom;
+//    TMap< FSVOOctreeLink, float > CostSoFar;
+//};
+//
+//FORCEINLINE const TMap< FSVOLinkWithLocation, FSVOLinkWithLocation > & FSVOPathFindingAlgorithmStepper_AStar::GetCameFrom() const
+//{
+//    return CameFrom;
+//}
+//
+//USTRUCT()
+//struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
+//{
+//    GENERATED_USTRUCT_BODY()
+//
+//    FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters() :
+//        AgentRadiusMultiplier( 1.0f ),
+//        bShowLineOfSightTraces( false ),
+//        TraceType( ETraceTypeQuery::TraceTypeQuery1 )
+//    {}
+//
+//    UPROPERTY( EditAnywhere )
+//    float AgentRadiusMultiplier;
+//
+//    UPROPERTY( EditAnywhere )
+//    uint8 bShowLineOfSightTraces : 1;
+//
+//    UPROPERTY( EditAnywhere )
+//    TEnumAsByte< ETraceTypeQuery > TraceType;
+//};
+//
+//class FSVOPathFindingAlgorithmStepper_ThetaStar final : public FSVOPathFindingAlgorithmStepper_AStar
+//{
+//public:
+//    FSVOPathFindingAlgorithmStepper_ThetaStar( const FSVOPathFindingParameters & params, const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & theta_params );
+//
+//private:
+//    void ProcessNeighbor( FSVOLinkWithLocation current, FSVOOctreeLink neighbor ) override;
+//    bool IsInLineOfSight( const FSVOLinkWithLocation & from, FSVOOctreeLink to ) const;
+//
+//    FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters ThetaStarParams;
+//};
+
+class FSVOPathFindingAStarObserver_BuildPath final : public FSVOPathFindingAlgorithmObserver
 {
 public:
-    explicit FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & params );
+    FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper );
 
-    const TMap< FSVOLinkWithLocation, FSVOLinkWithLocation > & GetCameFrom() const;
-    bool Step( ENavigationQueryResult::Type & result ) override;
-
-protected:
-    virtual void ProcessNeighbor( FSVOLinkWithLocation current, FSVOOctreeLink neighbor );
-
-    TArray< FSVOLinkWithCost > OpenSet;
-    TMap< FSVOLinkWithLocation, FSVOLinkWithLocation > CameFrom;
-    TMap< FSVOOctreeLink, float > CostSoFar;
-};
-
-FORCEINLINE const TMap< FSVOLinkWithLocation, FSVOLinkWithLocation > & FSVOPathFindingAlgorithmStepper_AStar::GetCameFrom() const
-{
-    return CameFrom;
-}
-
-USTRUCT()
-struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
-{
-    GENERATED_USTRUCT_BODY()
-
-    FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters() :
-        AgentRadiusMultiplier( 1.0f ),
-        bShowLineOfSightTraces( false ),
-        TraceType( ETraceTypeQuery::TraceTypeQuery1 )
-    {}
-
-    UPROPERTY( EditAnywhere )
-    float AgentRadiusMultiplier;
-
-    UPROPERTY( EditAnywhere )
-    uint8 bShowLineOfSightTraces : 1;
-
-    UPROPERTY( EditAnywhere )
-    TEnumAsByte< ETraceTypeQuery > TraceType;
-};
-
-class FSVOPathFindingAlgorithmStepper_ThetaStar final : public FSVOPathFindingAlgorithmStepper_AStar
-{
-public:
-    FSVOPathFindingAlgorithmStepper_ThetaStar( const FSVOPathFindingParameters & params, const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & theta_params );
-
-private:
-    void ProcessNeighbor( FSVOLinkWithLocation current, FSVOOctreeLink neighbor ) override;
-    bool IsInLineOfSight( const FSVOLinkWithLocation & from, FSVOOctreeLink to ) const;
-
-    FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters ThetaStarParams;
-};
-
-class FSVOPathFindingAStarObserver_BuildPath : public TSVOPathFindingAlgorithmObserver< FSVOPathFindingAlgorithmStepper_AStar >
-{
-public:
-    FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, FSVOPathFindingAlgorithmStepper_AStar & algo );
-
-    void OnEndLinkReached() override;
+    void OnSearchSuccess( const TArray< FSVOOctreeLink > & ) override;
 
 private:
     FNavigationPath & NavigationPath;
 };
 
-class FSVOPathFindingAStarObserver_GenerateDebugInfos : public TSVOPathFindingAlgorithmObserver< FSVOPathFindingAlgorithmStepper_AStar >
+class FSVOPathFindingAStarObserver_GenerateDebugInfos // : public TSVOPathFindingAlgorithmObserver< FSVOPathFindingAlgorithmStepper_AStar >
 {
 public:
-    FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos, FSVOPathFindingAlgorithmStepper_AStar & algo );
+    FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos /*, FSVOPathFindingAlgorithmStepper_AStar & algo*/ );
 
-    void OnOpenNode( const FSVOLinkWithCost & link_with_cost ) override;
+    /*void OnOpenNode( const FSVOLinkWithCost & link_with_cost ) override;
     void OnNeighborCostComputed( const FSVOOctreeLink & link, float cost ) override;
     void OnEndLinkReached() override;
     void OnNeighborVisited() override;
     void OnFoundBetterNeighbor() override;
-    void OnEndStep() override;
+    void OnEndStep() override;*/
 
 private:
     FSVOPathFinderDebugInfos & DebugInfos;
@@ -287,16 +309,16 @@ public:
     TSharedPtr< FSVOPathFindingAlgorithmStepper > GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const override;
 };
 
-UCLASS( Blueprintable )
-class SVONAVIGATION_API USVOPathFindingAlgorithmThetaStar final : public USVOPathFindingAlgorithm
-{
-    GENERATED_BODY()
-
-public:
-    ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const override;
-    TSharedPtr< FSVOPathFindingAlgorithmStepper > GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const override;
-
-private:
-    UPROPERTY( EditAnywhere )
-    FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters Parameters;
-};
+//UCLASS( Blueprintable )
+//class SVONAVIGATION_API USVOPathFindingAlgorithmThetaStar final : public USVOPathFindingAlgorithm
+//{
+//    GENERATED_BODY()
+//
+//public:
+//    ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const override;
+//    TSharedPtr< FSVOPathFindingAlgorithmStepper > GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const override;
+//
+//private:
+//    UPROPERTY( EditAnywhere )
+//    FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters Parameters;
+//};
