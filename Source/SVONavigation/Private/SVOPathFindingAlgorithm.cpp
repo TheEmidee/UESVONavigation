@@ -24,17 +24,11 @@ namespace
     {
         auto & path_points = path.GetPathPoints();
 
-        const auto get_link_position = []( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & link ) {
-            FVector link_position;
-            bounds_data.GetLinkPosition( link_position, link );
-            return link_position;
-        };
-
         const auto & bounds_data = *params.BoundsNavigationData;
 
         for ( auto link : link_path )
         {
-            path_points.Emplace( get_link_position( bounds_data, link ) );
+            path_points.Emplace( bounds_data.GetLinkPosition( link ) );
         }
     }
 
