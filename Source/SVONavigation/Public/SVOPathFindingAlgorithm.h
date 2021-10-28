@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GraphAStar.h"
 #include "SVONavigationTypes.h"
 
 #include <NavigationData.h>
@@ -11,6 +12,29 @@ class USVOPathCostCalculator;
 class USVOPathHeuristicCalculator;
 class FSVONavigationQueryFilterImpl;
 class ASVONavigationData;
+
+class FSVOPathFindingParameters;
+
+class FSVOGraphQueryFilter
+{
+public:
+    explicit FSVOGraphQueryFilter( FSVOPathFindingParameters & parameters );
+
+    float GetHeuristicCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
+    float GetHeuristicScale() const;
+    bool WantsPartialSolution() const;
+    bool IsTraversalAllowed( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
+    float GetTraversalCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
+private:
+    FSVOPathFindingParameters & Parameters;
+};
+
+struct FAStar : FGraphAStar< FSVOBoundsNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOBoundsNavigationData > >
+{
+    explicit FAStar( const FSVOBoundsNavigationData & graph );
+    bool ProcessSingleNode( const FSVOOctreeLink end_node, const bool is_bound, const FSVOGraphQueryFilter & query_filter, int32 & best_node_index, float & best_node_cost );
+    EGraphAStarResult FindPath( TArray< FSVOOctreeLink > & path, const FSVOOctreeLink start_node, const FSVOOctreeLink end_node, const FSVOGraphQueryFilter & filter );
+};
 
 struct FSVOLinkWithLocation
 {
@@ -27,7 +51,7 @@ struct FSVOLinkWithLocation
     {
         return !operator==( other );
     }
-    
+
     FSVOOctreeLink Link;
     FVector Location;
 };
@@ -57,7 +81,7 @@ struct FSVOLinkWithCost
 struct FSVOPathFinderDebugCost
 {
     void Reset();
-    
+
     FVector Location = { 0.0f, 0.0f, 0.0f };
     float Cost = -1.0f;
     bool WasEvaluated = false;
@@ -66,7 +90,7 @@ struct FSVOPathFinderDebugCost
 struct FSVOPathFinderDebugStep
 {
     void Reset();
-    
+
     FSVOPathFinderDebugCost CurrentLocationCost;
     TArray< FSVOPathFinderDebugCost, TInlineAllocator< 6 > > NeighborLocationCosts;
 };
@@ -113,22 +137,27 @@ public:
     FSVOPathFindingAlgorithmObserver() = default;
 
     virtual ~FSVOPathFindingAlgorithmObserver() = default;
-    virtual void OnOpenNode( const FSVOLinkWithCost & link_with_cost ) {}
-    virtual void OnNeighborCostComputed( const FSVOOctreeLink & link, float cost ) {}
-    virtual void OnFoundBetterNeighbor() {}
-    virtual void OnNeighborVisited() {}
-    virtual void OnEndLinkReached() {}
-    virtual void OnEndStep() {}
+    virtual void OnOpenNode( const FSVOLinkWithCost & link_with_cost )
+    {}
+    virtual void OnNeighborCostComputed( const FSVOOctreeLink & link, float cost )
+    {}
+    virtual void OnFoundBetterNeighbor()
+    {}
+    virtual void OnNeighborVisited()
+    {}
+    virtual void OnEndLinkReached()
+    {}
+    virtual void OnEndStep()
+    {}
 };
 
-template< typename _ALGO_ >
+template < typename _ALGO_ >
 class TSVOPathFindingAlgorithmObserver : public FSVOPathFindingAlgorithmObserver
 {
 public:
     explicit TSVOPathFindingAlgorithmObserver( _ALGO_ & algo );
 
 protected:
-
     _ALGO_ & Algo;
 };
 
@@ -138,14 +167,13 @@ public:
     explicit FSVOPathFindingAlgorithmStepper( const FSVOPathFindingParameters & params );
 
     const FSVOPathFindingParameters & GetParams() const;
-    
+
     virtual ~FSVOPathFindingAlgorithmStepper() = default;
     virtual bool Step( ENavigationQueryResult::Type & result ) = 0;
 
     void AddObserver( TSharedPtr< FSVOPathFindingAlgorithmObserver > observer );
 
 protected:
-
     FSVOPathFindingParameters Params;
     TArray< TSharedPtr< FSVOPathFindingAlgorithmObserver > > Observers;
 };
@@ -164,7 +192,6 @@ public:
     bool Step( ENavigationQueryResult::Type & result ) override;
 
 protected:
-
     virtual void ProcessNeighbor( FSVOLinkWithLocation current, FSVOOctreeLink neighbor );
 
     TArray< FSVOLinkWithCost > OpenSet;
@@ -181,7 +208,7 @@ USTRUCT()
 struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
 {
     GENERATED_USTRUCT_BODY()
-    
+
     FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters() :
         AgentRadiusMultiplier( 1.0f ),
         bShowLineOfSightTraces( false ),
@@ -190,7 +217,7 @@ struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
 
     UPROPERTY( EditAnywhere )
     float AgentRadiusMultiplier;
-    
+
     UPROPERTY( EditAnywhere )
     uint8 bShowLineOfSightTraces : 1;
 
@@ -232,7 +259,7 @@ public:
     void OnNeighborVisited() override;
     void OnFoundBetterNeighbor() override;
     void OnEndStep() override;
-    
+
 private:
     FSVOPathFinderDebugInfos & DebugInfos;
     FSVOPathFinderDebugStep DebugStep;
@@ -256,7 +283,7 @@ class SVONAVIGATION_API USVOPathFindingAlgorithmAStar final : public USVOPathFin
     GENERATED_BODY()
 
 public:
-    ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const override;    
+    ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const override;
     TSharedPtr< FSVOPathFindingAlgorithmStepper > GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const override;
 };
 
@@ -266,11 +293,10 @@ class SVONAVIGATION_API USVOPathFindingAlgorithmThetaStar final : public USVOPat
     GENERATED_BODY()
 
 public:
-    ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const override;    
+    ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const override;
     TSharedPtr< FSVOPathFindingAlgorithmStepper > GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const override;
 
 private:
-
     UPROPERTY( EditAnywhere )
     FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters Parameters;
 };

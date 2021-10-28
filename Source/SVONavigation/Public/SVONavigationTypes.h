@@ -194,6 +194,13 @@ struct FSVOOctreeLink
     {
     }
 
+    explicit FSVOOctreeLink( const int32 index ) :
+        LayerIndex( index << 28 ),
+        NodeIndex( index << 6 ),
+        SubNodeIndex( index )
+    {
+    }
+
     FSVOOctreeLink( const LayerIndex layer_index, const MortonCode node_index, const SubNodeIndex sub_node_index ) :
         LayerIndex( layer_index ),
         NodeIndex( node_index ),

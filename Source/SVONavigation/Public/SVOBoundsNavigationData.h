@@ -13,6 +13,10 @@ class SVONAVIGATION_API FSVOBoundsNavigationData
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOBoundsNavigationData & data );
 
+    typedef FSVOOctreeLink FNodeRef;
+
+    bool IsValidRef( const FSVOOctreeLink ref ) const { return ref.IsValid(); }
+
     const FSVOBoundsNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
     const FBox & GetNavigationBounds() const;

@@ -1,12 +1,11 @@
-
 #include "SVOPathFindingAlgorithm.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "SVONavigationData.h"
 #include "SVONavigationQueryFilterImpl.h"
 #include "SVONavigationTypes.h"
 #include "SVOPathCostCalculator.h"
 #include "SVOPathHeuristicCalculator.h"
-#include "Kismet/GameplayStatics.h"
 
 namespace
 {
@@ -14,7 +13,7 @@ namespace
     {
         auto & path_points = path.GetPathPoints();
 
-        for (auto & path_point : path_points)
+        for ( auto & path_point : path_points )
         {
             path_point.Location.Z += vertical_offset;
         }
@@ -36,7 +35,7 @@ namespace
 
         path_points.Add( params.EndLocation );
 
-        while (current.Link != params.StartLink)
+        while ( current.Link != params.StartLink )
         {
             current = came_from[ current ];
             path_points.Emplace( current.Location );
@@ -53,16 +52,206 @@ namespace
         auto & path_points = path.GetPathPoints();
         path_points[ 0 ].Location = start_location;
 
-        if (path_points.Num() > 1)
+        if ( path_points.Num() > 1 )
         {
             path_points.Top().Location = end_location;
         }
     }
 }
 
+FSVOGraphQueryFilter::FSVOGraphQueryFilter( FSVOPathFindingParameters & parameters ) :
+    Parameters( parameters )
+{
+}
+
+float FSVOGraphQueryFilter::GetHeuristicCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const
+{
+    return Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, from, to );
+}
+
+float FSVOGraphQueryFilter::GetHeuristicScale() const
+{
+    return Parameters.NavigationQueryFilter.GetHeuristicScale();
+}
+
+bool FSVOGraphQueryFilter::WantsPartialSolution() const
+{
+    return false;
+}
+
+bool FSVOGraphQueryFilter::IsTraversalAllowed( const FSVOOctreeLink & /*from*/, const FSVOOctreeLink & /*to*/ ) const
+{
+    return true;
+}
+
+float FSVOGraphQueryFilter::GetTraversalCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const
+{
+    return Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, from, to );
+}
+
+FAStar::FAStar( const FSVOBoundsNavigationData & graph ):
+    FGraphAStar< FSVOBoundsNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOBoundsNavigationData > >( graph )
+{
+}
+
+bool FAStar::ProcessSingleNode( const FSVOOctreeLink end_node, const bool is_bound, const FSVOGraphQueryFilter & query_filter, int32 & best_node_index, float & best_node_cost )
+{
+    // Pop next best node and put it on closed list
+    const int32 ConsideredNodeIndex = OpenList.PopIndex();
+    FSearchNode & ConsideredNodeUnsafe = NodePool[ ConsideredNodeIndex ];
+    ConsideredNodeUnsafe.MarkClosed();
+
+    // We're there, store and move to result composition
+    if ( is_bound && ( ConsideredNodeUnsafe.NodeRef == end_node ) )
+    {
+        best_node_index = ConsideredNodeUnsafe.SearchNodeIndex;
+        best_node_cost = 0.f;
+        return false;
+    }
+
+    const float HeuristicScale = query_filter.GetHeuristicScale();
+
+    // consider every neighbor of BestNode
+    TArray< FSVOOctreeLink > neighbors;
+    Graph.GetNeighbors( neighbors, ConsideredNodeUnsafe.NodeRef );
+    //const int32 NeighbourCount = Graph.GetNeighbourCount(ConsideredNodeUnsafe.NodeRef);
+    for ( const auto NeighbourRef : neighbors ) // int32 NeighbourNodeIndex = 0; NeighbourNodeIndex < NeighbourCount; ++NeighbourNodeIndex)
+    {
+        //const FGraphNodeRef NeighbourRef = Graph.GetNeighbour(NodePool[ConsideredNodeIndex].NodeRef, NeighbourNodeIndex);
+
+        // validate and sanitize
+        if ( Graph.IsValidRef( NeighbourRef ) == false || NeighbourRef == NodePool[ ConsideredNodeIndex ].ParentRef || NeighbourRef == NodePool[ ConsideredNodeIndex ].NodeRef || query_filter.IsTraversalAllowed( NodePool[ ConsideredNodeIndex ].NodeRef, NeighbourRef ) == false )
+        {
+            continue;
+        }
+
+        FSearchNode & NeighbourNode = NodePool.FindOrAdd( NeighbourRef );
+
+        // Calculate cost and heuristic.
+        const float NewTraversalCost = query_filter.GetTraversalCost( NodePool[ ConsideredNodeIndex ].NodeRef, NeighbourNode.NodeRef ) + NodePool[ ConsideredNodeIndex ].TraversalCost;
+        const float NewHeuristicCost = is_bound && ( NeighbourNode.NodeRef != end_node )
+                                           ? ( query_filter.GetHeuristicCost( NeighbourNode.NodeRef, end_node ) * HeuristicScale )
+                                           : 0.f;
+        const float NewTotalCost = NewTraversalCost + NewHeuristicCost;
+
+        // check if this is better then the potential previous approach
+        if ( NewTotalCost >= NeighbourNode.TotalCost )
+        {
+            // if not, skip
+            continue;
+        }
+
+        // fill in
+        NeighbourNode.TraversalCost = NewTraversalCost;
+        ensure( NewTraversalCost > 0 );
+        NeighbourNode.TotalCost = NewTotalCost;
+        NeighbourNode.ParentRef = NodePool[ ConsideredNodeIndex ].NodeRef;
+        NeighbourNode.ParentNodeIndex = NodePool[ ConsideredNodeIndex ].SearchNodeIndex;
+        NeighbourNode.MarkNotClosed();
+
+        if ( NeighbourNode.IsOpened() == false )
+        {
+            OpenList.Push( NeighbourNode );
+        }
+
+        // In case there's no path let's store information on
+        // "closest to goal" node
+        // using Heuristic cost here rather than Traversal or Total cost
+        // since this is what we'll care about if there's no solution - this node
+        // will be the one estimated-closest to the goal
+        if ( NewHeuristicCost < best_node_cost )
+        {
+            best_node_cost = NewHeuristicCost;
+            best_node_index = NeighbourNode.SearchNodeIndex;
+        }
+    }
+
+    return true;
+}
+
+EGraphAStarResult FAStar::FindPath( TArray< FSVOOctreeLink > & , const FSVOOctreeLink start_node, const FSVOOctreeLink end_node, const FSVOGraphQueryFilter & filter )
+{
+    if ( !( Graph.IsValidRef( start_node ) && Graph.IsValidRef( end_node ) ) )
+    {
+        return SearchFail;
+    }
+
+    if ( start_node == end_node )
+    {
+        return SearchSuccess;
+    }
+
+    if ( FGraphAStarDefaultPolicy::bReuseNodePoolInSubsequentSearches )
+    {
+        NodePool.ReinitNodes();
+    }
+    else
+    {
+        NodePool.Reset();
+    }
+    OpenList.Reset();
+
+    // kick off the search with the first node
+    FSearchNode & StartNode = NodePool.Add( FSearchNode( start_node ) );
+    StartNode.TraversalCost = 0;
+    StartNode.TotalCost = filter.GetHeuristicCost( start_node, end_node ) * filter.GetHeuristicScale();
+
+    OpenList.Push( StartNode );
+
+    int32 BestNodeIndex = StartNode.SearchNodeIndex;
+    float BestNodeCost = StartNode.TotalCost;
+
+    EGraphAStarResult Result = EGraphAStarResult::SearchSuccess;
+    const bool bIsBound = true;
+
+    bool bProcessNodes = true;
+    while ( OpenList.Num() > 0 && bProcessNodes )
+    {
+        bProcessNodes = ProcessSingleNode( end_node, bIsBound, filter, BestNodeIndex, BestNodeCost );
+    }
+
+    // check if we've reached the goal
+    if ( BestNodeCost != 0.f )
+    {
+        Result = EGraphAStarResult::GoalUnreachable;
+    }
+
+    // no point to waste perf creating the path if querier doesn't want it
+    if ( Result == EGraphAStarResult::SearchSuccess || filter.WantsPartialSolution() )
+    {
+        // store the path. Note that it will be reversed!
+        int32 SearchNodeIndex = BestNodeIndex;
+        int32 PathLength = 0;
+        do
+        {
+            PathLength++;
+            SearchNodeIndex = NodePool[ SearchNodeIndex ].ParentNodeIndex;
+        } while ( NodePool.IsValidIndex( SearchNodeIndex ) && NodePool[ SearchNodeIndex ].NodeRef != start_node && ensure( PathLength < FGraphAStarDefaultPolicy::FatalPathLength ) );
+
+        if ( PathLength >= FGraphAStarDefaultPolicy::FatalPathLength )
+        {
+            Result = EGraphAStarResult::InfiniteLoop;
+        }
+
+        path.Reset( PathLength );
+        path.AddZeroed( PathLength );
+
+        // store the path
+        SearchNodeIndex = BestNodeIndex;
+        int32 ResultNodeIndex = PathLength - 1;
+        do
+        {
+            path[ ResultNodeIndex-- ] = NodePool[ SearchNodeIndex ].NodeRef;
+            SearchNodeIndex = NodePool[ SearchNodeIndex ].ParentNodeIndex;
+        } while ( ResultNodeIndex >= 0 );
+    }
+
+    return Result;
+}
+
 FSVOLinkWithLocation::FSVOLinkWithLocation( const FSVOOctreeLink & link, const FVector & location ) :
-        Link( link ),
-        Location( location )
+    Link( link ),
+    Location( location )
 {
 }
 
@@ -99,8 +288,8 @@ FSVOPathFindingParameters::FSVOPathFindingParameters( const FNavAgentProperties 
     NavigationQueryFilter( *path_finding_query.QueryFilter ),
     QueryFilterImplementation( static_cast< const FSVONavigationQueryFilterImpl * >( path_finding_query.QueryFilter->GetImplementation() ) ),
     QueryFilterSettings( QueryFilterImplementation->QueryFilterSettings ),
-    HeuristicCalculator( QueryFilterSettings.PathHeuristicCalculatorClass->GetDefaultObject<USVOPathHeuristicCalculator>() ),
-    CostCalculator( QueryFilterSettings.PathCostCalculatorClass->GetDefaultObject<USVOPathCostCalculator>() ),
+    HeuristicCalculator( QueryFilterSettings.PathHeuristicCalculatorClass->GetDefaultObject< USVOPathHeuristicCalculator >() ),
+    CostCalculator( QueryFilterSettings.PathCostCalculatorClass->GetDefaultObject< USVOPathCostCalculator >() ),
     BoundsNavigationData( navigation_data.GetSVOData().GetBoundsNavigationDataContainingPoints( { start_location, end_location } ) ),
     VerticalOffset( QueryFilterSettings.bOffsetPathVerticallyByAgentRadius ? -path_finding_query.NavAgentProperties.AgentRadius : 0.0f )
 {
@@ -109,10 +298,16 @@ FSVOPathFindingParameters::FSVOPathFindingParameters( const FNavAgentProperties 
         BoundsNavigationData->GetLinkFromPosition( StartLink, StartLocation );
         BoundsNavigationData->GetLinkFromPosition( EndLink, EndLocation );
     }
+
+    /* FAStar a_star( *BoundsNavigationData );
+
+    TArray< FSVOOctreeLink > path;
+    FSVOGraphQueryFilter filter;
+    a_star.FindPath( StartLink, EndLink, filter, path );*/
 }
 
-template <typename _ALGO_>
-TSVOPathFindingAlgorithmObserver<_ALGO_>::TSVOPathFindingAlgorithmObserver( _ALGO_ & algo ) :
+template < typename _ALGO_ >
+TSVOPathFindingAlgorithmObserver< _ALGO_ >::TSVOPathFindingAlgorithmObserver( _ALGO_ & algo ) :
     Algo( algo )
 {
 }
@@ -122,12 +317,12 @@ FSVOPathFindingAlgorithmStepper::FSVOPathFindingAlgorithmStepper( const FSVOPath
 {
 }
 
-void FSVOPathFindingAlgorithmStepper::AddObserver( TSharedPtr<FSVOPathFindingAlgorithmObserver> observer )
+void FSVOPathFindingAlgorithmStepper::AddObserver( TSharedPtr< FSVOPathFindingAlgorithmObserver > observer )
 {
     Observers.Add( observer );
 }
 
-FSVOPathFindingAlgorithmStepper_AStar::FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & params ):
+FSVOPathFindingAlgorithmStepper_AStar::FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & params ) :
     FSVOPathFindingAlgorithmStepper( params )
 {
     if ( params.StartLink.IsValid() && params.EndLink.IsValid() )
@@ -135,17 +330,13 @@ FSVOPathFindingAlgorithmStepper_AStar::FSVOPathFindingAlgorithmStepper_AStar( co
         FSVOLinkWithLocation link_with_location( params.StartLink, params.StartLocation );
         OpenSet.Emplace( link_with_location, params.HeuristicCalculator->GetHeuristicCost( *params.BoundsNavigationData, params.StartLink, params.EndLink ) * params.NavigationQueryFilter.GetHeuristicScale() );
         CameFrom.Add( link_with_location, link_with_location );
-        CostSoFar.Add( params.StartLink, 0.0f );        
+        CostSoFar.Add( params.StartLink, 0.0f );
     }
 }
 
 bool FSVOPathFindingAlgorithmStepper_AStar::Step( ENavigationQueryResult::Type & result )
 {
-    if ( Params.BoundsNavigationData == nullptr
-        || !Params.StartLink.IsValid()
-        || !Params.EndLink.IsValid()
-        || OpenSet.Num() == 0
-        )
+    if ( Params.BoundsNavigationData == nullptr || !Params.StartLink.IsValid() || !Params.EndLink.IsValid() || OpenSet.Num() == 0 )
     {
         result = ENavigationQueryResult::Fail;
         return false;
@@ -155,7 +346,7 @@ bool FSVOPathFindingAlgorithmStepper_AStar::Step( ENavigationQueryResult::Type &
 
     for ( const auto & observer : Observers )
     {
-        observer->OnOpenNode( current );   
+        observer->OnOpenNode( current );
     }
 
     if ( current.LinkWithLocation.Link == Params.EndLink )
@@ -163,7 +354,7 @@ bool FSVOPathFindingAlgorithmStepper_AStar::Step( ENavigationQueryResult::Type &
         result = ENavigationQueryResult::Success;
         for ( const auto & observer : Observers )
         {
-            observer->OnEndLinkReached();   
+            observer->OnEndLinkReached();
         }
         return false;
     }
@@ -178,7 +369,7 @@ bool FSVOPathFindingAlgorithmStepper_AStar::Step( ENavigationQueryResult::Type &
 
     for ( const auto & observer : Observers )
     {
-        observer->OnEndStep();   
+        observer->OnEndStep();
     }
 
     return true;
@@ -192,26 +383,26 @@ void FSVOPathFindingAlgorithmStepper_AStar::ProcessNeighbor( FSVOLinkWithLocatio
 
     for ( const auto & observer : Observers )
     {
-        observer->OnNeighborCostComputed( neighbor, neighbor_cost );   
+        observer->OnNeighborCostComputed( neighbor, neighbor_cost );
     }
 
-    if (!CostSoFar.Contains( neighbor ) || new_cost < CostSoFar[ neighbor ])
+    if ( !CostSoFar.Contains( neighbor ) || new_cost < CostSoFar[ neighbor ] )
     {
         CostSoFar.FindOrAdd( neighbor ) = new_cost;
         const auto priority = new_cost + Params.HeuristicCalculator->GetHeuristicCost( *Params.BoundsNavigationData, neighbor, Params.EndLink ) * Params.NavigationQueryFilter.GetHeuristicScale();
         OpenSet.Emplace( neighbor_link_with_location, priority );
         OpenSet.Sort();
         CameFrom.FindOrAdd( neighbor_link_with_location ) = current;
-            
+
         for ( const auto & observer : Observers )
         {
-            observer->OnFoundBetterNeighbor();   
+            observer->OnFoundBetterNeighbor();
         }
     }
 
     for ( const auto & observer : Observers )
     {
-        observer->OnNeighborVisited();   
+        observer->OnNeighborVisited();
     }
 }
 
@@ -224,7 +415,7 @@ FSVOPathFindingAlgorithmStepper_ThetaStar::FSVOPathFindingAlgorithmStepper_Theta
 void FSVOPathFindingAlgorithmStepper_ThetaStar::ProcessNeighbor( FSVOLinkWithLocation current, FSVOOctreeLink neighbor )
 {
     const auto parent_current_link = CameFrom[ current ];
-        
+
     if ( IsInLineOfSight( parent_current_link, neighbor ) )
     {
         FSVOPathFindingAlgorithmStepper_AStar::ProcessNeighbor( parent_current_link, neighbor );
@@ -243,7 +434,7 @@ bool FSVOPathFindingAlgorithmStepper_ThetaStar::IsInLineOfSight( const FSVOLinkW
     {
         return false;
     }
-    
+
     FVector to_position;
     if ( !Params.BoundsNavigationData->GetLinkPosition( to_position, to ) )
     {
@@ -259,11 +450,10 @@ bool FSVOPathFindingAlgorithmStepper_ThetaStar::IsInLineOfSight( const FSVOLinkW
         //UEngineTypes::ConvertToTraceType( Params.BoundsNavigationData->GetDataGenerationSettings().GenerationSettings.CollisionChannel ),
         ThetaStarParams.TraceType,
         false,
-        TArray< AActor* >(),
+        TArray< AActor * >(),
         ThetaStarParams.bShowLineOfSightTraces ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None,
         hit_result,
-        false
-        );
+        false );
 }
 
 FSVOPathFindingAStarObserver_BuildPath::FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, FSVOPathFindingAlgorithmStepper_AStar & algo ) :
@@ -274,8 +464,8 @@ FSVOPathFindingAStarObserver_BuildPath::FSVOPathFindingAStarObserver_BuildPath( 
 
 void FSVOPathFindingAStarObserver_BuildPath::OnEndLinkReached()
 {
-    const auto & params = Algo.GetParams(); 
-    
+    const auto & params = Algo.GetParams();
+
     BuildPath( NavigationPath, params, Algo.GetCameFrom() );
     AdjustPathEnds( NavigationPath, params.StartLocation, params.EndLocation );
 
@@ -283,11 +473,11 @@ void FSVOPathFindingAStarObserver_BuildPath::OnEndLinkReached()
     {
         ApplyVerticalOffset( NavigationPath, params.VerticalOffset );
     }
-    
+
     NavigationPath.MarkReady();
 }
 
-FSVOPathFindingAStarObserver_GenerateDebugInfos::FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos, FSVOPathFindingAlgorithmStepper_AStar & algo ):
+FSVOPathFindingAStarObserver_GenerateDebugInfos::FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos, FSVOPathFindingAlgorithmStepper_AStar & algo ) :
     TSVOPathFindingAlgorithmObserver< FSVOPathFindingAlgorithmStepper_AStar >( algo ),
     DebugInfos( debug_infos )
 {
@@ -296,11 +486,11 @@ FSVOPathFindingAStarObserver_GenerateDebugInfos::FSVOPathFindingAStarObserver_Ge
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnOpenNode( const FSVOLinkWithCost & link_with_cost )
 {
     CurrentLink = link_with_cost.LinkWithLocation.Link;
-    
+
     DebugStep.Reset();
     DebugStep.CurrentLocationCost.Cost = link_with_cost.Cost;
     DebugStep.CurrentLocationCost.Location = link_with_cost.LinkWithLocation.Location;
-    //Algo.GetParams().BoundsNavigationData->GetLinkPosition( DebugStep.CurrentLocationCost.Location, link_with_cost.LinkWithLocation.Link );    
+    //Algo.GetParams().BoundsNavigationData->GetLinkPosition( DebugStep.CurrentLocationCost.Location, link_with_cost.LinkWithLocation.Link );
 }
 
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnNeighborCostComputed( const FSVOOctreeLink & link, float cost )
@@ -326,10 +516,10 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnNeighborVisited()
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnFoundBetterNeighbor()
 {
     const auto & params = Algo.GetParams();
-    
+
     // DebugInfos.CurrentBestPath.ResetForRepath();
     // BuildPath( DebugInfos.CurrentBestPath, params, CurrentLink, Algo.GetCameFrom() );
-    
+
     CurrentNeighborDebugCost.WasEvaluated = true;
 }
 
@@ -344,7 +534,7 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithm::GetPath( FNavigationPath 
     return ENavigationQueryResult::Error;
 }
 
-TSharedPtr<FSVOPathFindingAlgorithmStepper> USVOPathFindingAlgorithm::GetDebugPathStepper( FSVOPathFinderDebugInfos & /*debug_infos*/, const FSVOPathFindingParameters /*params*/ ) const
+TSharedPtr< FSVOPathFindingAlgorithmStepper > USVOPathFindingAlgorithm::GetDebugPathStepper( FSVOPathFinderDebugInfos & /*debug_infos*/, const FSVOPathFindingParameters /*params*/ ) const
 {
     return nullptr;
 }
@@ -355,7 +545,7 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithmAStar::GetPath( FNavigation
     const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper_a_star );
 
     stepper_a_star.AddObserver( path_builder );
-        
+
     int iterations = 0;
 
     ENavigationQueryResult::Type result = ENavigationQueryResult::Fail;
@@ -367,10 +557,10 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithmAStar::GetPath( FNavigation
 
     return result;
 }
-    
+
 TSharedPtr< FSVOPathFindingAlgorithmStepper > USVOPathFindingAlgorithmAStar::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const
 {
-    auto stepper_a_star = MakeShared< FSVOPathFindingAlgorithmStepper_AStar > ( params );
+    auto stepper_a_star = MakeShared< FSVOPathFindingAlgorithmStepper_AStar >( params );
     const auto debug_path = MakeShared< FSVOPathFindingAStarObserver_GenerateDebugInfos >( debug_infos, stepper_a_star.Get() );
     stepper_a_star->AddObserver( debug_path );
 
@@ -383,7 +573,7 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithmThetaStar::GetPath( FNaviga
     const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper_a_star );
 
     stepper_a_star.AddObserver( path_builder );
-        
+
     int iterations = 0;
 
     ENavigationQueryResult::Type result = ENavigationQueryResult::Fail;
@@ -396,9 +586,9 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithmThetaStar::GetPath( FNaviga
     return result;
 }
 
-TSharedPtr<FSVOPathFindingAlgorithmStepper> USVOPathFindingAlgorithmThetaStar::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const
+TSharedPtr< FSVOPathFindingAlgorithmStepper > USVOPathFindingAlgorithmThetaStar::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const
 {
-    auto stepper_a_star = MakeShared< FSVOPathFindingAlgorithmStepper_ThetaStar > ( params, Parameters );
+    auto stepper_a_star = MakeShared< FSVOPathFindingAlgorithmStepper_ThetaStar >( params, Parameters );
     const auto debug_path = MakeShared< FSVOPathFindingAStarObserver_GenerateDebugInfos >( debug_infos, stepper_a_star.Get() );
     stepper_a_star->AddObserver( debug_path );
 
