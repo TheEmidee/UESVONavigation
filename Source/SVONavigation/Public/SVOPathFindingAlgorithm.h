@@ -40,38 +40,17 @@ FORCEINLINE uint32 GetTypeHash( const FSVOLinkWithLocation & link_with_location 
     return GetTypeHash( link_with_location.Link );
 }
 
-struct FSVOLinkWithCost
+struct FSVOPathFinderDebugNodeCost
 {
-    FSVOLinkWithCost( const FSVOLinkWithLocation & link_with_location, const float cost ) :
-        LinkWithLocation( link_with_location ),
-        Cost( cost )
-    {
-    }
+    FSVOPathFinderDebugNodeCost() = default;
+    FSVOPathFinderDebugNodeCost( const FSVOLinkWithLocation & from, const FSVOLinkWithLocation & to, const float cost, const bool is_closed );
 
-    FSVOLinkWithLocation LinkWithLocation;
+    void Reset();
+
+    FSVOLinkWithLocation From;
+    FSVOLinkWithLocation To;
     float Cost;
-
-    bool operator<( const FSVOLinkWithCost & other ) const
-    {
-        return Cost > other.Cost;
-    }
-};
-
-struct FSVOPathFinderDebugCost
-{
-    void Reset();
-
-    FVector Location = { 0.0f, 0.0f, 0.0f };
-    float Cost = -1.0f;
-    bool WasEvaluated = false;
-};
-
-struct FSVOPathFinderDebugStep
-{
-    void Reset();
-
-    FSVOPathFinderDebugCost CurrentLocationCost;
-    TArray< FSVOPathFinderDebugCost, TInlineAllocator< 6 > > NeighborLocationCosts;
+    uint8 bIsClosed : 1;
 };
 
 USTRUCT()
@@ -81,7 +60,8 @@ struct SVONAVIGATION_API FSVOPathFinderDebugInfos
 
     void Reset();
 
-    TArray< FSVOPathFinderDebugStep > DebugSteps;
+    FSVOPathFinderDebugNodeCost LastLastProcessedSingleNode;
+    TArray< FSVOPathFinderDebugNodeCost > ProcessedNeighbors;
     FNavigationPath CurrentBestPath;
 
     UPROPERTY( VisibleAnywhere )
@@ -133,18 +113,10 @@ public:
 
     virtual ~FSVOPathFindingAlgorithmObserver() = default;
 
-    virtual void OnOpenNode( const FSVOLinkWithCost & link_with_cost )
-    {}
-    virtual void OnNeighborCostComputed( const FSVOOctreeLink & link, float cost )
-    {}
-    virtual void OnFoundBetterNeighbor()
-    {}
-    virtual void OnNeighborVisited()
-    {}
-    virtual void OnEndLinkReached()
-    {}
-    virtual void OnSearchSuccess( const TArray< FSVOOctreeLink > & link_path )
-    {}
+    virtual void OnProcessSingleNode( const FGraphAStarDefaultNode<FSVOBoundsNavigationData> & node ) {}
+    virtual void OnProcessNeighbor( const FGraphAStarDefaultNode<FSVOBoundsNavigationData> & parent, const FGraphAStarDefaultNode<FSVOBoundsNavigationData> & neighbor, const float cost ) {}
+    virtual void OnProcessNeighbor( const FGraphAStarDefaultNode<FSVOBoundsNavigationData> & neighbor ) {}
+    virtual void OnSearchSuccess( const TArray< FSVOOctreeLink > & link_path ) {}
 
 protected:
     const FSVOPathFindingAlgorithmStepper & Stepper;
@@ -169,7 +141,7 @@ protected:
 
 private:
     ESVOPathFindingAlgorithmState State;
-    const FSVOPathFindingParameters & Parameters;
+    FSVOPathFindingParameters Parameters;
     int32 ConsideredNodeIndex;
     int32 BestNodeIndex;
     float BestNodeCost;
@@ -270,23 +242,20 @@ private:
     FNavigationPath & NavigationPath;
 };
 
-class FSVOPathFindingAStarObserver_GenerateDebugInfos // : public TSVOPathFindingAlgorithmObserver< FSVOPathFindingAlgorithmStepper_AStar >
+class FSVOPathFindingAStarObserver_GenerateDebugInfos final : public FSVOPathFindingAlgorithmObserver
 {
 public:
-    FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos /*, FSVOPathFindingAlgorithmStepper_AStar & algo*/ );
+    FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingAlgorithmStepper & stepper );
 
-    /*void OnOpenNode( const FSVOLinkWithCost & link_with_cost ) override;
-    void OnNeighborCostComputed( const FSVOOctreeLink & link, float cost ) override;
-    void OnEndLinkReached() override;
-    void OnNeighborVisited() override;
-    void OnFoundBetterNeighbor() override;
-    void OnEndStep() override;*/
-
+    void OnProcessSingleNode( const FGraphAStarDefaultNode<FSVOBoundsNavigationData> & node ) override;
+    void OnProcessNeighbor( const FGraphAStarDefaultNode<FSVOBoundsNavigationData> & parent, const FGraphAStarDefaultNode<FSVOBoundsNavigationData> & neighbor, const float cost ) override;
+    void OnProcessNeighbor( const FGraphAStarDefaultNode<FSVOBoundsNavigationData> & neighbor ) override;
+    void OnSearchSuccess( const TArray< FSVOOctreeLink > & ) override;
 private:
     FSVOPathFinderDebugInfos & DebugInfos;
-    FSVOPathFinderDebugStep DebugStep;
-    FSVOOctreeLink CurrentLink;
-    FSVOPathFinderDebugCost CurrentNeighborDebugCost;
+    //FSVOPathFinderDebugStep DebugStep;
+    //FSVOOctreeLink CurrentLink;
+    //FSVOPathFinderDebugNodeCost CurrentNeighborDebugCost;
 };
 
 UCLASS( HideDropdown, NotBlueprintable )

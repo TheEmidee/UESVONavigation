@@ -9,6 +9,15 @@ void FSVOPathFindingSceneProxyData::GatherData( const ASVOPathFinderTest & path_
     StartLocation = path_finder_test.GetStartLocation();
     EndLocation = path_finder_test.GetEndLocation();
     DebugInfos = path_finder_test.GetPathFinderDebugInfos();
+
+    if ( path_finder_test.GetStepperLastStatus() == ESVOPathFindingAlgorithmStepperStatus::IsStopped )
+    {
+        PathFindingResult = TOptional< EGraphAStarResult >( path_finder_test.GetPathFindingResult() );
+    }
+    else
+    {
+        PathFindingResult.Reset();
+    }
 }
 
 FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent & component, const FSVOPathFindingSceneProxyData & proxy_data ) :
@@ -28,7 +37,14 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
         texts->Emplace( FText3d( text, FVector( 0.0f, 0.0f, 50.0f ) + ( start + end ) / 2.0f, FLinearColor::White ) );
     };
 
-    const auto & debug_steps = proxy_data.DebugInfos.DebugSteps;
+    Lines.Emplace( FDebugLine( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Location, proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Location, FColor::Blue, 4.0f ) );
+
+    for ( const auto & neighbor : proxy_data.DebugInfos.ProcessedNeighbors )
+    {
+        Lines.Emplace( FDebugLine( neighbor.From.Location, neighbor.To.Location, neighbor.bIsClosed ? FColor::Orange : FColor::Green, 4.0f ) );
+    }
+
+    /*const auto & debug_steps = proxy_data.DebugInfos.DebugSteps;
     FVector previous_location = proxy_data.StartLocation;
 
     auto iteration = 0;
@@ -65,6 +81,16 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
         {
             Lines.Emplace( FDebugLine( best_path_points[ index ], best_path_points[ index + 1 ], FColor::Red, 6.0f ) );
         }        
+    }*/
+
+    if ( proxy_data.PathFindingResult.Get( EGraphAStarResult::SearchFail ) == EGraphAStarResult::SearchSuccess )
+    {
+        const auto & best_path_points = proxy_data.DebugInfos.CurrentBestPath.GetPathPoints();
+
+        for ( auto index = 0; index < best_path_points.Num() - 1; index++ )
+        {
+            Lines.Emplace( FDebugLine( best_path_points[ index ], best_path_points[ index + 1 ], FColor::Red, 6.0f ) );
+        }  
     }
 
     ActorOwner = component.GetOwner();

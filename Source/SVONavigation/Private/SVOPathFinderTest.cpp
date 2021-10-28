@@ -6,8 +6,7 @@
 #include "SVOPathFindingAlgorithm.h"
 #include "SVOPathFindingRenderingComponent.h"
 
-#include <Components/BillboardComponent.h>
-#include <UObject/ConstructorHelpers.h>
+#include <Components/SphereComponent.h>
 
 #if WITH_EDITOR
 #include <Engine/Selection.h>
@@ -18,63 +17,8 @@ ASVOPathFinderTest::ASVOPathFinderTest()
     PrimaryActorTick.bCanEverTick = false;
     PrimaryActorTick.bStartWithTickEnabled = true;
 
-    StartLocationComponent = CreateDefaultSubobject< UBillboardComponent >( TEXT( "StartLocationComponent" ) );
-    RootComponent = StartLocationComponent;
-
-    struct FConstructorStatics_StartObject
-    {
-        ConstructorHelpers::FObjectFinderOptional< UTexture2D > TextureObject;
-        FName ID_Misc;
-        FText NAME_Misc;
-        FConstructorStatics_StartObject() :
-            TextureObject( TEXT( "/Engine/EditorResources/Spawn_Point" ) ),
-            ID_Misc( TEXT( "Misc" ) ),
-            NAME_Misc( NSLOCTEXT( "SpriteCategory", "Misc", "Misc" ) )
-        {
-        }
-    };
-    static FConstructorStatics_StartObject ConstructorStatics_Start;
-
-    StartLocationComponent->Sprite = ConstructorStatics_Start.TextureObject.Get();
-    StartLocationComponent->SetRelativeScale3D( FVector( 1, 1, 1 ) );
-    StartLocationComponent->bHiddenInGame = true;
-
-    //SpriteComponent->Mobility = EComponentMobility::Static;
-#if WITH_EDITORONLY_DATA
-    StartLocationComponent->SpriteInfo.Category = ConstructorStatics_Start.ID_Misc;
-    StartLocationComponent->SpriteInfo.DisplayName = ConstructorStatics_Start.NAME_Misc;
-#endif
-    
-    StartLocationComponent->bIsScreenSizeScaled = true;
-
-    struct FConstructorStatics_TargetObject
-    {
-        ConstructorHelpers::FObjectFinderOptional< UTexture2D > TextureObject;
-        FName ID_Misc;
-        FText NAME_Misc;
-        FConstructorStatics_TargetObject() :
-            TextureObject( TEXT( "/Engine/EditorResources/Waypoint" ) ),
-            ID_Misc( TEXT( "Misc" ) ),
-            NAME_Misc( NSLOCTEXT( "SpriteCategory", "Misc", "Misc" ) )
-        {
-        }
-    };
-    static FConstructorStatics_TargetObject ConstructorStatics_Target;
-
-    EndLocationComponent = CreateDefaultSubobject< UBillboardComponent >( TEXT( "EndLocationComponent" ) );
-    EndLocationComponent->SetupAttachment( RootComponent );
-
-    EndLocationComponent->Sprite = ConstructorStatics_Target.TextureObject.Get();
-    EndLocationComponent->SetRelativeScale3D( FVector( 1, 1, 1 ) );
-    EndLocationComponent->bHiddenInGame = true;
-    //SpriteComponent->Mobility = EComponentMobility::Static;
-    
-#if WITH_EDITORONLY_DATA
-    EndLocationComponent->SpriteInfo.Category = ConstructorStatics_Target.ID_Misc;
-    EndLocationComponent->SpriteInfo.DisplayName = ConstructorStatics_Target.NAME_Misc;
-#endif
-    
-    EndLocationComponent->bIsScreenSizeScaled = true;
+    SphereComponent = CreateDefaultSubobject< USphereComponent >( TEXT( "SphereComponent" ) );
+    RootComponent = SphereComponent;
 
 #if WITH_EDITORONLY_DATA
     RenderingComponent = CreateEditorOnlyDefaultSubobject< USVOPathFindingRenderingComponent >( TEXT( "RenderingComponent" ) );
@@ -145,19 +89,23 @@ void ASVOPathFinderTest::InitPathFinding()
         {
             if ( const auto * svo_navigation_data = Cast< ASVONavigationData >( navigation_data ) )
             {
-                const auto path_start = StartLocationComponent->GetComponentLocation();
-                const auto path_end = EndLocationComponent->GetComponentLocation();
+                if ( OtherActor != nullptr )
+                {
+                    const auto path_start = GetActorLocation();
+                    const auto path_end = OtherActor->GetActorLocation();
 
-                const FPathFindingQuery Query( this, *svo_navigation_data, path_start, path_end, UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter ) );
-                Stepper = FSVOPathFinder::GetDebugPathStepper( PathFinderDebugInfos, Query.NavAgentProperties.AgentRadius, *svo_navigation_data, StartLocationComponent->GetComponentLocation(), EndLocationComponent->GetComponentLocation(), Query );
+                    const FPathFindingQuery Query( this, *svo_navigation_data, path_start, path_end, UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter ) );
+                    Stepper = FSVOPathFinder::GetDebugPathStepper( PathFinderDebugInfos, Query.NavAgentProperties.AgentRadius, *svo_navigation_data, path_start, path_end, Query );
 
-                PathFinderDebugInfos.Reset();
-                NavigationPath.ResetForRepath();
-                bFoundPath = false;
-                bAutoComplete = false;
+                    PathFinderDebugInfos.Reset();
+                    NavigationPath.ResetForRepath();
+                    LastStatus = ESVOPathFindingAlgorithmStepperStatus::MustContinue;
+                    PathFindingResult = SearchFail;
+                    bAutoComplete = false;
 
-                UpdateDrawing();
-                return;
+                    UpdateDrawing();
+                    return;
+                }
             }
         }
     }
@@ -167,22 +115,21 @@ void ASVOPathFinderTest::InitPathFinding()
 
 void ASVOPathFinderTest::Step()
 {
-    if ( Stepper.IsValid() && !bFoundPath )
+    if ( Stepper.IsValid() && LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
     {
-        EGraphAStarResult result = EGraphAStarResult::SearchFail;
-        if ( Stepper->Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
+        LastStatus = Stepper->Step( PathFindingResult );
+        if ( LastStatus == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
         {
             UpdateDrawing();
-        
+
             if ( bAutoComplete )
             {
                 GetWorld()->GetTimerManager().SetTimer( AutoCompleteTimerHandle, this, &ASVOPathFinderTest::Step, AutoStepTimer, false );
                 return;
             }
         }
-        else if ( result == ENavigationQueryResult::Success )
+        else if ( PathFindingResult == EGraphAStarResult::SearchSuccess )
         {
-            bFoundPath = true;
             UpdateDrawing();
         }
     }
@@ -199,20 +146,14 @@ void ASVOPathFinderTest::AutoCompleteStepByStep()
 
 void ASVOPathFinderTest::AutoCompleteInstantly()
 {
-    if ( Stepper.IsValid() && !bFoundPath )
+    if ( Stepper.IsValid() && LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
     {
-        EGraphAStarResult result = EGraphAStarResult::SearchFail;
-
-        while ( Stepper->Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
+        do
         {
-        }
+            LastStatus = Stepper->Step( PathFindingResult );
+        } while ( LastStatus == ESVOPathFindingAlgorithmStepperStatus::MustContinue );
 
         UpdateDrawing();
-        
-        if ( result == ENavigationQueryResult::Success )
-        {
-            bFoundPath = true;
-        }
     }
 
     GetWorld()->GetTimerManager().ClearAllTimersForObject( this );

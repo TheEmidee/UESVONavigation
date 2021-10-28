@@ -48,6 +48,7 @@ struct SVONAVIGATION_API FSVOPathFindingSceneProxyData : public TSharedFromThis<
     FVector StartLocation;
     FVector EndLocation;
     FSVOPathFinderDebugInfos DebugInfos;
+    TOptional< EGraphAStarResult > PathFindingResult;
 };
 
 class SVONAVIGATION_API FSVOPathFindingSceneProxy final : public FDebugRenderSceneProxy

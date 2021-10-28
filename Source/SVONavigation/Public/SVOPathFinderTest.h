@@ -5,7 +5,6 @@
 #include "SVOPathFindingAlgorithm.h"
 #include "SVOPathfindingRenderingComponent.h"
 
-#include <Components/BillboardComponent.h>
 #include <GameFramework/Actor.h>
 
 #include "SVOPathFinderTest.generated.h"
@@ -29,6 +28,8 @@ public:
     FVector GetEndLocation() const;
     const FSVOPathFinderDebugInfos & GetPathFinderDebugInfos() const;
     const FSVOPathRenderingDebugDrawOptions & GetDebugDrawOptions() const;
+    ESVOPathFindingAlgorithmStepperStatus GetStepperLastStatus() const;
+    EGraphAStarResult GetPathFindingResult() const;
 
 private:
     void UpdateDrawing();
@@ -50,10 +51,7 @@ private:
     void AutoCompleteInstantly();
 
     UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( AllowPrivateAccess = "true" ) )
-    UBillboardComponent * StartLocationComponent;
-
-    UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( AllowPrivateAccess = "true" ) )
-    UBillboardComponent * EndLocationComponent;
+    USphereComponent * SphereComponent;
 
 #if WITH_EDITORONLY_DATA
     UPROPERTY( Transient )
@@ -72,26 +70,32 @@ private:
     TSharedPtr< FSVOPathFindingAlgorithmStepper > Stepper;
 
     UPROPERTY( EditAnywhere )
-    float AutoStepTimer;    
+    float AutoStepTimer;
+
+    UPROPERTY( EditInstanceOnly, Transient )
+    ASVOPathFinderTest * OtherActor;
     
     FNavigationPath NavigationPath;
 
     UPROPERTY( VisibleInstanceOnly, AdvancedDisplay )
     FSVOPathFinderDebugInfos PathFinderDebugInfos;
     
-    uint8 bFoundPath : 1;
     uint8 bAutoComplete : 1;
     FTimerHandle AutoCompleteTimerHandle;
+    ESVOPathFindingAlgorithmStepperStatus LastStatus;
+    EGraphAStarResult PathFindingResult;
 };
 
 FORCEINLINE FVector ASVOPathFinderTest::GetStartLocation() const
 {
-    return StartLocationComponent->GetComponentLocation();
+    return GetActorLocation();
 }
 
 FORCEINLINE FVector ASVOPathFinderTest::GetEndLocation() const
 {
-    return EndLocationComponent->GetComponentLocation();
+    return OtherActor != nullptr
+        ? OtherActor->GetActorLocation()
+        : FVector::ZeroVector;
 }
 
 FORCEINLINE const FSVOPathFinderDebugInfos & ASVOPathFinderTest::GetPathFinderDebugInfos() const
@@ -102,4 +106,14 @@ FORCEINLINE const FSVOPathFinderDebugInfos & ASVOPathFinderTest::GetPathFinderDe
 FORCEINLINE const FSVOPathRenderingDebugDrawOptions & ASVOPathFinderTest::GetDebugDrawOptions() const
 {
     return DebugDrawOptions;
+}
+
+FORCEINLINE ESVOPathFindingAlgorithmStepperStatus ASVOPathFinderTest::GetStepperLastStatus() const
+{
+    return LastStatus;
+}
+
+FORCEINLINE EGraphAStarResult ASVOPathFinderTest::GetPathFindingResult() const
+{
+    return PathFindingResult;
 }
