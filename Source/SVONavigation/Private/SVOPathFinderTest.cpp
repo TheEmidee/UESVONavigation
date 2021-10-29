@@ -213,6 +213,21 @@ void ASVOPathFinderTest::AutoCompleteStepByStep()
     Step();
 }
 
+void ASVOPathFinderTest::AutoCompleteUntilNextNode()
+{
+    if ( Stepper.IsValid() && LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
+    {
+        do
+        {
+            LastStatus = Stepper->Step( PathFindingResult );
+        } while ( LastStatus == ESVOPathFindingAlgorithmStepperStatus::MustContinue && Stepper->GetState() != ESVOPathFindingAlgorithmState::ProcessNode );
+
+        UpdateDrawing();
+    }
+
+    GetWorld()->GetTimerManager().ClearAllTimersForObject( this );
+}
+
 void ASVOPathFinderTest::AutoCompleteInstantly()
 {
     if ( Stepper.IsValid() && LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )

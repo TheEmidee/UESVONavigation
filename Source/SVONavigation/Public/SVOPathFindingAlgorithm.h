@@ -127,6 +127,7 @@ class FSVOPathFindingAlgorithmStepper : protected FGraphAStar< FSVOBoundsNavigat
 public:
     explicit FSVOPathFindingAlgorithmStepper( const FSVOPathFindingParameters & parameters );
 
+    ESVOPathFindingAlgorithmState GetState() const;
     const FSVOPathFindingParameters & GetParameters() const;
     ESVOPathFindingAlgorithmStepperStatus Step( EGraphAStarResult & result );
     void AddObserver( TSharedPtr< FSVOPathFindingAlgorithmObserver > observer );
@@ -149,6 +150,11 @@ private:
     int NeighborIndex;
     TArray< TSharedPtr< FSVOPathFindingAlgorithmObserver > > Observers;
 };
+
+FORCEINLINE ESVOPathFindingAlgorithmState FSVOPathFindingAlgorithmStepper::GetState() const
+{
+    return State;
+}
 
 FORCEINLINE const FSVOPathFindingParameters & FSVOPathFindingAlgorithmStepper::GetParameters() const
 {

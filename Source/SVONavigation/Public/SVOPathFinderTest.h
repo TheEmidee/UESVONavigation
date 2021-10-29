@@ -50,6 +50,9 @@ private:
     void AutoCompleteStepByStep();
 
     UFUNCTION( CallInEditor )
+    void AutoCompleteUntilNextNode();
+
+    UFUNCTION( CallInEditor )
     void AutoCompleteInstantly();
 
     UFUNCTION( CallInEditor )
