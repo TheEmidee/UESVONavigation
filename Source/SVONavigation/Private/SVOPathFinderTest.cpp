@@ -42,6 +42,7 @@ ASVOPathFinderTest::ASVOPathFinderTest()
     bUpdatePathAfterMoving = false;
 }
 
+#if WITH_EDITOR
 void ASVOPathFinderTest::PreEditChange( FProperty * property_about_to_change )
 {
     static const FName NAME_OtherActor = GET_MEMBER_NAME_CHECKED( ASVOPathFinderTest, OtherActor );
@@ -60,11 +61,11 @@ void ASVOPathFinderTest::PreEditChange( FProperty * property_about_to_change )
     Super::PreEditChange( property_about_to_change );
 }
 
-#if WITH_EDITOR
 void ASVOPathFinderTest::PostEditChangeProperty( FPropertyChangedEvent & property_changed_event )
 {
     static const FName NAME_NavigationQueryFilter = GET_MEMBER_NAME_CHECKED( ASVOPathFinderTest, NavigationQueryFilter );
     static const FName NAME_OtherActor = GET_MEMBER_NAME_CHECKED( ASVOPathFinderTest, OtherActor );
+    static const FName NAME_UpdatePathAfterMoving = GET_MEMBER_NAME_CHECKED( ASVOPathFinderTest, bUpdatePathAfterMoving );
 
     if ( property_changed_event.Property != nullptr )
     {
@@ -95,6 +96,13 @@ void ASVOPathFinderTest::PostEditChangeProperty( FPropertyChangedEvent & propert
                 }
             }
         }
+        else if ( property_name == NAME_UpdatePathAfterMoving )
+        {
+            if ( bUpdatePathAfterMoving && OtherActor != nullptr )
+            {
+                OtherActor->bUpdatePathAfterMoving = false;
+            }
+        }
     }
 
     Super::PostEditChangeProperty( property_changed_event );
@@ -110,6 +118,11 @@ void ASVOPathFinderTest::PostEditMove( const bool is_finished )
         {
             InitPathFinding();
             AutoCompleteInstantly();
+        }
+        else if ( OtherActor->bUpdatePathAfterMoving )
+        {
+            OtherActor->InitPathFinding();
+            OtherActor->AutoCompleteInstantly();
         }
     }
 }
