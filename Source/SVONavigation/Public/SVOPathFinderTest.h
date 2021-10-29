@@ -1,10 +1,9 @@
 #pragma once
 
-#include <CoreMinimal.h>
-
 #include "SVOPathFindingAlgorithm.h"
 #include "SVOPathfindingRenderingComponent.h"
 
+#include <CoreMinimal.h>
 #include <GameFramework/Actor.h>
 
 #include "SVOPathFinderTest.generated.h"
@@ -12,7 +11,7 @@
 class FSVOPathFinder;
 class USphereComponent;
 
-UCLASS(hidecategories=(Object, Actor, Input, Rendering, Replication, LOD, Cooking, Physics, Collision, Lighting, VirtualTexture, HLOD ), showcategories=("Input|MouseInput", "Input|TouchInput"), Blueprintable)
+UCLASS( hidecategories = ( Object, Actor, Input, Rendering, Replication, LOD, Cooking, Physics, Collision, Lighting, VirtualTexture, HLOD ), showcategories = ( "Input|MouseInput", "Input|TouchInput" ), Blueprintable )
 class SVONAVIGATION_API ASVOPathFinderTest : public AActor
 {
     GENERATED_BODY()
@@ -21,7 +20,9 @@ public:
     ASVOPathFinderTest();
 
 #if WITH_EDITOR
+    void PreEditChange( FProperty * property_about_to_change ) override;
     void PostEditChangeProperty( FPropertyChangedEvent & property_changed_event ) override;
+    void PostEditMove( bool is_finished ) override;
 #endif
 
     FVector GetStartLocation() const;
@@ -30,6 +31,7 @@ public:
     const FSVOPathRenderingDebugDrawOptions & GetDebugDrawOptions() const;
     ESVOPathFindingAlgorithmStepperStatus GetStepperLastStatus() const;
     EGraphAStarResult GetPathFindingResult() const;
+    void BeginDestroy() override;
 
 private:
     void UpdateDrawing();
@@ -62,7 +64,10 @@ private:
 #endif
 
     UPROPERTY( EditAnywhere )
-	FNavAgentProperties NavAgentProperties;
+    uint8 bUpdatePathAfterMoving : 1;
+
+    UPROPERTY( EditAnywhere )
+    FNavAgentProperties NavAgentProperties;
 
     UPROPERTY( EditAnywhere )
     TSubclassOf< UNavigationQueryFilter > NavigationQueryFilter;
@@ -75,14 +80,14 @@ private:
     UPROPERTY( EditAnywhere )
     float AutoStepTimer;
 
-    UPROPERTY( EditInstanceOnly, Transient )
+    UPROPERTY( EditInstanceOnly )
     ASVOPathFinderTest * OtherActor;
-    
+
     FNavigationPath NavigationPath;
 
     UPROPERTY( VisibleInstanceOnly, AdvancedDisplay )
     FSVOPathFinderDebugInfos PathFinderDebugInfos;
-    
+
     uint8 bAutoComplete : 1;
     FTimerHandle AutoCompleteTimerHandle;
     ESVOPathFindingAlgorithmStepperStatus LastStatus;
@@ -97,8 +102,8 @@ FORCEINLINE FVector ASVOPathFinderTest::GetStartLocation() const
 FORCEINLINE FVector ASVOPathFinderTest::GetEndLocation() const
 {
     return OtherActor != nullptr
-        ? OtherActor->GetActorLocation()
-        : FVector::ZeroVector;
+               ? OtherActor->GetActorLocation()
+               : FVector::ZeroVector;
 }
 
 FORCEINLINE const FSVOPathFinderDebugInfos & ASVOPathFinderTest::GetPathFinderDebugInfos() const

@@ -39,12 +39,32 @@ ASVOPathFinderTest::ASVOPathFinderTest()
     NavAgentProperties = FNavAgentProperties::DefaultProperties;
     AutoStepTimer = 0.2f;
     bAutoComplete = false;
+    bUpdatePathAfterMoving = false;
+}
+
+void ASVOPathFinderTest::PreEditChange( FProperty * property_about_to_change )
+{
+    static const FName NAME_OtherActor = GET_MEMBER_NAME_CHECKED( ASVOPathFinderTest, OtherActor );
+
+    if ( property_about_to_change != nullptr && property_about_to_change->GetFName() == NAME_OtherActor && OtherActor != nullptr && OtherActor->OtherActor == this )
+    {
+        OtherActor->OtherActor = nullptr;
+        OtherActor->NavigationPath.ResetForRepath();
+        NavigationPath.ResetForRepath();
+#if WITH_EDITORONLY_DATA
+        OtherActor->RenderingComponent->MarkRenderStateDirty();
+        RenderingComponent->MarkRenderStateDirty();
+#endif
+    }
+
+    Super::PreEditChange( property_about_to_change );
 }
 
 #if WITH_EDITOR
 void ASVOPathFinderTest::PostEditChangeProperty( FPropertyChangedEvent & property_changed_event )
 {
     static const FName NAME_NavigationQueryFilter = GET_MEMBER_NAME_CHECKED( ASVOPathFinderTest, NavigationQueryFilter );
+    static const FName NAME_OtherActor = GET_MEMBER_NAME_CHECKED( ASVOPathFinderTest, OtherActor );
 
     if ( property_changed_event.Property != nullptr )
     {
@@ -53,11 +73,60 @@ void ASVOPathFinderTest::PostEditChangeProperty( FPropertyChangedEvent & propert
         {
             InitPathFinding();
         }
+        else if ( property_name == NAME_OtherActor )
+        {
+            if ( OtherActor != nullptr )
+            {
+                auto * other_actors_old_other_actor = OtherActor->OtherActor;
+
+                OtherActor->OtherActor = this;
+
+#if WITH_EDITORONLY_DATA
+                RenderingComponent->MarkRenderStateDirty();
+#endif
+
+                if ( other_actors_old_other_actor != nullptr )
+                {
+                    other_actors_old_other_actor->OtherActor = nullptr;
+                    other_actors_old_other_actor->NavigationPath.ResetForRepath();
+#if WITH_EDITORONLY_DATA
+                    other_actors_old_other_actor->RenderingComponent->MarkRenderStateDirty();
+#endif
+                }
+            }
+        }
     }
 
     Super::PostEditChangeProperty( property_changed_event );
 }
+
+void ASVOPathFinderTest::PostEditMove( const bool is_finished )
+{
+    Super::PostEditMove( is_finished );
+
+    if ( OtherActor != nullptr )
+    {
+        if ( bUpdatePathAfterMoving )
+        {
+            InitPathFinding();
+            AutoCompleteInstantly();
+        }
+    }
+}
 #endif
+
+void ASVOPathFinderTest::BeginDestroy()
+{
+    NavigationPath.ResetForRepath();
+
+    if ( OtherActor != nullptr && OtherActor->OtherActor == this )
+    {
+        OtherActor->OtherActor = nullptr;
+        OtherActor->NavigationPath.ResetForRepath();
+    }
+
+    Super::BeginDestroy();
+}
 
 void ASVOPathFinderTest::UpdateDrawing()
 {
