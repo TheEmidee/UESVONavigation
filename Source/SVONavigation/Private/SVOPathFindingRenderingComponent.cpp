@@ -37,11 +37,11 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
         texts->Emplace( FText3d( text, FVector( 0.0f, 0.0f, 50.0f ) + ( start + end ) / 2.0f, FLinearColor::White ) );
     };
 
-    Lines.Emplace( FDebugLine( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Location, proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Location, FColor::Blue, 4.0f ) );
+    Lines.Emplace( FDebugLine( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Location, proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Location, FColor::Blue, 2.0f ) );
 
     for ( const auto & neighbor : proxy_data.DebugInfos.ProcessedNeighbors )
     {
-        Lines.Emplace( FDebugLine( neighbor.From.Location, neighbor.To.Location, neighbor.bIsClosed ? FColor::Orange : FColor::Green, 4.0f ) );
+        Lines.Emplace( FDebugLine( neighbor.From.Location, neighbor.To.Location, neighbor.bIsClosed ? FColor::Orange : FColor::Green, 1.0f ) );
     }
 
     /*const auto & debug_steps = proxy_data.DebugInfos.DebugSteps;
@@ -89,7 +89,10 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
 
         for ( auto index = 0; index < best_path_points.Num() - 1; index++ )
         {
-            Lines.Emplace( FDebugLine( best_path_points[ index ], best_path_points[ index + 1 ], FColor::Red, 6.0f ) );
+            const auto from = best_path_points[ index ];
+            const auto to = best_path_points[ index + 1 ];
+
+            Lines.Emplace( FDebugLine( from, to, FColor::Red, 6.0f ) );
         }  
     }
 

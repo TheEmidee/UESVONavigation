@@ -23,24 +23,31 @@ namespace
     void BuildPath( FNavigationPath & path, const FSVOPathFindingParameters & params, const TArray< FSVOOctreeLink > & link_path )
     {
         auto & path_points = path.GetPathPoints();
+        const auto path_points_size = link_path.Num() + 1;
+
+        path_points.Reset( path_points_size );
+
+        path_points.Emplace( params.StartLocation );
 
         const auto & bounds_data = *params.BoundsNavigationData;
 
-        for ( auto link : link_path )
+        for ( auto index = 0; index < link_path.Num() - 1; index++ )
         {
+            const auto link = link_path[ index ];
             path_points.Emplace( bounds_data.GetLinkPosition( link ) );
         }
+
+        path_points.Emplace( params.EndLocation );
     }
 
     void AdjustPathEnds( FNavigationPath & path, const FVector & start_location, const FVector & end_location )
     {
-        auto & path_points = path.GetPathPoints();
-        path_points[ 0 ].Location = start_location;
+        /*auto & path_points = path.GetPathPoints();
 
         if ( path_points.Num() > 1 )
         {
             path_points.Top().Location = end_location;
-        }
+        }*/
     }
 }
 
@@ -323,17 +330,19 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper::Ended( EG
             result = EGraphAStarResult::InfiniteLoop;
         }
 
-        link_path.Reset( PathLength );
-        link_path.AddZeroed( PathLength );
+        link_path.Reset( PathLength + 1 );
+        link_path.AddZeroed( PathLength + 1 );
 
         // store the path
         SearchNodeIndex = BestNodeIndex;
-        int32 ResultNodeIndex = PathLength - 1;
+        int32 ResultNodeIndex = PathLength;
         do
         {
             link_path[ ResultNodeIndex-- ] = NodePool[ SearchNodeIndex ].NodeRef;
             SearchNodeIndex = NodePool[ SearchNodeIndex ].ParentNodeIndex;
         } while ( ResultNodeIndex >= 0 );
+
+        link_path[ 0 ] = Parameters.StartLink;
 
         for ( const auto & observer : Observers )
         {
