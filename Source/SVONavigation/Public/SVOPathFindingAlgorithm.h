@@ -129,42 +129,39 @@ protected:
     const FSVOPathFindingAlgorithmStepper & Stepper;
 };
 
-class FSVOPathFindingAlgorithmStepper : protected FGraphAStar< FSVOBoundsNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOBoundsNavigationData > >
+class FSVOGraphAStar final : public FGraphAStar< FSVOBoundsNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOBoundsNavigationData > >
+{
+public:
+    explicit FSVOGraphAStar( const FSVOBoundsNavigationData & graph );
+};
+
+// This class is a wrapper around FGraphAStar.
+// Internally it's just a state machine which calls one of the pure virtual functions in Step, until that function returns ESVOPathFindingAlgorithmStepperStatus::IsStopped
+// It accepts observers to do something while the path is being generated (for debug purposes for example) or when the path finding ends (to construct the navigation path)
+class FSVOPathFindingAlgorithmStepper
 {
 public:
     explicit FSVOPathFindingAlgorithmStepper( const FSVOPathFindingParameters & parameters );
+    virtual ~FSVOPathFindingAlgorithmStepper() = default;
 
     ESVOPathFindingAlgorithmState GetState() const;
     const FSVOPathFindingParameters & GetParameters() const;
-    ESVOPathFindingAlgorithmStepperStatus Step( EGraphAStarResult & result );
     void AddObserver( TSharedPtr< FSVOPathFindingAlgorithmObserver > observer );
 
+    ESVOPathFindingAlgorithmStepperStatus Step( EGraphAStarResult & result );
+
 protected:
-    ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result );
-    ESVOPathFindingAlgorithmStepperStatus ProcessSingleNode( EGraphAStarResult & result );
-    virtual ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor();
-    ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result );
+    virtual ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) = 0;
+    virtual ESVOPathFindingAlgorithmStepperStatus ProcessSingleNode( EGraphAStarResult & result ) = 0;
+    virtual ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() = 0;
+    virtual ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) = 0;
 
     void SetState( ESVOPathFindingAlgorithmState new_state );
 
-    struct NeighborIndexIncrement
-    {
-        NeighborIndexIncrement( TArray< FSVOOctreeLink > & neighbors, int & neighbor_index, ESVOPathFindingAlgorithmState & state );
-        ~NeighborIndexIncrement();
-
-        TArray< FSVOOctreeLink > & Neighbors;
-        int & NeighborIndex;
-        ESVOPathFindingAlgorithmState & State;
-    };
-
+    FSVOGraphAStar Graph;
     ESVOPathFindingAlgorithmState State;
     FSVOPathFindingParameters Parameters;
-    int32 ConsideredNodeIndex;
-    int32 BestNodeIndex;
-    float BestNodeCost;
-    int NeighborIndex;
     TArray< TSharedPtr< FSVOPathFindingAlgorithmObserver > > Observers;
-    TArray< FSVOOctreeLink > Neighbors;
 };
 
 FORCEINLINE ESVOPathFindingAlgorithmState FSVOPathFindingAlgorithmStepper::GetState() const
@@ -176,6 +173,34 @@ FORCEINLINE const FSVOPathFindingParameters & FSVOPathFindingAlgorithmStepper::G
 {
     return Parameters;
 }
+
+class FSVOPathFindingAlgorithmStepper_AStar : public FSVOPathFindingAlgorithmStepper
+{
+public:
+    explicit FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & parameters );
+
+protected:
+    ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;
+    ESVOPathFindingAlgorithmStepperStatus ProcessSingleNode( EGraphAStarResult & result ) override;
+    ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
+    ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) override;
+
+    struct NeighborIndexIncrement
+    {
+        NeighborIndexIncrement( TArray< FSVOOctreeLink > & neighbors, int & neighbor_index, ESVOPathFindingAlgorithmState & state );
+        ~NeighborIndexIncrement();
+
+        TArray< FSVOOctreeLink > & Neighbors;
+        int & NeighborIndex;
+        ESVOPathFindingAlgorithmState & State;
+    };
+
+    int32 ConsideredNodeIndex;
+    int32 BestNodeIndex;
+    float BestNodeCost;
+    int NeighborIndex;
+    TArray< FSVOOctreeLink > Neighbors;
+};
 
 USTRUCT()
 struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
@@ -198,7 +223,7 @@ struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
     TEnumAsByte< ETraceTypeQuery > TraceType;
 };
 
-class FSVOPathFindingAlgorithmStepper_ThetaStar final : public FSVOPathFindingAlgorithmStepper
+class FSVOPathFindingAlgorithmStepper_ThetaStar final : public FSVOPathFindingAlgorithmStepper_AStar
 {
 public:
     FSVOPathFindingAlgorithmStepper_ThetaStar( const FSVOPathFindingParameters & parameters, const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & theta_star_parameters );
