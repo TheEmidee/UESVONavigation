@@ -177,7 +177,7 @@ void ASVOPathFinderTest::InitPathFinding()
                     const auto path_end = OtherActor->GetActorLocation();
 
                     const FPathFindingQuery Query( this, *svo_navigation_data, path_start, path_end, UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter ) );
-                    Stepper = FSVOPathFinder::GetDebugPathStepper( PathFinderDebugInfos, Query.NavAgentProperties.AgentRadius, *svo_navigation_data, path_start, path_end, Query );
+                    Stepper = FSVOPathFinder::GetDebugPathStepper( PathFinderDebugInfos, Query.NavAgentProperties, *svo_navigation_data, path_start, path_end, Query );
 
                     PathFinderDebugInfos.Reset();
                     NavigationPath.ResetForRepath();

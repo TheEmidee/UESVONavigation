@@ -81,7 +81,8 @@ struct FSVOPathFindingParameters
 {
     FSVOPathFindingParameters( const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query );
 
-    const FNavAgentProperties & AgentProperties;
+    // By copy because it can be constructed as a temp variable
+    const FNavAgentProperties AgentProperties;
     const ASVONavigationData & NavigationData;
     FVector StartLocation;
     FVector EndLocation;

@@ -477,7 +477,7 @@ bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVOOctree
         world,
         from_position,
         to_position,
-        /* Params.AgentProperties.AgentRadius */ 50.0f * ThetaStarParameters.AgentRadiusMultiplier,
+        Parameters.AgentProperties.AgentRadius * ThetaStarParameters.AgentRadiusMultiplier,
         //UEngineTypes::ConvertToTraceType( Params.BoundsNavigationData->GetDataGenerationSettings().GenerationSettings.CollisionChannel ),
         ThetaStarParameters.TraceType,
         false,
