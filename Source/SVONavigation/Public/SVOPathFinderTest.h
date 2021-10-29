@@ -50,6 +50,9 @@ private:
     UFUNCTION( CallInEditor )
     void AutoCompleteInstantly();
 
+    UFUNCTION( CallInEditor )
+    void PauseAutoCompletion();
+
     UPROPERTY( VisibleAnywhere, BlueprintReadOnly, meta = ( AllowPrivateAccess = "true" ) )
     USphereComponent * SphereComponent;
 

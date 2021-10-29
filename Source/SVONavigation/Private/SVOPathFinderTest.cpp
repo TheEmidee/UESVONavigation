@@ -159,6 +159,11 @@ void ASVOPathFinderTest::AutoCompleteInstantly()
     GetWorld()->GetTimerManager().ClearAllTimersForObject( this );
 }
 
+void ASVOPathFinderTest::PauseAutoCompletion()
+{
+    bAutoComplete = false;
+}
+
 #if WITH_EDITOR
 void ASVOPathFinderTest::OnEditorSelectionChanged( UObject * new_selection )
 {
