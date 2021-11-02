@@ -39,6 +39,18 @@ namespace
 
         path_points.Emplace( params.EndLocation );
     }
+
+    ENavigationQueryResult::Type GraphAStarResultToNavigationTypeResult( const EGraphAStarResult result )
+    {
+        constexpr ENavigationQueryResult::Type result_conversion_table[] = {
+            ENavigationQueryResult::Fail,
+            ENavigationQueryResult::Success,
+            ENavigationQueryResult::Fail,
+            ENavigationQueryResult::Fail
+        };
+
+        return result_conversion_table[ static_cast< int >( result ) ];
+    }
 }
 
 FSVOLinkWithLocation::FSVOLinkWithLocation( const FSVOOctreeLink & link, const FVector & location ) :
@@ -550,8 +562,8 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
 
             const auto traversal_cost = neighbor_node.TraversalCost + Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, considered_node_unsafe->NodeRef );
             const float heuristic_cost = /*bIsBound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
-                                            ? ( Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, Parameters.EndLink ) * heuristic_scale )
-                                            : 0.f;
+                                             ? ( Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, Parameters.EndLink ) * heuristic_scale )
+                                             : 0.f;
             if ( min_traversal_cost > traversal_cost )
             {
                 min_traversal_cost = traversal_cost;
@@ -613,8 +625,8 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
 
     float new_traversal_cost;
     const auto new_heuristic_cost = /*bIsBound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
-                                       ? ( Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, Parameters.EndLink ) * heuristic_scale )
-                                       : 0.f;
+                                        ? ( Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, Parameters.EndLink ) * heuristic_scale )
+                                        : 0.f;
 
     const auto current_node_search_index = current_node->SearchNodeIndex;
     const auto & current_node_link = current_node->NodeRef;
@@ -788,14 +800,7 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithmAStar::GetPath( FNavigation
         iterations++;
     }
 
-    static constexpr ENavigationQueryResult::Type conversion_table[] = {
-        ENavigationQueryResult::Fail,
-        ENavigationQueryResult::Success,
-        ENavigationQueryResult::Fail,
-        ENavigationQueryResult::Fail
-    };
-
-    return conversion_table[ static_cast< int >( result ) ];
+    return GraphAStarResultToNavigationTypeResult( result );
 }
 
 TSharedPtr< FSVOPathFindingAlgorithmStepper > USVOPathFindingAlgorithmAStar::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const
@@ -822,14 +827,7 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithmThetaStar::GetPath( FNaviga
         iterations++;
     }
 
-    static constexpr ENavigationQueryResult::Type conversion_table[] = {
-        ENavigationQueryResult::Fail,
-        ENavigationQueryResult::Success,
-        ENavigationQueryResult::Fail,
-        ENavigationQueryResult::Fail
-    };
-
-    return conversion_table[ static_cast< int >( result ) ];
+    return GraphAStarResultToNavigationTypeResult( result );
 }
 
 TSharedPtr< FSVOPathFindingAlgorithmStepper > USVOPathFindingAlgorithmThetaStar::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const
@@ -856,14 +854,7 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithmLazyThetaStar::GetPath( FNa
         iterations++;
     }
 
-    static constexpr ENavigationQueryResult::Type conversion_table[] = {
-        ENavigationQueryResult::Fail,
-        ENavigationQueryResult::Success,
-        ENavigationQueryResult::Fail,
-        ENavigationQueryResult::Fail
-    };
-
-    return conversion_table[ static_cast< int >( result ) ];
+    return GraphAStarResultToNavigationTypeResult( result );
 }
 
 TSharedPtr< FSVOPathFindingAlgorithmStepper > USVOPathFindingAlgorithmLazyThetaStar::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const
