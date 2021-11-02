@@ -161,6 +161,7 @@ protected:
     virtual ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) = 0;
 
     void SetState( ESVOPathFindingAlgorithmState new_state );
+    float GetHeuristicCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
 
     FSVOGraphAStar Graph;
     ESVOPathFindingAlgorithmState State;

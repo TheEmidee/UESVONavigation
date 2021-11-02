@@ -159,6 +159,11 @@ void FSVOPathFindingAlgorithmStepper::SetState( const ESVOPathFindingAlgorithmSt
     State = new_state;
 }
 
+float FSVOPathFindingAlgorithmStepper::GetHeuristicCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const
+{
+    return Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, from, to ) * Parameters.NavigationQueryFilter.GetHeuristicScale();
+}
+
 FSVOPathFindingAlgorithmStepper_AStar::FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & parameters ) :
     FSVOPathFindingAlgorithmStepper( parameters ),
     ConsideredNodeIndex( INDEX_NONE ),
@@ -196,7 +201,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::Ini
     auto & start_node = Graph.NodePool.Add( FSVOGraphAStar::FSearchNode( Parameters.StartLink ) );
     start_node.ParentRef.Invalidate();
     start_node.TraversalCost = 0;
-    start_node.TotalCost = Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, Parameters.StartLink, Parameters.EndLink ) * Parameters.NavigationQueryFilter.GetHeuristicScale();
+    start_node.TotalCost = GetHeuristicCost( Parameters.StartLink, Parameters.EndLink );
 
     Graph.OpenList.Push( start_node );
 
@@ -268,10 +273,9 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::Pro
         return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
     }
 
-    const auto heuristic_scale = Parameters.NavigationQueryFilter.GetHeuristicScale();
     const auto new_traversal_cost = Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, Graph.NodePool[ ConsideredNodeIndex ].NodeRef, neighbor_node.NodeRef ) + Graph.NodePool[ ConsideredNodeIndex ].TraversalCost;
     const auto new_heuristic_cost = /*is_bound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
-                                        ? ( Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, Parameters.EndLink ) * heuristic_scale )
+                                        ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                         : 0.f;
     const auto new_total_cost = new_traversal_cost + new_heuristic_cost;
 
@@ -426,7 +430,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
 
     float new_traversal_cost;
     const auto new_heuristic_cost = /*is_bound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
-                                        ? ( Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, Parameters.EndLink ) * heuristic_scale )
+                                        ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                         : 0.f;
 
     const auto parent_index = parent_search_node_index == INDEX_NONE
@@ -562,7 +566,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
 
             const auto traversal_cost = neighbor_node.TraversalCost + Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, considered_node_unsafe->NodeRef );
             const float heuristic_cost = /*bIsBound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
-                                             ? ( Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, Parameters.EndLink ) * heuristic_scale )
+                                             ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                              : 0.f;
             if ( min_traversal_cost > traversal_cost )
             {
@@ -625,7 +629,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
 
     float new_traversal_cost;
     const auto new_heuristic_cost = /*bIsBound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
-                                        ? ( Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, Parameters.EndLink ) * heuristic_scale )
+                                        ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                         : 0.f;
 
     const auto current_node_search_index = current_node->SearchNodeIndex;
