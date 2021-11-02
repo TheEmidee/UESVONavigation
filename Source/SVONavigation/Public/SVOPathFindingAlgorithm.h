@@ -185,6 +185,8 @@ protected:
     ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
     ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) override;
 
+    void FillLinkNeighbors( const FSVOOctreeLink & link );
+
     struct NeighborIndexIncrement
     {
         NeighborIndexIncrement( TArray< FSVOOctreeLink > & neighbors, int & neighbor_index, ESVOPathFindingAlgorithmState & state );
@@ -223,17 +225,39 @@ struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
     TEnumAsByte< ETraceTypeQuery > TraceType;
 };
 
-class FSVOPathFindingAlgorithmStepper_ThetaStar final : public FSVOPathFindingAlgorithmStepper_AStar
+// See https://www.wikiwand.com/en/Theta* or http://idm-lab.org/bib/abstracts/papers/aaai07a.pdf
+// This uses line of sight checks to try to shorten the path when exploring neighbors.
+// If there's los between a neighbor and the parent of the current node, we skip the current node and link the parent to the neighbor
+class FSVOPathFindingAlgorithmStepper_ThetaStar : public FSVOPathFindingAlgorithmStepper_AStar
 {
 public:
     FSVOPathFindingAlgorithmStepper_ThetaStar( const FSVOPathFindingParameters & parameters, const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & theta_star_parameters );
 
 protected:
 
+    ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;
     ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
-    bool HasLineOfSight( FSVOOctreeLink from, FSVOOctreeLink to ) const;
+    ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) override;
+    bool HasLineOfSight( FSVOOctreeLink from, FSVOOctreeLink to );
 
     const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & ThetaStarParameters;
+
+private:
+
+    int LOSCheckCount;
+};
+
+// See http://idm-lab.org/bib/abstracts/papers/aaai10b.pdf
+// Like Theta*, it uses line of sight checks to try to shorten the path when exploring neighbors.
+// But it does much less LOS checks, as it does that test only when processing a node. Not between a node being processed and all its neighbors
+class FSVOPathFindingAlgorithmStepper_LazyThetaStar final : public FSVOPathFindingAlgorithmStepper_ThetaStar
+{
+public:
+    FSVOPathFindingAlgorithmStepper_LazyThetaStar( const FSVOPathFindingParameters & parameters, const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & theta_star_parameters );
+
+protected:
+    ESVOPathFindingAlgorithmStepperStatus ProcessSingleNode( EGraphAStarResult & result ) override;
+    ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
 };
 
 class FSVOPathFindingAStarObserver_BuildPath final : public FSVOPathFindingAlgorithmObserver
@@ -282,6 +306,20 @@ public:
 
 UCLASS( Blueprintable )
 class SVONAVIGATION_API USVOPathFindingAlgorithmThetaStar final : public USVOPathFindingAlgorithm
+{
+    GENERATED_BODY()
+
+public:
+    ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const override;
+    TSharedPtr< FSVOPathFindingAlgorithmStepper > GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const override;
+
+private:
+    UPROPERTY( EditAnywhere )
+    FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters ThetaStarParameters;
+};
+
+UCLASS( Blueprintable )
+class SVONAVIGATION_API USVOPathFindingAlgorithmLazyThetaStar final : public USVOPathFindingAlgorithm
 {
     GENERATED_BODY()
 
