@@ -133,6 +133,31 @@ protected:
     const FSVOPathFindingAlgorithmStepper & Stepper;
 };
 
+class FSVOPathFindingAStarObserver_BuildPath final : public FSVOPathFindingAlgorithmObserver
+{
+public:
+    FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper );
+
+    void OnSearchSuccess( const TArray< FSVOOctreeLink > & ) override;
+
+private:
+    FNavigationPath & NavigationPath;
+};
+
+class FSVOPathFindingAStarObserver_GenerateDebugInfos final : public FSVOPathFindingAlgorithmObserver
+{
+public:
+    FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingAlgorithmStepper & stepper );
+
+    void OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & node ) override;
+    void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & parent, const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor, const float cost ) override;
+    void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor ) override;
+    void OnSearchSuccess( const TArray< FSVOOctreeLink > & ) override;
+
+private:
+    FSVOPathFinderDebugInfos & DebugInfos;
+};
+
 class FSVOGraphAStar final : public FGraphAStar< FSVOBoundsNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOBoundsNavigationData > >
 {
 public:
@@ -262,31 +287,6 @@ public:
 protected:
     ESVOPathFindingAlgorithmStepperStatus ProcessSingleNode( EGraphAStarResult & result ) override;
     ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
-};
-
-class FSVOPathFindingAStarObserver_BuildPath final : public FSVOPathFindingAlgorithmObserver
-{
-public:
-    FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper );
-
-    void OnSearchSuccess( const TArray< FSVOOctreeLink > & ) override;
-
-private:
-    FNavigationPath & NavigationPath;
-};
-
-class FSVOPathFindingAStarObserver_GenerateDebugInfos final : public FSVOPathFindingAlgorithmObserver
-{
-public:
-    FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingAlgorithmStepper & stepper );
-
-    void OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & node ) override;
-    void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & parent, const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor, const float cost ) override;
-    void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor ) override;
-    void OnSearchSuccess( const TArray< FSVOOctreeLink > & ) override;
-
-private:
-    FSVOPathFinderDebugInfos & DebugInfos;
 };
 
 UCLASS( HideDropdown, NotBlueprintable )

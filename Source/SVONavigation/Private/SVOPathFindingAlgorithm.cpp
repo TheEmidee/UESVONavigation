@@ -109,6 +109,92 @@ FSVOPathFindingAlgorithmObserver::FSVOPathFindingAlgorithmObserver( const FSVOPa
 {
 }
 
+FSVOPathFindingAStarObserver_BuildPath::FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper ) :
+    FSVOPathFindingAlgorithmObserver( stepper ),
+    NavigationPath( navigation_path )
+{
+}
+
+void FSVOPathFindingAStarObserver_BuildPath::OnSearchSuccess( const TArray< FSVOOctreeLink > & link_path )
+{
+    const auto & params = Stepper.GetParameters();
+
+    BuildPath( NavigationPath, params, link_path );
+
+    if ( params.VerticalOffset != 0.0f )
+    {
+        ApplyVerticalOffset( NavigationPath, params.VerticalOffset );
+    }
+
+    NavigationPath.MarkReady();
+}
+
+FSVOPathFindingAStarObserver_GenerateDebugInfos::FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingAlgorithmStepper & stepper ) :
+    FSVOPathFindingAlgorithmObserver( stepper ),
+    DebugInfos( debug_infos )
+{
+}
+
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & node )
+{
+    if ( node.ParentRef.IsValid() )
+    {
+        DebugInfos.LastLastProcessedSingleNode.From = FSVOLinkWithLocation( node.ParentRef, *Stepper.GetParameters().BoundsNavigationData );
+    }
+    else
+    {
+        DebugInfos.LastLastProcessedSingleNode.From = FSVOLinkWithLocation( FSVOOctreeLink::InvalidEdge(), Stepper.GetParameters().StartLocation );
+    }
+
+    DebugInfos.LastLastProcessedSingleNode.To = FSVOLinkWithLocation( node.NodeRef, *Stepper.GetParameters().BoundsNavigationData );
+    DebugInfos.LastLastProcessedSingleNode.Cost = node.TotalCost;
+
+    DebugInfos.ProcessedNeighbors.Reset();
+
+    DebugInfos.Iterations++;
+}
+
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & parent, const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor, const float cost )
+{
+    DebugInfos.ProcessedNeighbors.Emplace( FSVOLinkWithLocation( parent.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), FSVOLinkWithLocation( neighbor.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), cost, true );
+    DebugInfos.VisitedNodes++;
+}
+
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor )
+{
+    DebugInfos.ProcessedNeighbors.Emplace( FSVOLinkWithLocation( neighbor.ParentRef, *Stepper.GetParameters().BoundsNavigationData ), FSVOLinkWithLocation( neighbor.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), neighbor.TotalCost, false );
+    DebugInfos.VisitedNodes++;
+}
+
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const TArray< FSVOOctreeLink > & link_path )
+{
+    DebugInfos.CurrentBestPath.ResetForRepath();
+
+    const auto & params = Stepper.GetParameters();
+
+    BuildPath( DebugInfos.CurrentBestPath, params, link_path );
+
+    if ( params.VerticalOffset != 0.0f )
+    {
+        ApplyVerticalOffset( DebugInfos.CurrentBestPath, params.VerticalOffset );
+    }
+
+    DebugInfos.CurrentBestPath.MarkReady();
+
+    auto & nav_path_points = DebugInfos.CurrentBestPath.GetPathPoints();
+    DebugInfos.PathSegmentCount = nav_path_points.Num();
+
+    auto path_length = 0.0f;
+
+    for ( auto index = 1; index < nav_path_points.Num(); index++ )
+    {
+        const auto segment_length = FVector::Dist( nav_path_points[ index ].Location, nav_path_points[ index - 1 ].Location );
+        path_length += segment_length;
+    }
+
+    DebugInfos.PathLength = path_length;
+}
+
 FSVOGraphAStar::FSVOGraphAStar( const FSVOBoundsNavigationData & graph ) :
     FGraphAStar< FSVOBoundsNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOBoundsNavigationData > >( graph )
 {
@@ -693,92 +779,6 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
     }
 
     return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
-}
-
-FSVOPathFindingAStarObserver_BuildPath::FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper ) :
-    FSVOPathFindingAlgorithmObserver( stepper ),
-    NavigationPath( navigation_path )
-{
-}
-
-void FSVOPathFindingAStarObserver_BuildPath::OnSearchSuccess( const TArray< FSVOOctreeLink > & link_path )
-{
-    const auto & params = Stepper.GetParameters();
-
-    BuildPath( NavigationPath, params, link_path );
-
-    if ( params.VerticalOffset != 0.0f )
-    {
-        ApplyVerticalOffset( NavigationPath, params.VerticalOffset );
-    }
-
-    NavigationPath.MarkReady();
-}
-
-FSVOPathFindingAStarObserver_GenerateDebugInfos::FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingAlgorithmStepper & stepper ) :
-    FSVOPathFindingAlgorithmObserver( stepper ),
-    DebugInfos( debug_infos )
-{
-}
-
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & node )
-{
-    if ( node.ParentRef.IsValid() )
-    {
-        DebugInfos.LastLastProcessedSingleNode.From = FSVOLinkWithLocation( node.ParentRef, *Stepper.GetParameters().BoundsNavigationData );
-    }
-    else
-    {
-        DebugInfos.LastLastProcessedSingleNode.From = FSVOLinkWithLocation( FSVOOctreeLink::InvalidEdge(), Stepper.GetParameters().StartLocation );
-    }
-
-    DebugInfos.LastLastProcessedSingleNode.To = FSVOLinkWithLocation( node.NodeRef, *Stepper.GetParameters().BoundsNavigationData );
-    DebugInfos.LastLastProcessedSingleNode.Cost = node.TotalCost;
-
-    DebugInfos.ProcessedNeighbors.Reset();
-
-    DebugInfos.Iterations++;
-}
-
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & parent, const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor, const float cost )
-{
-    DebugInfos.ProcessedNeighbors.Emplace( FSVOLinkWithLocation( parent.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), FSVOLinkWithLocation( neighbor.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), cost, true );
-    DebugInfos.VisitedNodes++;
-}
-
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor )
-{
-    DebugInfos.ProcessedNeighbors.Emplace( FSVOLinkWithLocation( neighbor.ParentRef, *Stepper.GetParameters().BoundsNavigationData ), FSVOLinkWithLocation( neighbor.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), neighbor.TotalCost, false );
-    DebugInfos.VisitedNodes++;
-}
-
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const TArray< FSVOOctreeLink > & link_path )
-{
-    DebugInfos.CurrentBestPath.ResetForRepath();
-
-    const auto & params = Stepper.GetParameters();
-
-    BuildPath( DebugInfos.CurrentBestPath, params, link_path );
-
-    if ( params.VerticalOffset != 0.0f )
-    {
-        ApplyVerticalOffset( DebugInfos.CurrentBestPath, params.VerticalOffset );
-    }
-
-    DebugInfos.CurrentBestPath.MarkReady();
-
-    auto & nav_path_points = DebugInfos.CurrentBestPath.GetPathPoints();
-    DebugInfos.PathSegmentCount = nav_path_points.Num();
-
-    auto path_length = 0.0f;
-
-    for ( auto index = 1; index < nav_path_points.Num(); index++ )
-    {
-        const auto segment_length = FVector::Dist( nav_path_points[ index ].Location, nav_path_points[ index - 1 ].Location );
-        path_length += segment_length;
-    }
-
-    DebugInfos.PathLength = path_length;
 }
 
 ENavigationQueryResult::Type USVOPathFindingAlgorithm::GetPath( FNavigationPath & /*navigation_path*/, const FSVOPathFindingParameters & /*params*/ ) const
