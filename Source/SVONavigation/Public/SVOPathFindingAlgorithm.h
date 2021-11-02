@@ -217,6 +217,7 @@ protected:
     ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) override;
 
     void FillLinkNeighbors( const FSVOOctreeLink & link );
+    float AdjustTotalCostWithNodeSizeCompensation( float total_cost, FSVOOctreeLink neighbor_link ) const;
 
     struct NeighborIndexIncrement
     {

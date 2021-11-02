@@ -318,6 +318,16 @@ void FSVOPathFindingAlgorithmStepper_AStar::FillLinkNeighbors( const FSVOOctreeL
     NeighborIndex = 0;
 }
 
+float FSVOPathFindingAlgorithmStepper_AStar::AdjustTotalCostWithNodeSizeCompensation( const float total_cost, const FSVOOctreeLink neighbor_link ) const
+{
+    if ( !Parameters.QueryFilterSettings.bUseNodeSizeCompensation )
+    {
+        return total_cost;
+    }
+
+    return total_cost * Parameters.BoundsNavigationData->GetLayerInverseRatio( neighbor_link.LayerIndex );
+}
+
 ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::ProcessSingleNode( EGraphAStarResult & result )
 {
     ConsideredNodeIndex = Graph.OpenList.PopIndex();
@@ -368,7 +378,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::Pro
     const auto new_heuristic_cost = neighbor_node.NodeRef != Parameters.EndLink
                                         ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                         : 0.f;
-    const auto new_total_cost = new_traversal_cost + new_heuristic_cost;
+    const auto new_total_cost = AdjustTotalCostWithNodeSizeCompensation( new_traversal_cost + new_heuristic_cost, neighbor_link );
 
     auto & considered_node_unsafe = Graph.NodePool[ ConsideredNodeIndex ];
 
@@ -494,14 +504,14 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
 {
     NeighborIndexIncrement neighbor_index_increment( Neighbors, NeighborIndex, State );
 
-    const auto neighbor_ref = Neighbors[ NeighborIndex ];
+    const auto neighbor_link = Neighbors[ NeighborIndex ];
 
-    if ( Graph.Graph.IsValidRef( neighbor_ref ) == false || neighbor_ref == Graph.NodePool[ ConsideredNodeIndex ].ParentRef || neighbor_ref == Graph.NodePool[ ConsideredNodeIndex ].NodeRef /*|| query_filter.IsTraversalAllowed( Graph.NodePool[ ConsideredNodeIndex ].NodeRef, NeighbourRef ) == false*/ )
+    if ( Graph.Graph.IsValidRef( neighbor_link ) == false || neighbor_link == Graph.NodePool[ ConsideredNodeIndex ].ParentRef || neighbor_link == Graph.NodePool[ ConsideredNodeIndex ].NodeRef /*|| query_filter.IsTraversalAllowed( Graph.NodePool[ ConsideredNodeIndex ].NodeRef, NeighbourRef ) == false*/ )
     {
         return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
     }
 
-    auto & neighbor_node = Graph.NodePool.FindOrAdd( neighbor_ref );
+    auto & neighbor_node = Graph.NodePool.FindOrAdd( neighbor_link );
 
     if ( neighbor_node.bIsClosed )
     {
@@ -516,8 +526,6 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
     const auto has_line_of_sight = parent_search_node_index == INDEX_NONE
                                        ? false
                                        : HasLineOfSight( parent_node_link, neighbor_node.NodeRef );
-
-    const auto heuristic_scale = Parameters.NavigationQueryFilter.GetHeuristicScale();
 
     float new_traversal_cost;
     const auto new_heuristic_cost = neighbor_node.NodeRef != Parameters.EndLink
@@ -546,7 +554,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
         neighbor_parent_node_index = current_node.SearchNodeIndex;
     }
 
-    const auto new_total_cost = new_traversal_cost + new_heuristic_cost;
+    const auto new_total_cost = AdjustTotalCostWithNodeSizeCompensation( new_traversal_cost + new_heuristic_cost, neighbor_link );
 
     auto & considered_node_unsafe = Graph.NodePool[ ConsideredNodeIndex ];
 
@@ -554,7 +562,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
     {
         for ( const auto observer : Observers )
         {
-            observer->OnProcessNeighbor( considered_node_unsafe, neighbor_ref, new_total_cost );
+            observer->OnProcessNeighbor( considered_node_unsafe, neighbor_link, new_total_cost );
         }
 
         return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
@@ -746,7 +754,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
         neighbor_parent_search_node_index = current_node_search_index;
     }
 
-    const auto new_total_cost = new_traversal_cost + new_heuristic_cost;
+    const auto new_total_cost = AdjustTotalCostWithNodeSizeCompensation( new_traversal_cost + new_heuristic_cost, neighbor_link );
 
     if ( new_total_cost >= neighbor_node.TotalCost )
     {

@@ -43,7 +43,6 @@ FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings() :
     HeuristicCalculator( nullptr ),
     HeuristicScale( 1.0f ),
     bUseNodeSizeCompensation( true ),
-    NodeSizeCompensation( 1.0f ),
     bOffsetPathVerticallyByAgentRadius( true )
 {
 }

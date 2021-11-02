@@ -2,8 +2,8 @@
 
 struct FSVOPathFinderDebugInfos;
 class FSVOPathFindingAlgorithmStepper;
-class ASVONavigationData;
 struct FPathFindingQuery;
+class ASVONavigationData;
 
 class SVONAVIGATION_API FSVOPathFinder
 {

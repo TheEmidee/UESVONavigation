@@ -31,6 +31,8 @@ public:
     const FSVOOctreeLeaf & GetLeafNode( LeafIndex leaf_index ) const;
     bool GetLinkFromPosition( FSVOOctreeLink & link, const FVector & position ) const;
     void GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
+    float GetLayerRatio( LayerIndex layer_index) const;
+    float GetLayerInverseRatio( LayerIndex layer_index) const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOBoundsNavigationDataGenerationSettings & generation_settings );
 

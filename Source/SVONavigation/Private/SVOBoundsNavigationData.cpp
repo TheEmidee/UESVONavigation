@@ -226,6 +226,16 @@ void FSVOBoundsNavigationData::GetNeighbors( TArray< FSVOOctreeLink > & neighbor
     }
 }
 
+float FSVOBoundsNavigationData::GetLayerRatio( const LayerIndex layer_index ) const
+{
+    return static_cast< float >( layer_index ) / LayerCount;
+}
+
+float FSVOBoundsNavigationData::GetLayerInverseRatio( const LayerIndex layer_index ) const
+{
+    return 1.0f - GetLayerRatio( layer_index );
+}
+
 void FSVOBoundsNavigationData::GenerateNavigationData( const FBox & volume_bounds, const FSVOBoundsNavigationDataGenerationSettings & generation_settings )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GenerateNavigationData );
