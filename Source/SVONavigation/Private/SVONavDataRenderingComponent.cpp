@@ -112,7 +112,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
     const auto & svo_data = navigation_data.GetSVOData();
     const auto & navigation_bounds = svo_data.GetNavigationBoundsData();
 
-    if ( DebugInfos.ItDebugDrawsBounds )
+    if ( DebugInfos.bDebugDrawsBounds )
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
@@ -121,8 +121,8 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
     }
 
     const auto it_draws_layers = DebugInfos.ItDebugDrawsLayers;
-    const auto it_draws_leaves = DebugInfos.ItDebugDrawsLeaves;
-    const auto it_draws_morton_codes = DebugInfos.ItDebugDrawsMortonCodes;
+    const auto it_draws_leaves = DebugInfos.bDebugDrawsLeaves;
+    const auto it_draws_morton_codes = DebugInfos.bDebugDrawsMortonCodes;
 
     if ( it_draws_layers || it_draws_leaves || it_draws_morton_codes )
     {
@@ -203,7 +203,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
         }
     }
 
-    if ( DebugInfos.ItDebugDrawsLinks )
+    if ( DebugInfos.bDebugDrawsLinks )
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
@@ -242,7 +242,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                         }
                     }
 
-                    if ( DebugInfos.ItDebugDrawsParentLinks )
+                    if ( DebugInfos.bDebugDrawsParentLinks )
                     {
                         const auto & link = node.Parent;
 

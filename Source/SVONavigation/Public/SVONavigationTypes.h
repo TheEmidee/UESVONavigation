@@ -40,18 +40,18 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
     GENERATED_USTRUCT_BODY()
 
     FSVONavigationBoundsDataDebugInfos() :
-        ItDebugDrawsBounds( false ),
-        ItDebugDrawsLayers( false ),
+        bDebugDrawsBounds( false ),
+        bDebugDrawsLayers( false ),
         LayerIndexToDraw( 1 ),
-        ItDebugDrawsLeaves( false ),
-        ItDebugDrawsOccludedLeaves( false ),
-        ItDebugDrawsLinks( false ),
+        bDebugDrawsLeaves( false ),
+        bDebugDrawsOccludedLeaves( false ),
+        bDebugDrawsLinks( false ),
         LinksLayerIndexToDraw( false ),
-        ItDebugDrawsNeighborLinks( false ),
-        ItDebugDrawsParentLinks( false ),
-        ItDebugDrawsFirstChildLinks( false ),
+        bDebugDrawsNeighborLinks( false ),
+        bDebugDrawsParentLinks( false ),
+        bDebugDrawsFirstChildLinks( false ),
         DebugLineThickness( 5.0f ),
-        ItDebugDrawsMortonCodes( false ),
+        bDebugDrawsMortonCodes( false ),
         MortonCodeLayerIndexToDraw( 0 )
     {
     }
@@ -59,58 +59,58 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
     friend FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataDebugInfos & data );
 
     UPROPERTY( EditInstanceOnly )
-    bool ItDebugDrawsBounds;
+    bool bDebugDrawsBounds;
 
     UPROPERTY( EditInstanceOnly )
-    bool ItDebugDrawsLayers;
+    bool bDebugDrawsLayers;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsLayers", ClampMin = "1", UIMin = "1" ) )
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLayers", ClampMin = "1", UIMin = "1" ) )
     uint8 LayerIndexToDraw;
 
     UPROPERTY( EditInstanceOnly )
-    bool ItDebugDrawsLeaves;
+    bool bDebugDrawsLeaves;
 
     UPROPERTY( EditInstanceOnly )
-    bool ItDebugDrawsOccludedLeaves;
+    bool bDebugDrawsOccludedLeaves;
 
     UPROPERTY( EditInstanceOnly )
-    bool ItDebugDrawsLinks;
+    bool bDebugDrawsLinks;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsLinks", ClampMin = "1", UIMin = "1" ) )
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLinks", ClampMin = "1", UIMin = "1" ) )
     uint8 LinksLayerIndexToDraw;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsLinks" ) )
-    bool ItDebugDrawsNeighborLinks;
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLinks" ) )
+    bool bDebugDrawsNeighborLinks;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsLinks" ) )
-    bool ItDebugDrawsParentLinks;
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLinks" ) )
+    bool bDebugDrawsParentLinks;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsLinks" ) )
-    bool ItDebugDrawsFirstChildLinks;
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLinks" ) )
+    bool bDebugDrawsFirstChildLinks;
 
     UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled", ClampMin = "1", UIMin = "1" ) )
     float DebugLineThickness;
 
     UPROPERTY( EditInstanceOnly )
-    bool ItDebugDrawsMortonCodes;
+    bool bDebugDrawsMortonCodes;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItDebugDrawsMortonCodes" ) )
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsMortonCodes" ) )
     uint8 MortonCodeLayerIndexToDraw;
 };
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataDebugInfos & data )
 {
-    archive << data.ItDebugDrawsBounds;
-    archive << data.ItDebugDrawsLayers;
+    archive << data.bDebugDrawsBounds;
+    archive << data.bDebugDrawsLayers;
     archive << data.LayerIndexToDraw;
-    archive << data.ItDebugDrawsLeaves;
-    archive << data.ItDebugDrawsOccludedLeaves;
-    archive << data.ItDebugDrawsLinks;
+    archive << data.bDebugDrawsLeaves;
+    archive << data.bDebugDrawsOccludedLeaves;
+    archive << data.bDebugDrawsLinks;
     archive << data.LinksLayerIndexToDraw;
-    archive << data.ItDebugDrawsNeighborLinks;
-    archive << data.ItDebugDrawsParentLinks;
+    archive << data.bDebugDrawsNeighborLinks;
+    archive << data.bDebugDrawsParentLinks;
     archive << data.DebugLineThickness;
-    archive << data.ItDebugDrawsMortonCodes;
+    archive << data.bDebugDrawsMortonCodes;
     archive << data.MortonCodeLayerIndexToDraw;
 
     return archive;
