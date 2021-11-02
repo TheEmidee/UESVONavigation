@@ -238,7 +238,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::Pro
     auto & considered_node_unsafe = Graph.NodePool[ ConsideredNodeIndex ];
     considered_node_unsafe.MarkClosed();
 
-    if ( /*is_bound && */ ( considered_node_unsafe.NodeRef == Parameters.EndLink ) )
+    if ( considered_node_unsafe.NodeRef == Parameters.EndLink )
     {
         BestNodeIndex = considered_node_unsafe.SearchNodeIndex;
         BestNodeCost = 0.0f;
@@ -279,7 +279,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::Pro
     }
 
     const auto new_traversal_cost = GetTraversalCost( Graph.NodePool[ ConsideredNodeIndex ].NodeRef, neighbor_node.NodeRef ) + Graph.NodePool[ ConsideredNodeIndex ].TraversalCost;
-    const auto new_heuristic_cost = /*is_bound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
+    const auto new_heuristic_cost = neighbor_node.NodeRef != Parameters.EndLink
                                         ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                         : 0.f;
     const auto new_total_cost = new_traversal_cost + new_heuristic_cost;
@@ -434,7 +434,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
     const auto heuristic_scale = Parameters.NavigationQueryFilter.GetHeuristicScale();
 
     float new_traversal_cost;
-    const auto new_heuristic_cost = /*is_bound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
+    const auto new_heuristic_cost = neighbor_node.NodeRef != Parameters.EndLink
                                         ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                         : 0.f;
 
@@ -570,7 +570,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
             }
 
             const auto traversal_cost = neighbor_node.TraversalCost + GetTraversalCost( neighbor_node.NodeRef, considered_node_unsafe->NodeRef );
-            const float heuristic_cost = /*bIsBound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
+            const float heuristic_cost = neighbor_node.NodeRef != Parameters.EndLink
                                              ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                              : 0.f;
             if ( min_traversal_cost > traversal_cost )
@@ -584,7 +584,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
         }
     }
 
-    if ( /*is_bound && */ ( considered_node_unsafe->NodeRef == Parameters.EndLink ) )
+    if ( considered_node_unsafe->NodeRef == Parameters.EndLink )
     {
         BestNodeIndex = considered_node_unsafe->SearchNodeIndex;
         BestNodeCost = 0.0f;
@@ -631,7 +631,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
     current_node = &Graph.NodePool[ ConsideredNodeIndex ];
 
     float new_traversal_cost;
-    const auto new_heuristic_cost = /*bIsBound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
+    const auto new_heuristic_cost = neighbor_node.NodeRef != Parameters.EndLink
                                         ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                         : 0.f;
 
