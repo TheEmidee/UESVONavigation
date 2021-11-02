@@ -289,7 +289,7 @@ protected:
     ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
 };
 
-UCLASS( HideDropdown, NotBlueprintable )
+UCLASS( HideDropdown, NotBlueprintable, EditInlineNew )
 class SVONAVIGATION_API USVOPathFindingAlgorithm : public UObject
 {
     GENERATED_BODY()

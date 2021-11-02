@@ -311,14 +311,14 @@ struct SVONAVIGATION_API FSVONavigationQueryFilterSettings
 
     FSVONavigationQueryFilterSettings();
 
-    UPROPERTY( EditDefaultsOnly )
-    TSubclassOf< USVOPathFindingAlgorithm > PathFinderClass;
+    UPROPERTY( EditAnywhere, Instanced )
+    USVOPathFindingAlgorithm * PathFinder;
     
-    UPROPERTY( EditDefaultsOnly )
-    TSubclassOf< USVOPathCostCalculator > PathCostCalculatorClass;
+    UPROPERTY( EditAnywhere, Instanced )
+    USVOPathCostCalculator * PathCostCalculator;
 
-    UPROPERTY( EditDefaultsOnly )
-    TSubclassOf< USVOPathHeuristicCalculator > PathHeuristicCalculatorClass;
+    UPROPERTY( EditAnywhere, Instanced )
+    USVOPathHeuristicCalculator * PathHeuristicCalculator;
 
     UPROPERTY( EditDefaultsOnly )
     float HeuristicScale;

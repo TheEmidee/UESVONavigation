@@ -34,17 +34,17 @@ int FSVOOctreeData::GetAllocatedSize() const
     {
         size += layer_nodes.Num() * sizeof( FSVOOctreeNode );
     }
-    
+
     return size;
 }
 
-FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings()
+FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings() :
+    PathFinder( nullptr ),
+    PathCostCalculator( nullptr ),
+    PathHeuristicCalculator( nullptr ),
+    HeuristicScale( 1.0f ),
+    bUseNodeSizeCompensation( true ),
+    NodeSizeCompensation( 1.0f ),
+    bOffsetPathVerticallyByAgentRadius( true )
 {
-    PathFinderClass = USVOPathFindingAlgorithm::StaticClass();
-    PathCostCalculatorClass = USVOPathCostCalculator_Distance::StaticClass();
-    PathHeuristicCalculatorClass = USVOPathHeuristicCalculator_Manhattan::StaticClass();
-    HeuristicScale = 1.0f;
-    bUseNodeSizeCompensation = true;
-    NodeSizeCompensation = 1.0f;
-    bOffsetPathVerticallyByAgentRadius = true;
 }

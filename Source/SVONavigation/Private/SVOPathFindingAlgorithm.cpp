@@ -92,8 +92,8 @@ FSVOPathFindingParameters::FSVOPathFindingParameters( const FNavAgentProperties 
     NavigationQueryFilter( *path_finding_query.QueryFilter ),
     QueryFilterImplementation( static_cast< const FSVONavigationQueryFilterImpl * >( path_finding_query.QueryFilter->GetImplementation() ) ),
     QueryFilterSettings( QueryFilterImplementation->QueryFilterSettings ),
-    HeuristicCalculator( QueryFilterSettings.PathHeuristicCalculatorClass->GetDefaultObject< USVOPathHeuristicCalculator >() ),
-    CostCalculator( QueryFilterSettings.PathCostCalculatorClass->GetDefaultObject< USVOPathCostCalculator >() ),
+    HeuristicCalculator( QueryFilterSettings.PathHeuristicCalculator ),
+    CostCalculator( QueryFilterSettings.PathCostCalculator ),
     BoundsNavigationData( navigation_data.GetSVOData().GetBoundsNavigationDataContainingPoints( { start_location, end_location } ) ),
     VerticalOffset( QueryFilterSettings.bOffsetPathVerticallyByAgentRadius ? -path_finding_query.NavAgentProperties.AgentRadius : 0.0f )
 {
@@ -619,7 +619,10 @@ bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVOOctree
         TArray< AActor * >(),
         ThetaStarParameters.bShowLineOfSightTraces ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None,
         hit_result,
-        false );
+        false,
+        FLinearColor::Red,
+        FLinearColor::Green,
+        0.1f );
 }
 
 FSVOPathFindingAlgorithmStepper_LazyThetaStar::FSVOPathFindingAlgorithmStepper_LazyThetaStar( const FSVOPathFindingParameters & parameters, const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & theta_star_parameters ) :

@@ -5,7 +5,7 @@
 struct FSVOOctreeLink;
 class FSVOBoundsNavigationData;
 
-UCLASS( abstract, NotBlueprintable )
+UCLASS( abstract, NotBlueprintable, EditInlineNew )
 class SVONAVIGATION_API USVOPathCostCalculator : public UObject
 {
     GENERATED_BODY()
@@ -29,7 +29,7 @@ public:
  * This  means  that  no  matter  how  big  the  node  is,  traveling  through it has the same cost.
  * This effectively biases the search even more toward exploring through large nodes.
  */
-UCLASS( Blueprintable,  HideDropdown )
+UCLASS()
 class SVONAVIGATION_API USVOPathCostCalculator_Fixed final : public USVOPathCostCalculator
 {
     GENERATED_BODY()

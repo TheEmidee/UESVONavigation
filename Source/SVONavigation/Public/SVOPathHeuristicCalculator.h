@@ -5,7 +5,7 @@
 class FSVOBoundsNavigationData;
 struct FSVOOctreeLink;
 
-UCLASS( abstract, NotBlueprintable )
+UCLASS( abstract, NotBlueprintable, EditInlineNew )
 class SVONAVIGATION_API USVOPathHeuristicCalculator : public UObject
 {
     GENERATED_BODY()

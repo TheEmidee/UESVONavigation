@@ -5,50 +5,60 @@
 
 ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigation_path, const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query )
 {
-    if (!path_finding_query.QueryFilter.IsValid())
+    if ( !path_finding_query.QueryFilter.IsValid() )
     {
         return ENavigationQueryResult::Error;
     }
 
     const FSVONavigationQueryFilterImpl * query_filter_implementation = static_cast< const FSVONavigationQueryFilterImpl * >( path_finding_query.QueryFilter->GetImplementation() );
 
-    if (query_filter_implementation == nullptr)
+    if ( query_filter_implementation == nullptr )
     {
         return ENavigationQueryResult::Error;
     }
 
     const auto & query_filter_settings = query_filter_implementation->QueryFilterSettings;
 
-    if (query_filter_settings.PathFinderClass == nullptr)
+    if ( query_filter_settings.PathFinder == nullptr )
+    {
+        return ENavigationQueryResult::Error;
+    }
+
+    if ( query_filter_settings.PathCostCalculator == nullptr )
+    {
+        return ENavigationQueryResult::Error;
+    }
+
+    if ( query_filter_settings.PathHeuristicCalculator == nullptr )
     {
         return ENavigationQueryResult::Error;
     }
 
     const FSVOPathFindingParameters params( agent_properties, navigation_data, start_location, end_location, path_finding_query );
-    return query_filter_settings.PathFinderClass->GetDefaultObject< USVOPathFindingAlgorithm >()->GetPath( navigation_path, params );
+    return query_filter_settings.PathFinder->GetPath( navigation_path, params );
 }
 
 TSharedPtr< FSVOPathFindingAlgorithmStepper > FSVOPathFinder::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query )
 {
-    if (!path_finding_query.QueryFilter.IsValid())
+    if ( !path_finding_query.QueryFilter.IsValid() )
     {
         return nullptr;
     }
 
     const FSVONavigationQueryFilterImpl * query_filter_implementation = static_cast< const FSVONavigationQueryFilterImpl * >( path_finding_query.QueryFilter->GetImplementation() );
 
-    if (query_filter_implementation == nullptr)
+    if ( query_filter_implementation == nullptr )
     {
         return nullptr;
     }
 
     const auto & query_filter_settings = query_filter_implementation->QueryFilterSettings;
 
-    if (query_filter_settings.PathFinderClass == nullptr)
+    if ( query_filter_settings.PathFinder == nullptr )
     {
         return nullptr;
     }
 
     const FSVOPathFindingParameters params( agent_properties, navigation_data, start_location, end_location, path_finding_query );
-    return query_filter_settings.PathFinderClass->GetDefaultObject< USVOPathFindingAlgorithm >()->GetDebugPathStepper( debug_infos, params );    
+    return query_filter_settings.PathFinder->GetDebugPathStepper( debug_infos, params );
 }
