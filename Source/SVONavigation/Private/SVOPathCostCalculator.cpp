@@ -11,6 +11,11 @@ float USVOPathCostCalculator_Distance::GetCost( const FSVOBoundsNavigationData &
     return cost;
 }
 
+USVOPathCostCalculator_Fixed::USVOPathCostCalculator_Fixed() :
+    Cost( 1.0f )
+{
+}
+
 float USVOPathCostCalculator_Fixed::GetCost( const FSVOBoundsNavigationData & /*bounds_data*/, const FSVOOctreeLink & /*start*/, const FSVOOctreeLink & /*end */ ) const
 {
     return Cost;

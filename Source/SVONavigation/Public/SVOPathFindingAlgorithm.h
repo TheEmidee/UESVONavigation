@@ -241,7 +241,7 @@ struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
     GENERATED_USTRUCT_BODY()
 
     FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters() :
-        AgentRadiusMultiplier( 1.0f ),
+        AgentRadiusMultiplier( 0.5f ),
         bShowLineOfSightTraces( false ),
         TraceType( ETraceTypeQuery::TraceTypeQuery1 )
     {}

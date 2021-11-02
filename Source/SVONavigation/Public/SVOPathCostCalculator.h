@@ -36,6 +36,8 @@ class SVONAVIGATION_API USVOPathCostCalculator_Fixed final : public USVOPathCost
 
 public:
 
+    USVOPathCostCalculator_Fixed();
+
     float GetCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const override;
 
 private:
