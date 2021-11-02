@@ -6,8 +6,8 @@
 
 #include "SVONavigationQueryFilter.generated.h"
 
-class USVOPathHeuristicCalculator;
-class USVOPathCostCalculator;
+class USVOHeuristicCalculator;
+class USVOTraversalCostCalculator;
 UCLASS()
 class SVONAVIGATION_API USVONavigationQueryFilter final : public UNavigationQueryFilter
 {

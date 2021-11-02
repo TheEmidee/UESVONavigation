@@ -1,8 +1,7 @@
 #include "SVONavigationTypes.h"
 
-#include "SVOPathCostCalculator.h"
+#include "SVOTraversalCostCalculator.h"
 #include "SVOPathFindingAlgorithm.h"
-#include "SVOPathHeuristicCalculator.h"
 
 #include <libmorton/morton.h>
 
@@ -40,8 +39,8 @@ int FSVOOctreeData::GetAllocatedSize() const
 
 FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings() :
     PathFinder( nullptr ),
-    PathCostCalculator( nullptr ),
-    PathHeuristicCalculator( nullptr ),
+    TraversalCostCalculator( nullptr ),
+    HeuristicCalculator( nullptr ),
     HeuristicScale( 1.0f ),
     bUseNodeSizeCompensation( true ),
     NodeSizeCompensation( 1.0f ),

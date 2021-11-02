@@ -26,12 +26,12 @@ namespace
             return nullptr;
         }
 
-        if ( !ensureAlwaysMsgf( query_filter_settings.PathCostCalculator != nullptr, TEXT( "The PathCostCalculator is not valid" ) ) )
+        if ( !ensureAlwaysMsgf( query_filter_settings.TraversalCostCalculator != nullptr, TEXT( "The TraversalCostCalculator is not valid" ) ) )
         {
             return nullptr;
         }
 
-        if ( !ensureAlwaysMsgf( query_filter_settings.PathHeuristicCalculator != nullptr, TEXT( "The PathHeuristicCalculator is not valid" ) ) )
+        if ( !ensureAlwaysMsgf( query_filter_settings.HeuristicCalculator != nullptr, TEXT( "The HeuristicCalculator is not valid" ) ) )
         {
             return nullptr;
         }

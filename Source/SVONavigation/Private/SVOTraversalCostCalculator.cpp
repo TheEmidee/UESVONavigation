@@ -1,0 +1,22 @@
+#include "SVOTraversalCostCalculator.h"
+
+#include "SVOBoundsNavigationData.h"
+
+float USVOPathCostCalculator_Distance::GetTraversalCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const
+{
+    const auto start_location = bounds_data.GetLinkPosition( start );
+    const auto end_location = bounds_data.GetLinkPosition( end );
+    const auto cost = ( start_location - end_location ).Size();
+
+    return cost;
+}
+
+USVOPathCostCalculator_Fixed::USVOPathCostCalculator_Fixed() :
+    Cost( 1.0f )
+{
+}
+
+float USVOPathCostCalculator_Fixed::GetTraversalCost( const FSVOBoundsNavigationData & /*bounds_data*/, const FSVOOctreeLink & /*start*/, const FSVOOctreeLink & /*end */ ) const
+{
+    return Cost;
+}

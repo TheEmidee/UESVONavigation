@@ -10,8 +10,8 @@
 
 struct FSVOLinkWithCost;
 class FSVOBoundsNavigationData;
-class USVOPathCostCalculator;
-class USVOPathHeuristicCalculator;
+class USVOTraversalCostCalculator;
+class USVOHeuristicCalculator;
 class FSVONavigationQueryFilterImpl;
 class ASVONavigationData;
 
@@ -89,8 +89,8 @@ struct FSVOPathFindingParameters
     const FNavigationQueryFilter & NavigationQueryFilter;
     const FSVONavigationQueryFilterImpl * QueryFilterImplementation;
     const FSVONavigationQueryFilterSettings & QueryFilterSettings;
-    const USVOPathHeuristicCalculator * HeuristicCalculator;
-    const USVOPathCostCalculator * CostCalculator;
+    const USVOHeuristicCalculator * HeuristicCalculator;
+    const USVOTraversalCostCalculator * CostCalculator;
     const FSVOBoundsNavigationData * BoundsNavigationData;
     FSVOOctreeLink StartLink;
     FSVOOctreeLink EndLink;

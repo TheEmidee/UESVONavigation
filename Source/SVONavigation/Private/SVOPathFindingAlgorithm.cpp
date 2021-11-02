@@ -5,8 +5,8 @@
 #include "SVONavigationData.h"
 #include "SVONavigationQueryFilterImpl.h"
 #include "SVONavigationTypes.h"
-#include "SVOPathCostCalculator.h"
-#include "SVOPathHeuristicCalculator.h"
+#include "SVOTraversalCostCalculator.h"
+#include "SVOHeuristicCalculator.h"
 
 namespace
 {
@@ -92,8 +92,8 @@ FSVOPathFindingParameters::FSVOPathFindingParameters( const FNavAgentProperties 
     NavigationQueryFilter( *path_finding_query.QueryFilter ),
     QueryFilterImplementation( static_cast< const FSVONavigationQueryFilterImpl * >( path_finding_query.QueryFilter->GetImplementation() ) ),
     QueryFilterSettings( QueryFilterImplementation->QueryFilterSettings ),
-    HeuristicCalculator( QueryFilterSettings.PathHeuristicCalculator ),
-    CostCalculator( QueryFilterSettings.PathCostCalculator ),
+    HeuristicCalculator( QueryFilterSettings.HeuristicCalculator ),
+    CostCalculator( QueryFilterSettings.TraversalCostCalculator ),
     BoundsNavigationData( navigation_data.GetSVOData().GetBoundsNavigationDataContainingPoints( { start_location, end_location } ) ),
     VerticalOffset( QueryFilterSettings.bOffsetPathVerticallyByAgentRadius ? -path_finding_query.NavAgentProperties.AgentRadius : 0.0f )
 {
@@ -252,7 +252,7 @@ float FSVOPathFindingAlgorithmStepper::GetHeuristicCost( const FSVOOctreeLink & 
 
 float FSVOPathFindingAlgorithmStepper::GetTraversalCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const
 {
-    return Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, from, to );
+    return Parameters.CostCalculator->GetTraversalCost( *Parameters.BoundsNavigationData, from, to );
 }
 
 FSVOPathFindingAlgorithmStepper_AStar::FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & parameters ) :
