@@ -164,6 +164,11 @@ float FSVOPathFindingAlgorithmStepper::GetHeuristicCost( const FSVOOctreeLink & 
     return Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, from, to ) * Parameters.NavigationQueryFilter.GetHeuristicScale();
 }
 
+float FSVOPathFindingAlgorithmStepper::GetTraversalCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const
+{
+    return Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, from, to );
+}
+
 FSVOPathFindingAlgorithmStepper_AStar::FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & parameters ) :
     FSVOPathFindingAlgorithmStepper( parameters ),
     ConsideredNodeIndex( INDEX_NONE ),
@@ -273,7 +278,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::Pro
         return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
     }
 
-    const auto new_traversal_cost = Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, Graph.NodePool[ ConsideredNodeIndex ].NodeRef, neighbor_node.NodeRef ) + Graph.NodePool[ ConsideredNodeIndex ].TraversalCost;
+    const auto new_traversal_cost = GetTraversalCost( Graph.NodePool[ ConsideredNodeIndex ].NodeRef, neighbor_node.NodeRef ) + Graph.NodePool[ ConsideredNodeIndex ].TraversalCost;
     const auto new_heuristic_cost = /*is_bound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
                                         ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                         : 0.f;
@@ -444,13 +449,13 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
 
     if ( has_line_of_sight )
     {
-        new_traversal_cost = parent_node.TraversalCost + Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, parent_node.NodeRef, neighbor_node.NodeRef );
+        new_traversal_cost = parent_node.TraversalCost + GetTraversalCost( parent_node.NodeRef, neighbor_node.NodeRef );
         neighbor_parent_node_link = parent_node.NodeRef;
         neighbor_parent_node_index = parent_node.SearchNodeIndex;
     }
     else
     {
-        new_traversal_cost = current_node.TraversalCost + Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, current_node_link, neighbor_node.NodeRef );
+        new_traversal_cost = current_node.TraversalCost + GetTraversalCost( current_node_link, neighbor_node.NodeRef );
         neighbor_parent_node_link = current_node_link;
         neighbor_parent_node_index = current_node.SearchNodeIndex;
     }
@@ -564,7 +569,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
                 continue;
             }
 
-            const auto traversal_cost = neighbor_node.TraversalCost + Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, neighbor_node.NodeRef, considered_node_unsafe->NodeRef );
+            const auto traversal_cost = neighbor_node.TraversalCost + GetTraversalCost( neighbor_node.NodeRef, considered_node_unsafe->NodeRef );
             const float heuristic_cost = /*bIsBound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
                                              ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
                                              : 0.f;
@@ -625,8 +630,6 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
     // Time to refresh
     current_node = &Graph.NodePool[ ConsideredNodeIndex ];
 
-    const auto heuristic_scale = Parameters.NavigationQueryFilter.GetHeuristicScale();
-
     float new_traversal_cost;
     const auto new_heuristic_cost = /*bIsBound &&*/ ( neighbor_node.NodeRef != Parameters.EndLink )
                                         ? GetHeuristicCost( neighbor_node.NodeRef, Parameters.EndLink )
@@ -643,14 +646,13 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
 
     if ( parent_node_index != INDEX_NONE )
     {
-        new_traversal_cost = parent_node.TraversalCost + Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, parent_node.NodeRef, neighbor_node.NodeRef );
-
+        new_traversal_cost = parent_node.TraversalCost + GetTraversalCost( parent_node.NodeRef, neighbor_node.NodeRef );
         neighbor_parent_link = parent_node.NodeRef;
         neighbor_parent_search_node_index = parent_node.SearchNodeIndex;
     }
     else
     {
-        new_traversal_cost = current_node->TraversalCost + Parameters.CostCalculator->GetCost( *Parameters.BoundsNavigationData, current_node_link, neighbor_node.NodeRef );
+        new_traversal_cost = current_node->TraversalCost + GetTraversalCost( current_node_link, neighbor_node.NodeRef );
         neighbor_parent_link = current_node_link;
         neighbor_parent_search_node_index = current_node_search_index;
     }

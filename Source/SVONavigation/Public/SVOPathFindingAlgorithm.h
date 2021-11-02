@@ -162,6 +162,7 @@ protected:
 
     void SetState( ESVOPathFindingAlgorithmState new_state );
     float GetHeuristicCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
+    float GetTraversalCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
 
     FSVOGraphAStar Graph;
     ESVOPathFindingAlgorithmState State;
