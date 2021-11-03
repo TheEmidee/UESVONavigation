@@ -21,9 +21,10 @@ struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
 
     FSVOPathRenderingDebugDrawOptions() :
         bDrawOnlyWhenSelected( false ),
-        bDrawCurrentCost( true ),
-        bDrawNeighborsCost( true ),
-        bDrawOnlyLastNeighborsCost( true ),
+        bDrawLastProcessedNode( true ),
+        bDrawLastProcessedNodeCost( false ),
+        bDrawLastProcessedNeighbors( true ),
+        bDrawNeighborsCost( false ),
         bDrawBestPath( true )
     {}
 
@@ -31,13 +32,16 @@ struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
     uint8 bDrawOnlyWhenSelected : 1;
 
     UPROPERTY( EditAnywhere )
-    uint8 bDrawCurrentCost : 1;
+    uint8 bDrawLastProcessedNode : 1;
+
+    UPROPERTY( EditAnywhere, meta = ( EditCondition = "bDrawLastProcessedNode" ) )
+    uint8 bDrawLastProcessedNodeCost : 1;
 
     UPROPERTY( EditAnywhere )
-    uint8 bDrawNeighborsCost : 1;
+    uint8 bDrawLastProcessedNeighbors : 1;
 
     UPROPERTY( EditAnywhere, meta = ( EditCondition = "bDrawNeighborsCost" ) )
-    uint8 bDrawOnlyLastNeighborsCost : 1;
+    uint8 bDrawNeighborsCost : 1;
 
     UPROPERTY( EditAnywhere )
     uint8 bDrawBestPath : 1;
@@ -113,7 +117,7 @@ public:
 
     void CreateRenderState_Concurrent( FRegisterComponentContext * Context ) override;
     void DestroyRenderState_Concurrent() override;
-    FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const override;
+    FBoxSphereBounds CalcBounds( const FTransform & local_to_world ) const override;
 
 private:
     void GatherData( FSVOPathFindingSceneProxyData & proxy_data, const ASVOPathFinderTest & path_finder_test );

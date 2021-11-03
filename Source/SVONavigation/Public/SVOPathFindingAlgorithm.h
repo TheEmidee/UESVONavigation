@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Chaos/AABB.h"
-#include "GraphAStar.h"
 #include "SVONavigationTypes.h"
 
+#include <GraphAStar.h>
 #include <NavigationData.h>
 
 #include "SVOPathFindingAlgorithm.generated.h"
@@ -155,6 +154,7 @@ public:
     void OnSearchSuccess( const TArray< FSVOOctreeLink > & ) override;
 
 private:
+    void FillCurrentBestPath( const TArray< FSVOOctreeLink > & link_path, bool add_end_location ) const;
     FSVOPathFinderDebugInfos & DebugInfos;
 };
 
@@ -176,8 +176,10 @@ public:
     ESVOPathFindingAlgorithmState GetState() const;
     const FSVOPathFindingParameters & GetParameters() const;
     void AddObserver( TSharedPtr< FSVOPathFindingAlgorithmObserver > observer );
+    const FSVOGraphAStar & GetGraph() const;
 
     ESVOPathFindingAlgorithmStepperStatus Step( EGraphAStarResult & result );
+    virtual bool FillLinkPath( TArray< FSVOOctreeLink > & link_path ) const;
 
 protected:
     virtual ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) = 0;
@@ -205,10 +207,17 @@ FORCEINLINE const FSVOPathFindingParameters & FSVOPathFindingAlgorithmStepper::G
     return Parameters;
 }
 
+FORCEINLINE const FSVOGraphAStar & FSVOPathFindingAlgorithmStepper::GetGraph() const
+{
+    return Graph;
+}
+
 class FSVOPathFindingAlgorithmStepper_AStar : public FSVOPathFindingAlgorithmStepper
 {
 public:
     explicit FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & parameters );
+
+    bool FillLinkPath( TArray< FSVOOctreeLink > & link_path ) const override;
 
 protected:
     ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;

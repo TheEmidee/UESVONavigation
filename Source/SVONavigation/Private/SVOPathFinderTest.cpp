@@ -41,57 +41,35 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
     PathFinderTest = RenderingComponent->GetPathFinderTest();
     DebugDrawOptions = PathFinderTest->GetDebugDrawOptions();
 
-    const auto add_text = [ texts = &Texts ]( const FVector & start, const FVector & end, const FString & text ) {
-        texts->Emplace( FText3d( text, FVector( 0.0f, 0.0f, 50.0f ) + ( start + end ) / 2.0f, FLinearColor::White ) );
+    const auto add_text = [ texts = &Texts ]( const FSVOPathFinderDebugNodeCost & debug_node_cost ) {
+        texts->Emplace( FText3d( FString::SanitizeFloat( debug_node_cost.Cost ), FVector( 0.0f, 0.0f, 50.0f ) + ( debug_node_cost.From.Location + debug_node_cost.To.Location ) / 2.0f, FLinearColor::White ) );
     };
 
-    Lines.Emplace( FDebugLine( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Location, proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Location, FColor::Blue, 2.0f ) );
-
-    for ( const auto & neighbor : proxy_data.DebugInfos.ProcessedNeighbors )
+    if ( DebugDrawOptions.bDrawLastProcessedNode )
     {
-        Lines.Emplace( FDebugLine( neighbor.From.Location, neighbor.To.Location, neighbor.bIsClosed ? FColor::Orange : FColor::Green, 1.0f ) );
+        Lines.Emplace( FDebugLine( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Location, proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Location, FColor::Blue, 2.0f ) );
+
+        if ( DebugDrawOptions.bDrawLastProcessedNodeCost )
+        {
+            add_text( proxy_data.DebugInfos.LastLastProcessedSingleNode );
+        }
     }
 
-    /*const auto & debug_steps = proxy_data.DebugInfos.DebugSteps;
-    FVector previous_location = proxy_data.StartLocation;
-
-    auto iteration = 0;
-    
-    for ( const auto & debug_step : debug_steps )
+    if ( DebugDrawOptions.bDrawLastProcessedNeighbors )
     {
-        Lines.Emplace( FDebugLine( previous_location, debug_step.CurrentLocationCost.Location, FColor::Blue, 4.0f ) );
-
-        if ( DebugDrawOptions.bDrawCurrentCost )
+        for ( const auto & neighbor : proxy_data.DebugInfos.ProcessedNeighbors )
         {
-            add_text( previous_location, debug_step.CurrentLocationCost.Location, FString::Printf( TEXT( "Cost : %f" ), debug_step.CurrentLocationCost.Cost ) );   
-        }
+            Lines.Emplace( FDebugLine( neighbor.From.Location, neighbor.To.Location, neighbor.bIsClosed ? FColor::Orange : FColor::Green, 1.0f ) );
 
-        previous_location = debug_step.CurrentLocationCost.Location;
-
-        for ( const auto & neighbor_cost : debug_step.NeighborLocationCosts )
-        {
-            Lines.Emplace( FDebugLine( debug_step.CurrentLocationCost.Location, neighbor_cost.Location, neighbor_cost.WasEvaluated ? FColor::Green : FColor::Orange, 2.0f ) );
-
-            if ( DebugDrawOptions.bDrawNeighborsCost && ( !DebugDrawOptions.bDrawOnlyLastNeighborsCost || iteration == debug_steps.Num() - 1 ) )
+            if ( DebugDrawOptions.bDrawNeighborsCost )
             {
-                add_text( debug_step.CurrentLocationCost.Location, neighbor_cost.Location, FString::Printf( TEXT( "NeighborCost - %f" ), neighbor_cost.Cost ) );
+                add_text( neighbor );
             }
         }
-
-        iteration++;
     }
 
-    if ( DebugDrawOptions.bDrawBestPath )
-    {
-        const auto & best_path_points = proxy_data.DebugInfos.CurrentBestPath.GetPathPoints();
-
-        for ( auto index = 0; index < best_path_points.Num() - 1; index++ )
-        {
-            Lines.Emplace( FDebugLine( best_path_points[ index ], best_path_points[ index + 1 ], FColor::Red, 6.0f ) );
-        }        
-    }*/
-
-    if ( proxy_data.PathFindingResult.Get( EGraphAStarResult::SearchFail ) == EGraphAStarResult::SearchSuccess )
+    if ( proxy_data.PathFindingResult.Get( EGraphAStarResult::SearchFail ) == EGraphAStarResult::SearchSuccess 
+        || DebugDrawOptions.bDrawBestPath )
     {
         const auto & best_path_points = proxy_data.DebugInfos.CurrentBestPath.GetPathPoints();
 
@@ -195,7 +173,7 @@ void USVOPathFindingRenderingComponent::DestroyRenderState_Concurrent()
     Super::DestroyRenderState_Concurrent();
 }
 
-FBoxSphereBounds USVOPathFindingRenderingComponent::CalcBounds( const FTransform & LocalToWorld ) const
+FBoxSphereBounds USVOPathFindingRenderingComponent::CalcBounds( const FTransform & local_to_world ) const
 {
     FBoxSphereBounds result;
 
