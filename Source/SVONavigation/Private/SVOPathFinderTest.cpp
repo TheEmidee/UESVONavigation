@@ -103,6 +103,8 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
             const auto to = best_path_points[ index + 1 ];
 
             Lines.Emplace( from, to, FColor::Red, 3.0f );
+            Boxes.Emplace( FBox::BuildAABB( from, FVector( 20.0f ) ), FColor::Red );
+            ArrowHeadLocations.Emplace( from, to );
         }
     }
 
@@ -123,6 +125,27 @@ FPrimitiveViewRelevance FSVOPathFindingSceneProxy::GetViewRelevance( const FScen
     // ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
     Result.bSeparateTranslucency = Result.bNormalTranslucency = IsShown( view );
     return Result;
+}
+
+void FSVOPathFindingSceneProxy::GetDynamicMeshElements( const TArray< const FSceneView * > & views, const FSceneViewFamily & view_family, const uint32 visibility_map, FMeshElementCollector & collector ) const
+{
+    FDebugRenderSceneProxy::GetDynamicMeshElements( views, view_family, visibility_map, collector );
+
+    for ( int32 view_index = 0; view_index < views.Num(); view_index++ )
+    {
+        const FSceneView * view = views[ view_index ];
+        FPrimitiveDrawInterface * pdi = collector.GetPDI( view_index );
+
+        if ( visibility_map & ( 1 << view_index ) )
+        {
+            const auto actor_location = RenderingComponent->GetOwner()->GetActorLocation();
+
+            for ( const auto & pair : ArrowHeadLocations )
+            {
+                DrawArrowHead( pdi, pair.Value, pair.Key, 50.f, FColor::Red, SDPG_World, 10.0f );
+            }
+        }
+    }
 }
 
 bool FSVOPathFindingSceneProxy::SafeIsActorSelected() const

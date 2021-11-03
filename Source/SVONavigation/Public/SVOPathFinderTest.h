@@ -62,6 +62,7 @@ public:
 
     SIZE_T GetTypeHash() const override;
     FPrimitiveViewRelevance GetViewRelevance( const FSceneView * view ) const override;
+    void GetDynamicMeshElements( const TArray<const FSceneView *> & views, const FSceneViewFamily & view_family, uint32 visibility_map, FMeshElementCollector & collector ) const override;
 
 private:
     bool SafeIsActorSelected() const;
@@ -70,6 +71,7 @@ private:
     FSVOPathRenderingDebugDrawOptions DebugDrawOptions;
     TWeakObjectPtr< ASVOPathFinderTest > PathFinderTest;
     TWeakObjectPtr< USVOPathFindingRenderingComponent > RenderingComponent;
+    TArray< TPair< FVector, FVector > > ArrowHeadLocations;
 };
 
 class FSVOPathFindingRenderingDebugDrawDelegateHelper final : public FDebugDrawDelegateHelper
