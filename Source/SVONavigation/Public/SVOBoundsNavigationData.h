@@ -25,7 +25,7 @@ public:
     const FBox & GetVolumeBounds() const;
     const FBox & GetNavigationBounds() const;
     const FSVOOctreeData & GetOctreeData() const;
-    FVector GetNodePosition( LayerIndex layer_index, MortonCode morton_code ) const;
+    FVector GetNodePosition( const LayerIndex layer_index, MortonCode morton_code ) const;
     FVector GetLinkPosition( const FSVOOctreeLink & link ) const;
     const FSVOOctreeNode & GetNodeFromLink( const FSVOOctreeLink & link ) const;
     bool GetLinkFromPosition( FSVOOctreeLink & link, const FVector & position ) const;
@@ -40,7 +40,7 @@ private:
     bool IsPositionOccluded( const FVector & position, float box_size ) const;
     void FirstPassRasterization();
     void AllocateLeafNodes();
-    void RasterizeLeaf( const FVector & node_position, int32 leaf_index );
+    void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index );
     void RasterizeInitialLayer();
     void RasterizeLayer( LayerIndex layer_index );
     TOptional< NodeIndex > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
