@@ -9,7 +9,7 @@ class USVOTraversalCostCalculator;
 
 typedef uint_fast64_t MortonCode;
 typedef uint8 LayerIndex;
-typedef int32 NodeIndex;
+typedef uint32 NodeIndex;
 typedef int32 LeafIndex;
 typedef uint8 SubNodeIndex;
 typedef uint8 NeighborDirection;
@@ -226,9 +226,9 @@ struct FSVOOctreeLink
         return FSVOOctreeLink();
     }
 
-    uint8 LayerIndex : 4;
+    uint8 LayerIndex        : 4;
     uint_fast32_t NodeIndex : 22;
-    uint8 SubNodeIndex : 6;
+    uint8 SubNodeIndex      : 6;
 };
 
 FORCEINLINE bool FSVOOctreeLink::IsValid() const
@@ -286,19 +286,138 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeNode & data )
     return archive;
 }
 
-struct FSVOOctreeData
+class FSVOLayer
 {
-    void Reset();
+public:
+    friend FArchive & operator<<( FArchive & archive, FSVOLayer & layer );
 
-    TArray< TArray< FSVOOctreeNode > > NodesByLayers;
-    TArray< FSVOOctreeLeaf > Leaves;
+    FSVOLayer();
+    FSVOLayer( int max_node_count, float voxel_size );
+
+    const TArray< FSVOOctreeNode > & GetNodes() const;
+    TArray< FSVOOctreeNode > & GetNodes();
+    int32 GetNodeCount() const;
+    const FSVOOctreeNode & GetNode( NodeIndex node_index ) const;
+    float GetVoxelSize() const;
+    float GetVoxelHalfSize() const;
+    uint32 GetMaxNodeCount() const;
 
     int GetAllocatedSize() const;
+
+private:
+    TArray< FSVOOctreeNode > Nodes;
+    int MaxNodeCount;
+    float VoxelSize;
+    float VoxelHalfSize;
 };
+
+FORCEINLINE const TArray< FSVOOctreeNode > & FSVOLayer::GetNodes() const
+{
+    return Nodes;
+}
+
+FORCEINLINE TArray< FSVOOctreeNode > & FSVOLayer::GetNodes()
+{
+    return Nodes;
+}
+
+FORCEINLINE int32 FSVOLayer::GetNodeCount() const
+{
+    return Nodes.Num();
+}
+
+FORCEINLINE const FSVOOctreeNode & FSVOLayer::GetNode( const NodeIndex node_index ) const
+{
+    return Nodes[ node_index ];
+}
+
+FORCEINLINE float FSVOLayer::GetVoxelSize() const
+{
+    return VoxelSize;
+}
+
+FORCEINLINE float FSVOLayer::GetVoxelHalfSize() const
+{
+    return VoxelHalfSize;
+}
+
+FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
+{
+    return MaxNodeCount;
+}
+
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
+{
+    archive << layer.Nodes;
+    archive << layer.MaxNodeCount;
+    archive << layer.VoxelSize;
+    archive << layer.VoxelHalfSize;
+
+    return archive;
+}
+
+class FSVOOctreeData
+{
+public:
+    friend FArchive & operator<<( FArchive & archive, FSVOOctreeData & data );
+
+    int GetLayerCount() const;
+    FSVOLayer & GetLayer( LayerIndex layer_index );
+    const FSVOLayer & GetLayer( LayerIndex layer_index ) const;
+    const FSVOLayer & GetLastLayer() const;
+    const TArray< FSVOOctreeLeaf > & GetLeaves() const;
+    FSVOOctreeLeaf GetLeaf( LeafIndex leaf_index ) const;
+    void AddLayer( int max_node_count, float voxel_size );
+
+    void Reset();
+    int GetAllocatedSize() const;
+    void AllocateLeafNodes( int leaf_count );
+    void AddLeaf( LeafIndex leaf_index, SubNodeIndex subnode_index, bool is_occluded );
+    void AddEmptyLeaf();
+
+private:
+    TArray< FSVOLayer > Layers;
+    TArray< FSVOOctreeLeaf > Leaves;
+};
+
+FORCEINLINE int FSVOOctreeData::GetLayerCount() const
+{
+    return Layers.Num();
+}
+
+FORCEINLINE FSVOLayer & FSVOOctreeData::GetLayer( const LayerIndex layer_index )
+{
+    return Layers[ layer_index ];
+}
+
+FORCEINLINE const FSVOLayer & FSVOOctreeData::GetLayer( const LayerIndex layer_index ) const
+{
+    return Layers[ layer_index ];
+}
+
+FORCEINLINE const FSVOLayer & FSVOOctreeData::GetLastLayer() const
+{
+    return Layers.Last();
+}
+
+FORCEINLINE const TArray< FSVOOctreeLeaf > & FSVOOctreeData::GetLeaves() const
+{
+    return Leaves;
+}
+
+FORCEINLINE FSVOOctreeLeaf FSVOOctreeData::GetLeaf( const LeafIndex leaf_index ) const
+{
+    return Leaves[ leaf_index ];
+}
+
+FORCEINLINE void FSVOOctreeData::AddLayer( const int max_node_count, const float voxel_size )
+{
+    Layers.Emplace( max_node_count, voxel_size );
+}
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeData & data )
 {
-    archive << data.NodesByLayers;
+    archive << data.Layers;
     archive << data.Leaves;
 
     return archive;
@@ -313,7 +432,7 @@ struct SVONAVIGATION_API FSVONavigationQueryFilterSettings
 
     UPROPERTY( EditAnywhere, Instanced )
     USVOPathFindingAlgorithm * PathFinder;
-    
+
     UPROPERTY( EditAnywhere, Instanced )
     USVOTraversalCostCalculator * TraversalCostCalculator;
 

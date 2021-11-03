@@ -261,9 +261,9 @@ uint32 ASVONavigationData::LogMemUsed() const
     const auto super_mem_used = Super::LogMemUsed();
 
     const auto mem_used = super_mem_used + SVODataPtr->GetAllocatedSize();
-    
-    UE_LOG( LogNavigation, Warning, TEXT("%s: ASVONavigationData: %u\n    self: %d"), *GetName(), mem_used, sizeof(ASVONavigationData));
-    
+
+    UE_LOG( LogNavigation, Warning, TEXT( "%s: ASVONavigationData: %u\n    self: %d" ), *GetName(), mem_used, sizeof( ASVONavigationData ) );
+
     return mem_used;
 }
 #endif
