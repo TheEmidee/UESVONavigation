@@ -120,7 +120,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
         }
     }
 
-    const auto it_draws_layers = DebugInfos.ItDebugDrawsLayers;
+    const auto it_draws_layers = DebugInfos.bDebugDrawsLayers;
     const auto it_draws_leaves = DebugInfos.bDebugDrawsLeaves;
     const auto it_draws_morton_codes = DebugInfos.bDebugDrawsMortonCodes;
 
@@ -180,7 +180,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
         }
     }
 
-    if ( DebugInfos.ItDebugDrawsOccludedLeaves )
+    if ( DebugInfos.bDebugDrawsOccludedLeaves )
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
@@ -234,7 +234,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                         links.Emplace( FDebugRenderSceneProxy::FDebugLine( node_position, neighbor_position, FColor::Orange, line_thickness ) );
                     };
 
-                    if ( DebugInfos.ItDebugDrawsNeighborLinks )
+                    if ( DebugInfos.bDebugDrawsNeighborLinks )
                     {
                         for ( const auto & link : node.Neighbors )
                         {
@@ -249,7 +249,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
                         add_link( Links, link );
                     }
 
-                    if ( DebugInfos.ItDebugDrawsFirstChildLinks )
+                    if ( DebugInfos.bDebugDrawsFirstChildLinks )
                     {
                         const auto & link = node.FirstChild;
 

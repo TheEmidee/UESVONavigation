@@ -15,6 +15,7 @@ public:
 
     typedef FSVOOctreeLink FNodeRef;
 
+    // Used by FGraphAStar
     bool IsValidRef( const FSVOOctreeLink ref ) const { return ref.IsValid(); }
 
     const FSVOBoundsNavigationDataGenerationSettings & GetDataGenerationSettings() const;
