@@ -1,9 +1,9 @@
 #pragma once
 
 #include "SVOPathFindingAlgorithm.h"
-#include "SVOPathfindingRenderingComponent.h"
 
 #include <CoreMinimal.h>
+#include <DebugRenderSceneProxy.h>
 #include <GameFramework/Actor.h>
 
 #include "SVOPathFinderTest.generated.h"
@@ -11,8 +11,121 @@
 class FSVOPathFinder;
 class USphereComponent;
 
+class ASVOPathFinderTest;
+class USVOPathFindingRenderingComponent;
+
+USTRUCT()
+struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
+{
+    GENERATED_USTRUCT_BODY()
+
+    FSVOPathRenderingDebugDrawOptions() :
+        bDrawOnlyWhenSelected( false ),
+        bDrawCurrentCost( true ),
+        bDrawNeighborsCost( true ),
+        bDrawOnlyLastNeighborsCost( true ),
+        bDrawBestPath( true )
+    {}
+
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawOnlyWhenSelected : 1;
+
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawCurrentCost : 1;
+
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawNeighborsCost : 1;
+
+    UPROPERTY( EditAnywhere, meta = ( EditCondition = "bDrawNeighborsCost" ) )
+    uint8 bDrawOnlyLastNeighborsCost : 1;
+
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawBestPath : 1;
+};
+
+struct SVONAVIGATION_API FSVOPathFindingSceneProxyData final : public TSharedFromThis< FSVOPathFindingSceneProxyData, ESPMode::ThreadSafe >
+{
+    void GatherData( const ASVOPathFinderTest & path_finder_test );
+
+    FVector StartLocation;
+    FVector EndLocation;
+    FSVOPathFinderDebugInfos DebugInfos;
+    TOptional< EGraphAStarResult > PathFindingResult;
+};
+
+class SVONAVIGATION_API FSVOPathFindingSceneProxy final : public FDebugRenderSceneProxy
+{
+    friend class FSVOPathFindingRenderingDebugDrawDelegateHelper;
+
+public:
+    FSVOPathFindingSceneProxy( const UPrimitiveComponent & component, const FSVOPathFindingSceneProxyData & proxy_data );
+
+    SIZE_T GetTypeHash() const override;
+    FPrimitiveViewRelevance GetViewRelevance( const FSceneView * view ) const override;
+
+private:
+    bool SafeIsActorSelected() const;
+
+    AActor * ActorOwner;
+    FSVOPathRenderingDebugDrawOptions DebugDrawOptions;
+    TWeakObjectPtr< ASVOPathFinderTest > PathFinderTest;
+    TWeakObjectPtr< USVOPathFindingRenderingComponent > RenderingComponent;
+};
+
+class FSVOPathFindingRenderingDebugDrawDelegateHelper final : public FDebugDrawDelegateHelper
+{
+    typedef FDebugDrawDelegateHelper Super;
+
+public:
+    FSVOPathFindingRenderingDebugDrawDelegateHelper() :
+        ActorOwner( nullptr )
+    {
+    }
+
+    void InitDelegateHelper( const FDebugRenderSceneProxy * InSceneProxy ) override
+    {
+        check( 0 );
+    }
+
+    void InitDelegateHelper( const FSVOPathFindingSceneProxy & InSceneProxy );
+
+protected:
+    SVONAVIGATION_API void DrawDebugLabels( UCanvas * Canvas, APlayerController * ) override;
+
+private:
+    // can be 0
+    AActor * ActorOwner;
+    FSVOPathRenderingDebugDrawOptions DebugDrawOptions;
+};
+
+UCLASS()
+class SVONAVIGATION_API USVOPathFindingRenderingComponent final : public UPrimitiveComponent
+{
+    GENERATED_BODY()
+
+public:
+    USVOPathFindingRenderingComponent();
+
+    ASVOPathFinderTest * GetPathFinderTest() const;
+    FPrimitiveSceneProxy * CreateSceneProxy() override;
+
+    void CreateRenderState_Concurrent( FRegisterComponentContext * Context ) override;
+    void DestroyRenderState_Concurrent() override;
+    FBoxSphereBounds CalcBounds( const FTransform & LocalToWorld ) const override;
+
+private:
+    void GatherData( FSVOPathFindingSceneProxyData & proxy_data, const ASVOPathFinderTest & path_finder_test );
+
+    FSVOPathFindingRenderingDebugDrawDelegateHelper RenderingDebugDrawDelegateHelper;
+};
+
+FORCEINLINE ASVOPathFinderTest * USVOPathFindingRenderingComponent::GetPathFinderTest() const
+{
+    return Cast< ASVOPathFinderTest >( GetOwner() );
+}
+
 UCLASS( hidecategories = ( Object, Actor, Input, Rendering, Replication, LOD, Cooking, Physics, Collision, Lighting, VirtualTexture, HLOD ), showcategories = ( "Input|MouseInput", "Input|TouchInput" ), Blueprintable )
-class SVONAVIGATION_API ASVOPathFinderTest : public AActor
+class SVONAVIGATION_API ASVOPathFinderTest final : public AActor
 {
     GENERATED_BODY()
 
