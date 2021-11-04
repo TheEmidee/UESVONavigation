@@ -1,13 +1,12 @@
 #pragma once
 
-#include <CoreMinimal.h>
-
 #include "SVOBoundsNavigationData.h"
+
+#include <CoreMinimal.h>
 
 struct FSVOData
 {
 public:
-
     const TArray< FSVOBoundsNavigationData > & GetNavigationBoundsData() const;
 
     void Serialize( FArchive & archive );
@@ -15,15 +14,14 @@ public:
     void RemoveDataInBounds( const FBox & bounds );
     void AddNavigationBoundsData( FSVOBoundsNavigationData data );
     FBox GetBoundingBox() const;
-    const ::FSVOBoundsNavigationData * GetBoundsNavigationDataContainingPoints( const TArray< FVector > & points ) const;
+    const FSVOBoundsNavigationData * GetBoundsNavigationDataContainingPoints( const TArray< FVector > & points ) const;
 
 #if !UE_BUILD_SHIPPING
     uint32 GetAllocatedSize() const;
 #endif
 
 private:
-
-	TArray< FSVOBoundsNavigationData > NavigationBoundsData;
+    TArray< FSVOBoundsNavigationData > NavigationBoundsData;
 };
 
 typedef TUniquePtr< FSVOData > FUniqueSVODataPtr;

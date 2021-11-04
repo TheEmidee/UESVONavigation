@@ -2,7 +2,7 @@
 
 void FSVOData::Serialize( FArchive & archive )
 {
-	archive << NavigationBoundsData;
+    archive << NavigationBoundsData;
 }
 
 void FSVOData::ClearData()
@@ -52,7 +52,7 @@ const FSVOBoundsNavigationData * FSVOData::GetBoundsNavigationDataContainingPoin
 #if !UE_BUILD_SHIPPING
 uint32 FSVOData::GetAllocatedSize() const
 {
-	auto navigation_mem_size = 0;
+    auto navigation_mem_size = 0;
     for ( const auto & nav_bounds_data : NavigationBoundsData )
     {
         const auto octree_data_mem_size = nav_bounds_data.GetOctreeData().GetAllocatedSize();
