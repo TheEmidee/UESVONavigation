@@ -1,12 +1,12 @@
 #include "SVOPathFindingAlgorithm.h"
 
-#include "Chaos/AABB.h"
-#include "Kismet/GameplayStatics.h"
 #include "SVOHeuristicCalculator.h"
 #include "SVONavigationData.h"
 #include "SVONavigationQueryFilterImpl.h"
 #include "SVONavigationTypes.h"
 #include "SVOTraversalCostCalculator.h"
+
+#include <Kismet/GameplayStatics.h>
 
 namespace
 {
@@ -160,7 +160,7 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
     TArray< FSVOOctreeLink > link_path;
     Stepper.FillLinkPath( link_path );
 
-    // Fill DebugInfos.CurrentBestPath 
+    // Fill DebugInfos.CurrentBestPath
     FillCurrentBestPath( link_path, false );
 }
 
@@ -484,7 +484,8 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::End
 
         if ( !FillLinkPath( link_path ) )
         {
-            result = EGraphAStarResult::InfiniteLoop;;
+            result = EGraphAStarResult::InfiniteLoop;
+            ;
         }
 
         for ( const auto & observer : Observers )
