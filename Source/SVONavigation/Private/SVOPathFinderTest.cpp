@@ -1,16 +1,221 @@
 #include "SVOPathFinderTest.h"
 
-#include "NavigationSystem.h"
 #include "SVONavigationData.h"
 #include "SVOPathFinder.h"
 #include "SVOPathFindingAlgorithm.h"
-#include "SVOPathFindingRenderingComponent.h"
 
 #include <Components/SphereComponent.h>
+#include <Engine/Canvas.h>
+#include <NavigationSystem.h>
 
 #if WITH_EDITOR
 #include <Engine/Selection.h>
 #endif
+
+void FSVOPathFindingSceneProxyData::GatherData( const ASVOPathFinderTest & path_finder_test )
+{
+    StartLocation = path_finder_test.GetStartLocation();
+    EndLocation = path_finder_test.GetEndLocation();
+    DebugInfos = path_finder_test.GetPathFinderDebugInfos();
+
+    if ( path_finder_test.GetStepperLastStatus() == ESVOPathFindingAlgorithmStepperStatus::IsStopped )
+    {
+        PathFindingResult = TOptional< EGraphAStarResult >( path_finder_test.GetPathFindingResult() );
+    }
+    else
+    {
+        PathFindingResult.Reset();
+    }
+}
+
+FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent & component, const FSVOPathFindingSceneProxyData & proxy_data ) :
+    FDebugRenderSceneProxy( &component )
+{
+    DrawType = SolidAndWireMeshes;
+    TextWithoutShadowDistance = 1500;
+    bWantsSelectionOutline = false;
+    ViewFlagName = TEXT( "Navigation" );
+    ViewFlagIndex = static_cast< uint32 >( FEngineShowFlags::FindIndexByName( *ViewFlagName ) );
+
+    RenderingComponent = MakeWeakObjectPtr( const_cast< USVOPathFindingRenderingComponent * >( Cast< USVOPathFindingRenderingComponent >( &component ) ) );
+    PathFinderTest = RenderingComponent->GetPathFinderTest();
+    DebugDrawOptions = PathFinderTest->GetDebugDrawOptions();
+
+    const auto add_text = [ texts = &Texts ]( const FSVOPathFinderDebugNodeCost & debug_node_cost ) {
+        texts->Emplace( FText3d( FString::SanitizeFloat( debug_node_cost.Cost ), FVector( 0.0f, 0.0f, 50.0f ) + ( debug_node_cost.From.Location + debug_node_cost.To.Location ) / 2.0f, FLinearColor::White ) );
+    };
+
+    if ( DebugDrawOptions.bDrawLastProcessedNode )
+    {
+        Lines.Emplace( FDebugLine( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Location, proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Location, FColor::Blue, 2.0f ) );
+
+        if ( DebugDrawOptions.bDrawLastProcessedNodeCost )
+        {
+            add_text( proxy_data.DebugInfos.LastLastProcessedSingleNode );
+        }
+    }
+
+    if ( DebugDrawOptions.bDrawLastProcessedNeighbors )
+    {
+        for ( const auto & neighbor : proxy_data.DebugInfos.ProcessedNeighbors )
+        {
+            Lines.Emplace( FDebugLine( neighbor.From.Location, neighbor.To.Location, neighbor.bIsClosed ? FColor::Orange : FColor::Green, 1.0f ) );
+
+            if ( DebugDrawOptions.bDrawNeighborsCost )
+            {
+                add_text( neighbor );
+            }
+        }
+    }
+
+    if ( proxy_data.PathFindingResult.Get( EGraphAStarResult::SearchFail ) == EGraphAStarResult::SearchSuccess 
+        || DebugDrawOptions.bDrawBestPath )
+    {
+        const auto & best_path_points = proxy_data.DebugInfos.CurrentBestPath.GetPathPoints();
+
+        ArrowHeadLocations.Reserve( best_path_points.Num() );
+
+        for ( auto index = 0; index < best_path_points.Num() - 1; index++ )
+        {
+            const auto from = best_path_points[ index ];
+            const auto to = best_path_points[ index + 1 ];
+
+            Lines.Emplace( from, to, FColor::Red, 3.0f );
+            Boxes.Emplace( FBox::BuildAABB( from, FVector( 20.0f ) ), FColor::Red );
+            ArrowHeadLocations.Emplace( from, to );
+        }
+    }
+
+    ActorOwner = component.GetOwner();
+}
+
+SIZE_T FSVOPathFindingSceneProxy::GetTypeHash() const
+{
+    static size_t UniquePointer;
+    return reinterpret_cast< size_t >( &UniquePointer );
+}
+
+FPrimitiveViewRelevance FSVOPathFindingSceneProxy::GetViewRelevance( const FSceneView * view ) const
+{
+    FPrimitiveViewRelevance Result;
+    Result.bDrawRelevance = /*view->Family->EngineShowFlags.GetSingleFlag(ViewFlagIndex) &&*/ IsShown( view ) && ( !DebugDrawOptions.bDrawOnlyWhenSelected || SafeIsActorSelected() );
+    Result.bDynamicRelevance = true;
+    // ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
+    Result.bSeparateTranslucency = Result.bNormalTranslucency = IsShown( view );
+    return Result;
+}
+
+void FSVOPathFindingSceneProxy::GetDynamicMeshElements( const TArray< const FSceneView * > & views, const FSceneViewFamily & view_family, const uint32 visibility_map, FMeshElementCollector & collector ) const
+{
+    FDebugRenderSceneProxy::GetDynamicMeshElements( views, view_family, visibility_map, collector );
+
+    for ( int32 view_index = 0; view_index < views.Num(); view_index++ )
+    {
+        const FSceneView * view = views[ view_index ];
+        FPrimitiveDrawInterface * pdi = collector.GetPDI( view_index );
+
+        if ( visibility_map & ( 1 << view_index ) )
+        {
+            const auto actor_location = RenderingComponent->GetOwner()->GetActorLocation();
+
+            for ( const auto & pair : ArrowHeadLocations )
+            {
+                DrawArrowHead( pdi, pair.Value, pair.Key, 50.f, FColor::Red, SDPG_World, 10.0f );
+            }
+        }
+    }
+}
+
+bool FSVOPathFindingSceneProxy::SafeIsActorSelected() const
+{
+    if ( ActorOwner )
+    {
+        return ActorOwner->IsSelected();
+    }
+
+    return false;
+}
+
+USVOPathFindingRenderingComponent::USVOPathFindingRenderingComponent()
+{
+}
+
+FPrimitiveSceneProxy * USVOPathFindingRenderingComponent::CreateSceneProxy()
+{
+    FSVOPathFindingSceneProxyData proxy_data;
+    GatherData( proxy_data, *GetPathFinderTest() );
+
+    if ( FSVOPathFindingSceneProxy * new_scene_proxy = new FSVOPathFindingSceneProxy( *this, proxy_data ) )
+    {
+        if ( IsInGameThread() )
+        {
+            RenderingDebugDrawDelegateHelper.InitDelegateHelper( *new_scene_proxy );
+            RenderingDebugDrawDelegateHelper.ReregisterDebugDrawDelgate();
+        }
+
+        return new_scene_proxy;
+    }
+
+    return nullptr;
+}
+
+void USVOPathFindingRenderingComponent::CreateRenderState_Concurrent( FRegisterComponentContext * Context )
+{
+    Super::CreateRenderState_Concurrent( Context );
+
+    RenderingDebugDrawDelegateHelper.RegisterDebugDrawDelgate();
+}
+
+void USVOPathFindingRenderingComponent::DestroyRenderState_Concurrent()
+{
+    RenderingDebugDrawDelegateHelper.UnregisterDebugDrawDelgate();
+
+    Super::DestroyRenderState_Concurrent();
+}
+
+FBoxSphereBounds USVOPathFindingRenderingComponent::CalcBounds( const FTransform & local_to_world ) const
+{
+    FBoxSphereBounds result;
+
+    if ( auto * owner = Cast< ASVOPathFinderTest >( GetOwner() ) )
+    {
+        FVector center, extent;
+        owner->GetActorBounds( false, center, extent );
+        result = FBoxSphereBounds( FBox::BuildAABB( center, extent ) );
+    }
+
+    return result;
+}
+
+void USVOPathFindingRenderingComponent::GatherData( FSVOPathFindingSceneProxyData & proxy_data, const ASVOPathFinderTest & path_finder_test )
+{
+    proxy_data.GatherData( path_finder_test );
+}
+
+void FSVOPathFindingRenderingDebugDrawDelegateHelper::InitDelegateHelper( const FSVOPathFindingSceneProxy & InSceneProxy )
+{
+    Super::InitDelegateHelper( &InSceneProxy );
+
+    ActorOwner = InSceneProxy.ActorOwner;
+    //QueryDataSource = InSceneProxy->QueryDataSource;
+    DebugDrawOptions = InSceneProxy.DebugDrawOptions;
+}
+
+void FSVOPathFindingRenderingDebugDrawDelegateHelper::DrawDebugLabels( UCanvas * Canvas, APlayerController * PC )
+{
+    if ( !ActorOwner || ( ActorOwner->IsSelected() == false && DebugDrawOptions.bDrawOnlyWhenSelected == true ) )
+    {
+        return;
+    }
+
+    // little hacky test but it's the only way to remove text rendering from bad worlds, when using UDebugDrawService for it
+    if ( Canvas && Canvas->SceneView && Canvas->SceneView->Family && Canvas->SceneView->Family->Scene && Canvas->SceneView->Family->Scene->GetWorld() != ActorOwner->GetWorld() )
+    {
+        return;
+    }
+
+    FDebugDrawDelegateHelper::DrawDebugLabels( Canvas, PC );
+}
 
 ASVOPathFinderTest::ASVOPathFinderTest()
 {

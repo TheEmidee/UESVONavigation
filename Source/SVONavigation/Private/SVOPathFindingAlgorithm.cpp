@@ -1,12 +1,12 @@
 #include "SVOPathFindingAlgorithm.h"
 
-#include "Chaos/AABB.h"
-#include "Kismet/GameplayStatics.h"
+#include "SVOHeuristicCalculator.h"
 #include "SVONavigationData.h"
 #include "SVONavigationQueryFilterImpl.h"
 #include "SVONavigationTypes.h"
 #include "SVOTraversalCostCalculator.h"
-#include "SVOHeuristicCalculator.h"
+
+#include <Kismet/GameplayStatics.h>
 
 namespace
 {
@@ -20,7 +20,7 @@ namespace
         }
     }
 
-    void BuildPath( FNavigationPath & path, const FSVOPathFindingParameters & params, const TArray< FSVOOctreeLink > & link_path )
+    void BuildPath( FNavigationPath & path, const FSVOPathFindingParameters & params, const TArray< FSVOOctreeLink > & link_path, const bool add_end_location )
     {
         auto & path_points = path.GetPathPoints();
         const auto path_points_size = link_path.Num() + 1;
@@ -37,7 +37,10 @@ namespace
             path_points.Emplace( bounds_data.GetLinkPosition( link ) );
         }
 
-        path_points.Emplace( params.EndLocation );
+        if ( add_end_location )
+        {
+            path_points.Emplace( params.EndLocation );
+        }
     }
 
     ENavigationQueryResult::Type GraphAStarResultToNavigationTypeResult( const EGraphAStarResult result )
@@ -82,6 +85,7 @@ void FSVOPathFinderDebugInfos::Reset()
     ProcessedNeighbors.Reset();
     Iterations = 0;
     VisitedNodes = 0;
+    CurrentBestPath.ResetForRepath();
 }
 
 FSVOPathFindingParameters::FSVOPathFindingParameters( const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query ) :
@@ -119,7 +123,7 @@ void FSVOPathFindingAStarObserver_BuildPath::OnSearchSuccess( const TArray< FSVO
 {
     const auto & params = Stepper.GetParameters();
 
-    BuildPath( NavigationPath, params, link_path );
+    BuildPath( NavigationPath, params, link_path, true );
 
     if ( params.VerticalOffset != 0.0f )
     {
@@ -152,6 +156,12 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
     DebugInfos.ProcessedNeighbors.Reset();
 
     DebugInfos.Iterations++;
+
+    TArray< FSVOOctreeLink > link_path;
+    Stepper.FillLinkPath( link_path );
+
+    // Fill DebugInfos.CurrentBestPath
+    FillCurrentBestPath( link_path, false );
 }
 
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & parent, const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor, const float cost )
@@ -168,18 +178,7 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const F
 
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const TArray< FSVOOctreeLink > & link_path )
 {
-    DebugInfos.CurrentBestPath.ResetForRepath();
-
-    const auto & params = Stepper.GetParameters();
-
-    BuildPath( DebugInfos.CurrentBestPath, params, link_path );
-
-    if ( params.VerticalOffset != 0.0f )
-    {
-        ApplyVerticalOffset( DebugInfos.CurrentBestPath, params.VerticalOffset );
-    }
-
-    DebugInfos.CurrentBestPath.MarkReady();
+    FillCurrentBestPath( link_path, true );
 
     auto & nav_path_points = DebugInfos.CurrentBestPath.GetPathPoints();
     DebugInfos.PathSegmentCount = nav_path_points.Num();
@@ -193,6 +192,22 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const TAr
     }
 
     DebugInfos.PathLength = path_length;
+}
+
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::FillCurrentBestPath( const TArray< FSVOOctreeLink > & link_path, const bool add_end_location ) const
+{
+    DebugInfos.CurrentBestPath.ResetForRepath();
+
+    const auto & params = Stepper.GetParameters();
+
+    BuildPath( DebugInfos.CurrentBestPath, params, link_path, add_end_location );
+
+    if ( params.VerticalOffset != 0.0f )
+    {
+        ApplyVerticalOffset( DebugInfos.CurrentBestPath, params.VerticalOffset );
+    }
+
+    DebugInfos.CurrentBestPath.MarkReady();
 }
 
 FSVOGraphAStar::FSVOGraphAStar( const FSVOBoundsNavigationData & graph ) :
@@ -240,6 +255,12 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper::Step( EGr
     }
 }
 
+bool FSVOPathFindingAlgorithmStepper::FillLinkPath( TArray< FSVOOctreeLink > & link_path ) const
+{
+    checkNoEntry();
+    return false;
+}
+
 void FSVOPathFindingAlgorithmStepper::SetState( const ESVOPathFindingAlgorithmState new_state )
 {
     State = new_state;
@@ -262,6 +283,38 @@ FSVOPathFindingAlgorithmStepper_AStar::FSVOPathFindingAlgorithmStepper_AStar( co
     BestNodeCost( -1.0f ),
     NeighborIndex( INDEX_NONE )
 {
+}
+
+bool FSVOPathFindingAlgorithmStepper_AStar::FillLinkPath( TArray< FSVOOctreeLink > & link_path ) const
+{
+    int32 search_node_index = BestNodeIndex;
+    int32 path_length = 0;
+    do
+    {
+        path_length++;
+        search_node_index = Graph.NodePool[ search_node_index ].ParentNodeIndex;
+    } while ( Graph.NodePool.IsValidIndex( search_node_index ) && Graph.NodePool[ search_node_index ].NodeRef != Parameters.StartLink && ensure( path_length < FGraphAStarDefaultPolicy::FatalPathLength ) );
+
+    if ( path_length >= FGraphAStarDefaultPolicy::FatalPathLength )
+    {
+        return false;
+    }
+
+    // Same as FGraphAStar except we add the start link as the first node, since it is different from where the start location is
+    link_path.Reset( path_length + 1 );
+    link_path.AddZeroed( path_length + 1 );
+
+    search_node_index = BestNodeIndex;
+    int32 result_node_index = path_length;
+    do
+    {
+        link_path[ result_node_index-- ] = Graph.NodePool[ search_node_index ].NodeRef;
+        search_node_index = Graph.NodePool[ search_node_index ].ParentNodeIndex;
+    } while ( result_node_index >= 0 && search_node_index != INDEX_NONE );
+
+    link_path[ 0 ] = Parameters.StartLink;
+
+    return true;
 }
 
 ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::Init( EGraphAStarResult & result )
@@ -429,32 +482,11 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::End
     {
         TArray< FSVOOctreeLink > link_path;
 
-        int32 search_node_index = BestNodeIndex;
-        int32 path_length = 0;
-        do
-        {
-            path_length++;
-            search_node_index = Graph.NodePool[ search_node_index ].ParentNodeIndex;
-        } while ( Graph.NodePool.IsValidIndex( search_node_index ) && Graph.NodePool[ search_node_index ].NodeRef != Parameters.StartLink && ensure( path_length < FGraphAStarDefaultPolicy::FatalPathLength ) );
-
-        if ( path_length >= FGraphAStarDefaultPolicy::FatalPathLength )
+        if ( !FillLinkPath( link_path ) )
         {
             result = EGraphAStarResult::InfiniteLoop;
+            ;
         }
-
-        // Same as FGraphAStar except we add the start link as the first node, since it is different from where the start location is
-        link_path.Reset( path_length + 1 );
-        link_path.AddZeroed( path_length + 1 );
-
-        search_node_index = BestNodeIndex;
-        int32 result_node_index = path_length;
-        do
-        {
-            link_path[ result_node_index-- ] = Graph.NodePool[ search_node_index ].NodeRef;
-            search_node_index = Graph.NodePool[ search_node_index ].ParentNodeIndex;
-        } while ( result_node_index >= 0 );
-
-        link_path[ 0 ] = Parameters.StartLink;
 
         for ( const auto & observer : Observers )
         {
