@@ -3,7 +3,6 @@
 #include "SVONavigationTypes.generated.h"
 
 class USVOPathFindingAlgorithm;
-class USVOPathFindingAlgorithm;
 class USVOHeuristicCalculator;
 class USVOTraversalCostCalculator;
 

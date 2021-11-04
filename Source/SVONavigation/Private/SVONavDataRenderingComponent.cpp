@@ -183,8 +183,8 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
-            const auto occluded_leaf_voxel_size = bounds_data.GetOctreeData().GetLayer( 0 ).GetVoxelHalfSize() * 0.25f;
             const auto & octree_data = bounds_data.GetOctreeData();
+            const auto occluded_leaf_voxel_size = octree_data.GetLayer( 0 ).GetVoxelHalfSize() * 0.25f;
             const auto & leaves = octree_data.GetLeaves();
 
             for ( uint_fast32_t leaf_index = 0; leaf_index < static_cast< uint_fast32_t >( leaves.Num() ); leaf_index++ )
