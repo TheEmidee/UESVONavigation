@@ -2,7 +2,7 @@
 
 void FSVOData::Serialize( FArchive & archive )
 {
-	archive << NavigationBoundsData;
+    archive << NavigationBoundsData;
 }
 
 void FSVOData::ClearData()
@@ -17,7 +17,7 @@ void FSVOData::RemoveDataInBounds( const FBox & bounds )
     } );
 }
 
-void FSVOData::AddNavigationBoundsData( FSVOBoundsNavigationData && data )
+void FSVOData::AddNavigationBoundsData( FSVOBoundsNavigationData data )
 {
     NavigationBoundsData.Emplace( MoveTemp( data ) );
 }
@@ -34,10 +34,25 @@ FBox FSVOData::GetBoundingBox() const
     return bounding_box;
 }
 
+const FSVOBoundsNavigationData * FSVOData::GetBoundsNavigationDataContainingPoints( const TArray< FVector > & points ) const
+{
+    return NavigationBoundsData.FindByPredicate( [ this, &points ]( const FSVOBoundsNavigationData & data ) {
+        const auto & bounds = data.GetNavigationBounds();
+        for ( const auto & point : points )
+        {
+            if ( !bounds.IsInside( point ) )
+            {
+                return false;
+            }
+        }
+        return true;
+    } );
+}
+
 #if !UE_BUILD_SHIPPING
 uint32 FSVOData::GetAllocatedSize() const
 {
-	auto navigation_mem_size = 0;
+    auto navigation_mem_size = 0;
     for ( const auto & nav_bounds_data : NavigationBoundsData )
     {
         const auto octree_data_mem_size = nav_bounds_data.GetOctreeData().GetAllocatedSize();
