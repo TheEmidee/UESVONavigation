@@ -836,15 +836,15 @@ TSharedPtr< FSVOPathFindingAlgorithmStepper > USVOPathFindingAlgorithm::GetDebug
 
 ENavigationQueryResult::Type USVOPathFindingAlgorithmAStar::GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
 {
-    FSVOPathFindingAlgorithmStepper_AStar stepper_a_star( params );
-    const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper_a_star );
+    FSVOPathFindingAlgorithmStepper_AStar stepper( params );
+    const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper );
 
-    stepper_a_star.AddObserver( path_builder );
+    stepper.AddObserver( path_builder );
 
     int iterations = 0;
 
     EGraphAStarResult result = EGraphAStarResult::SearchFail;
-    while ( stepper_a_star.Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
+    while ( stepper.Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
     {
         iterations++;
     }
@@ -854,24 +854,24 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithmAStar::GetPath( FNavigation
 
 TSharedPtr< FSVOPathFindingAlgorithmStepper > USVOPathFindingAlgorithmAStar::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const
 {
-    auto stepper_a_star = MakeShared< FSVOPathFindingAlgorithmStepper_AStar >( params );
-    const auto debug_path = MakeShared< FSVOPathFindingAStarObserver_GenerateDebugInfos >( debug_infos, stepper_a_star.Get() );
-    stepper_a_star->AddObserver( debug_path );
+    auto stepper = MakeShared< FSVOPathFindingAlgorithmStepper_AStar >( params );
+    const auto debug_path = MakeShared< FSVOPathFindingAStarObserver_GenerateDebugInfos >( debug_infos, stepper.Get() );
+    stepper->AddObserver( debug_path );
 
-    return stepper_a_star;
+    return stepper;
 }
 
 ENavigationQueryResult::Type USVOPathFindingAlgorithmThetaStar::GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
 {
-    FSVOPathFindingAlgorithmStepper_ThetaStar stepper_a_star( params, ThetaStarParameters );
-    const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper_a_star );
+    FSVOPathFindingAlgorithmStepper_ThetaStar stepper( params, ThetaStarParameters );
+    const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper );
 
-    stepper_a_star.AddObserver( path_builder );
+    stepper.AddObserver( path_builder );
 
     int iterations = 0;
 
     EGraphAStarResult result = EGraphAStarResult::SearchFail;
-    while ( stepper_a_star.Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
+    while ( stepper.Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
     {
         iterations++;
     }
@@ -881,24 +881,24 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithmThetaStar::GetPath( FNaviga
 
 TSharedPtr< FSVOPathFindingAlgorithmStepper > USVOPathFindingAlgorithmThetaStar::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const
 {
-    auto stepper_a_star = MakeShared< FSVOPathFindingAlgorithmStepper_ThetaStar >( params, ThetaStarParameters );
-    const auto debug_path = MakeShared< FSVOPathFindingAStarObserver_GenerateDebugInfos >( debug_infos, stepper_a_star.Get() );
-    stepper_a_star->AddObserver( debug_path );
+    auto stepper = MakeShared< FSVOPathFindingAlgorithmStepper_ThetaStar >( params, ThetaStarParameters );
+    const auto debug_path = MakeShared< FSVOPathFindingAStarObserver_GenerateDebugInfos >( debug_infos, stepper.Get() );
+    stepper->AddObserver( debug_path );
 
-    return stepper_a_star;
+    return stepper;
 }
 
 ENavigationQueryResult::Type USVOPathFindingAlgorithmLazyThetaStar::GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
 {
-    FSVOPathFindingAlgorithmStepper_LazyThetaStar stepper_a_star( params, ThetaStarParameters );
-    const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper_a_star );
+    FSVOPathFindingAlgorithmStepper_LazyThetaStar stepper( params, ThetaStarParameters );
+    const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper );
 
-    stepper_a_star.AddObserver( path_builder );
+    stepper.AddObserver( path_builder );
 
     int iterations = 0;
 
     EGraphAStarResult result = EGraphAStarResult::SearchFail;
-    while ( stepper_a_star.Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
+    while ( stepper.Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
     {
         iterations++;
     }
@@ -908,9 +908,9 @@ ENavigationQueryResult::Type USVOPathFindingAlgorithmLazyThetaStar::GetPath( FNa
 
 TSharedPtr< FSVOPathFindingAlgorithmStepper > USVOPathFindingAlgorithmLazyThetaStar::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const
 {
-    auto stepper_a_star = MakeShared< FSVOPathFindingAlgorithmStepper_LazyThetaStar >( params, ThetaStarParameters );
-    const auto debug_path = MakeShared< FSVOPathFindingAStarObserver_GenerateDebugInfos >( debug_infos, stepper_a_star.Get() );
-    stepper_a_star->AddObserver( debug_path );
+    auto stepper = MakeShared< FSVOPathFindingAlgorithmStepper_LazyThetaStar >( params, ThetaStarParameters );
+    const auto debug_path = MakeShared< FSVOPathFindingAStarObserver_GenerateDebugInfos >( debug_infos, stepper.Get() );
+    stepper->AddObserver( debug_path );
 
-    return stepper_a_star;
+    return stepper;
 }
