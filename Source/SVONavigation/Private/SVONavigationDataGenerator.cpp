@@ -1,13 +1,14 @@
 #include "SVONavigationDataGenerator.h"
 
-#include "SVONavigationData.h"
 #include "SVOData.h"
+#include "SVONavigationData.h"
 
 #include <GameFramework/PlayerController.h>
 #include <NavigationSystem.h>
 
 FSVOBoundsNavigationDataGenerator::FSVOBoundsNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds ) :
     ParentGenerator( navigation_data_generator ),
+    BoundsNavigationData(),
     VolumeBounds( volume_bounds )
 {
     NavDataConfig = navigation_data_generator.GetOwner()->GetConfig();
@@ -70,7 +71,7 @@ bool FSVONavigationDataGenerator::RebuildAll()
 {
     UpdateNavigationBounds();
 
-    TArray<FNavigationDirtyArea> dirty_areas;
+    TArray< FNavigationDirtyArea > dirty_areas;
     dirty_areas.Reserve( RegisteredNavigationBounds.Num() );
 
     for ( const auto & registered_navigation_bounds : RegisteredNavigationBounds )
@@ -86,7 +87,7 @@ bool FSVONavigationDataGenerator::RebuildAll()
 
 void FSVONavigationDataGenerator::EnsureBuildCompletion()
 {
-    const bool had_taks = GetNumRemaningBuildTasks() > 0;
+    const bool had_tasks = GetNumRemaningBuildTasks() > 0;
 
     do
     {
@@ -100,7 +101,7 @@ void FSVONavigationDataGenerator::EnsureBuildCompletion()
         }
     } while ( GetNumRemaningBuildTasks() > 0 );
 
-    if ( had_taks )
+    if ( had_tasks )
     {
         NavigationData.RequestDrawingUpdate();
     }
@@ -151,35 +152,29 @@ void FSVONavigationDataGenerator::OnNavigationBoundsChanged()
 
 void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDirtyArea > & dirty_areas )
 {
-    TSet< FPendingBoundsDataGenerationElement > dirty_bounds_elements;
-    TSet< FBox > bounds_to_delete;
-
+    // The dirty areas are not always in the navigation bounds. If we move a static mesh outside of the navigation bounds, that function is called nonetheless
+    // So let's first keep only the areas which are in the known navigation bounds
     for ( const auto & dirty_area : dirty_areas )
     {
         auto * existing_bounds = RegisteredNavigationBounds.FindByPredicate( [ &dirty_area ]( const FBox & box ) {
-            return box == dirty_area.Bounds;
+            return box == dirty_area.Bounds || box.IsInside( dirty_area.Bounds ) || box.Intersect( dirty_area.Bounds );
         } );
 
-        if ( existing_bounds == nullptr )
+        if ( existing_bounds != nullptr )
         {
-            bounds_to_delete.Add( dirty_area.Bounds );
-            continue;
+            // Don't add another pending generation if one is already there for the navigation bounds the dirty area is in
+            if ( PendingBoundsDataGenerationElements.FindByPredicate( [ existing_bounds ]( const FPendingBoundsDataGenerationElement & pending_element ) {
+                     return pending_element.VolumeBounds == *existing_bounds;
+                 } ) == nullptr )
+            {
+                FPendingBoundsDataGenerationElement pending_box_element;
+                pending_box_element.VolumeBounds = *existing_bounds;
+
+                PendingBoundsDataGenerationElements.Emplace( pending_box_element );
+
+                NavigationData.SVODataPtr->RemoveDataInBounds( *existing_bounds );
+            }
         }
-
-        FPendingBoundsDataGenerationElement pending_box_element;
-        pending_box_element.VolumeBounds = dirty_area.Bounds;
-        dirty_bounds_elements.Emplace( pending_box_element );
-    }
-
-    for ( const auto & bound_to_delete : bounds_to_delete )
-    {
-        NavigationData.SVODataPtr->RemoveDataInBounds( bound_to_delete );
-    }
-
-    PendingBoundsDataGenerationElements.Reserve( PendingBoundsDataGenerationElements.Num() + dirty_bounds_elements.Num() );
-    for ( const auto & dirty_box : dirty_bounds_elements )
-    {
-        PendingBoundsDataGenerationElements.Emplace( dirty_box );
     }
 
     // Sort tiles by proximity to players
