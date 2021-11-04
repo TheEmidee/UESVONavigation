@@ -15,6 +15,9 @@
 #include <ObjectEditorUtils.h>
 #endif
 
+static constexpr uint32 SVOVersion_Initial = 1,
+                        SVOVersion_Latest = SVOVersion_Initial;
+
 ASVONavigationData::ASVONavigationData()
 {
     PrimaryActorTick.bCanEverTick = false;
@@ -38,6 +41,7 @@ ASVONavigationData::ASVONavigationData()
         //SupportedAreas.Add( FSupportedAreaData( UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA ) );
     }
 
+    SVOVersion = SVOVersion_Latest;
     SVODataPtr = MakeUnique< FSVOData >();
 }
 
@@ -78,6 +82,8 @@ void ASVONavigationData::PostLoad()
 void ASVONavigationData::Serialize( FArchive & archive )
 {
     Super::Serialize( archive );
+
+    archive << SVOVersion;
 
     SVODataPtr->Serialize( archive );
 
@@ -261,9 +267,9 @@ uint32 ASVONavigationData::LogMemUsed() const
     const auto super_mem_used = Super::LogMemUsed();
 
     const auto mem_used = super_mem_used + SVODataPtr->GetAllocatedSize();
-    
-    UE_LOG( LogNavigation, Warning, TEXT("%s: ASVONavigationData: %u\n    self: %d"), *GetName(), mem_used, sizeof(ASVONavigationData));
-    
+
+    UE_LOG( LogNavigation, Warning, TEXT( "%s: ASVONavigationData: %u\n    self: %d" ), *GetName(), mem_used, sizeof( ASVONavigationData ) );
+
     return mem_used;
 }
 #endif

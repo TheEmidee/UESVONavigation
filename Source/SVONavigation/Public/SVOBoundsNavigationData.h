@@ -16,34 +16,31 @@ public:
     typedef FSVOOctreeLink FNodeRef;
 
     // Used by FGraphAStar
-    bool IsValidRef( const FSVOOctreeLink ref ) const { return ref.IsValid(); }
+    bool IsValidRef( const FSVOOctreeLink ref ) const
+    {
+        return ref.IsValid();
+    }
 
     const FSVOBoundsNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
     const FBox & GetNavigationBounds() const;
     const FSVOOctreeData & GetOctreeData() const;
-    FVector GetNodePosition( LayerIndex layer_index, MortonCode morton_code ) const;
+    FVector GetNodePosition( const LayerIndex layer_index, MortonCode morton_code ) const;
     FVector GetLinkPosition( const FSVOOctreeLink & link ) const;
-    float GetLayerVoxelSize( LayerIndex layer_index ) const;
-    float GetLayerVoxelHalfSize( LayerIndex layer_index ) const;
-    uint32 GetLayerNodeCount( LayerIndex layer_index ) const;
-    const TArray< FSVOOctreeNode > & GetLayerNodes( LayerIndex layer_index ) const;
     const FSVOOctreeNode & GetNodeFromLink( const FSVOOctreeLink & link ) const;
-    const FSVOOctreeLeaf & GetLeafNode( LeafIndex leaf_index ) const;
     bool GetLinkFromPosition( FSVOOctreeLink & link, const FVector & position ) const;
     void GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
-    float GetLayerRatio( LayerIndex layer_index) const;
-    float GetLayerInverseRatio( LayerIndex layer_index) const;
+    float GetLayerRatio( LayerIndex layer_index ) const;
+    float GetLayerInverseRatio( LayerIndex layer_index ) const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOBoundsNavigationDataGenerationSettings & generation_settings );
 
 private:
-    TArray< FSVOOctreeNode > & GetLayerNodes( LayerIndex layer_index );
     int32 GetLayerMaxNodeCount( LayerIndex layer_index ) const;
     bool IsPositionOccluded( const FVector & position, float box_size ) const;
     void FirstPassRasterization();
     void AllocateLeafNodes();
-    void RasterizeLeaf( const FVector & node_position, int32 leaf_index );
+    void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index );
     void RasterizeInitialLayer();
     void RasterizeLayer( LayerIndex layer_index );
     TOptional< NodeIndex > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
@@ -59,9 +56,6 @@ private:
     float UsedBoxExtent;
     FSVOOctreeData SVOData;
     TArray< TSet< MortonCode > > BlockedIndices;
-    TArray< float > LayerVoxelSizes;
-    TArray< float > LayerVoxelHalfSizes;
-    TArray< uint32 > LayerNodeCount;
 };
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOBoundsNavigationData & data )
@@ -71,9 +65,6 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOBoundsNavigationData 
     archive << data.VoxelExponent;
     archive << data.LayerCount;
     archive << data.UsedBoxExtent;
-    archive << data.LayerVoxelSizes;
-    archive << data.LayerVoxelHalfSizes;
-    archive << data.LayerNodeCount;
     archive << data.SVOData;
 
     archive << data.VolumeBounds;
@@ -100,44 +91,15 @@ FORCEINLINE const FSVOOctreeData & FSVOBoundsNavigationData::GetOctreeData() con
     return SVOData;
 }
 
-FORCEINLINE float FSVOBoundsNavigationData::GetLayerVoxelSize( LayerIndex layer_index ) const
+FORCEINLINE int32 FSVOBoundsNavigationData::GetLayerMaxNodeCount( const LayerIndex layer_index ) const
 {
-    return LayerVoxelSizes[ layer_index ];
-}
-
-FORCEINLINE float FSVOBoundsNavigationData::GetLayerVoxelHalfSize( LayerIndex layer_index ) const
-{
-    return LayerVoxelHalfSizes[ layer_index ];
-}
-
-FORCEINLINE uint32 FSVOBoundsNavigationData::GetLayerNodeCount( LayerIndex layer_index ) const
-{
-    return LayerNodeCount[ layer_index ];
-}
-
-FORCEINLINE const TArray< FSVOOctreeNode > & FSVOBoundsNavigationData::GetLayerNodes( LayerIndex layer_index ) const
-{
-    return SVOData.NodesByLayers[ layer_index ];
-}
-
-FORCEINLINE TArray< FSVOOctreeNode > & FSVOBoundsNavigationData::GetLayerNodes( LayerIndex layer_index )
-{
-    return SVOData.NodesByLayers[ layer_index ];
-}
-
-FORCEINLINE int32 FSVOBoundsNavigationData::GetLayerMaxNodeCount( LayerIndex layer_index ) const
-{
+    // :TODO: check if valid
     return FMath::Pow( 2, VoxelExponent - layer_index );
 }
 
 FORCEINLINE const FSVOOctreeNode & FSVOBoundsNavigationData::GetNodeFromLink( const FSVOOctreeLink & link ) const
 {
     return link.LayerIndex < 15
-        ? SVOData.NodesByLayers[ link.LayerIndex ][ link.NodeIndex ]
-        : SVOData.NodesByLayers.Last()[ 0 ];
-}
-
-FORCEINLINE const FSVOOctreeLeaf & FSVOBoundsNavigationData::GetLeafNode( LeafIndex leaf_index ) const
-{
-    return SVOData.Leaves[ leaf_index ];
+               ? SVOData.GetLayer( link.LayerIndex ).GetNode( link.NodeIndex )
+               : SVOData.GetLastLayer().GetNode( 0 );
 }

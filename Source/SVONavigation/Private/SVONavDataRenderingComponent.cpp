@@ -130,18 +130,19 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
         {
             const auto & octree_data = bounds_data.GetOctreeData();
 
-            if ( octree_data.NodesByLayers.Num() == 0 )
+            const auto layer_count = octree_data.GetLayerCount();
+
+            if ( layer_count == 0 )
             {
                 break;
             }
 
             const auto fill_array = [ &octree_data, &bounds_data ]( TArray< FBoxCenterAndExtent > & array, const LayerIndex layer_index ) {
-                const auto & layer_nodes = octree_data.NodesByLayers[ layer_index ];
-                for ( const auto & node : layer_nodes )
+                for ( const auto & node : octree_data.GetLayer( layer_index ).GetNodes() )
                 {
                     const auto code = node.MortonCode;
                     const auto node_position = bounds_data.GetNodePosition( layer_index, code );
-                    const auto half_voxel_size = bounds_data.GetLayerVoxelHalfSize( layer_index );
+                    const auto half_voxel_size = bounds_data.GetOctreeData().GetLayer( layer_index ).GetVoxelHalfSize();
 
                     array.Emplace( FBoxCenterAndExtent( node_position, FVector( half_voxel_size ) ) );
                 }
@@ -156,7 +157,7 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
             {
                 const auto layer_index_to_draw = DebugInfos.LayerIndexToDraw;
 
-                if ( layer_index_to_draw >= 1 && layer_index_to_draw < octree_data.NodesByLayers.Num() )
+                if ( layer_index_to_draw >= 1 && layer_index_to_draw < layer_count )
                 {
                     fill_array( Layers, layer_index_to_draw );
                 }
@@ -166,11 +167,9 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
             {
                 const auto morton_codes_layer_index = DebugInfos.MortonCodeLayerIndexToDraw;
 
-                if ( morton_codes_layer_index >= 0 && morton_codes_layer_index < octree_data.NodesByLayers.Num() )
+                if ( morton_codes_layer_index >= 0 && morton_codes_layer_index < layer_count )
                 {
-                    const auto & layer_nodes = octree_data.NodesByLayers[ morton_codes_layer_index ];
-
-                    for ( const auto & node : layer_nodes )
+                    for ( const auto & node : octree_data.GetLayer( morton_codes_layer_index ).GetNodes() )
                     {
                         DebugTexts.Emplace( FDebugText( bounds_data.GetNodePosition( morton_codes_layer_index, node.MortonCode ),
                             FString::Printf( TEXT( "%i:%llu" ), morton_codes_layer_index, node.MortonCode ) ) );
@@ -184,16 +183,17 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
     {
         for ( const auto & bounds_data : navigation_bounds )
         {
-            const auto occluded_leaf_voxel_size = bounds_data.GetLayerVoxelHalfSize( 0 ) * 0.25f;
+            const auto occluded_leaf_voxel_size = bounds_data.GetOctreeData().GetLayer( 0 ).GetVoxelHalfSize() * 0.25f;
             const auto & octree_data = bounds_data.GetOctreeData();
+            const auto & leaves = octree_data.GetLeaves();
 
-            for ( uint_fast32_t I = 0; I < static_cast< uint_fast32_t >( octree_data.Leaves.Num() ); I++ )
+            for ( uint_fast32_t leaf_index = 0; leaf_index < static_cast< uint_fast32_t >( leaves.Num() ); leaf_index++ )
             {
-                for ( uint8 J = 0; J < 64; J++ )
+                for ( uint8 leaf_voxel = 0; leaf_voxel < 64; leaf_voxel++ )
                 {
-                    if ( octree_data.Leaves[ I ].GetSubNode( J ) )
+                    if ( leaves[ leaf_index ].GetSubNode( leaf_voxel ) )
                     {
-                        const FSVOOctreeLink link { 0, I, J };
+                        const FSVOOctreeLink link { 0, leaf_index, leaf_voxel };
                         const auto node_location = bounds_data.GetLinkPosition( link );
 
                         OccludedLeaves.Emplace( FBoxCenterAndExtent( node_location, FVector( occluded_leaf_voxel_size ) ) );
@@ -209,17 +209,19 @@ void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & naviga
         {
             const auto & octree_data = bounds_data.GetOctreeData();
 
-            if ( octree_data.NodesByLayers.Num() == 0 )
+            const auto layer_count = octree_data.GetLayerCount();
+            if ( layer_count == 0 )
             {
                 break;
             }
 
             const auto layer_index_to_draw = DebugInfos.LinksLayerIndexToDraw;
 
-            if ( layer_index_to_draw >= 1 && layer_index_to_draw < octree_data.NodesByLayers.Num() )
+            if ( layer_index_to_draw >= 1 && layer_index_to_draw < layer_count )
             {
-                const auto & layer_nodes = octree_data.NodesByLayers[ layer_index_to_draw ];
-                for ( const auto & node : layer_nodes )
+                const auto & layer = octree_data.GetLayer( layer_index_to_draw );
+
+                for ( const auto & node : layer.GetNodes() )
                 {
                     const auto code = node.MortonCode;
                     const auto node_position = bounds_data.GetNodePosition( layer_index_to_draw, code );
