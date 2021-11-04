@@ -156,23 +156,23 @@ void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDi
     // So let's first keep only the areas which are in the known navigation bounds
     for ( const auto & dirty_area : dirty_areas )
     {
-        auto * existing_bounds = RegisteredNavigationBounds.FindByPredicate( [ &dirty_area ]( const FBox & box ) {
+        const auto matching_bounds = RegisteredNavigationBounds.FilterByPredicate( [ &dirty_area ]( const FBox & box ) {
             return box == dirty_area.Bounds || box.IsInside( dirty_area.Bounds ) || box.Intersect( dirty_area.Bounds );
         } );
 
-        if ( existing_bounds != nullptr )
+        for ( const auto & matching_bounds_element : matching_bounds )
         {
             // Don't add another pending generation if one is already there for the navigation bounds the dirty area is in
-            if ( PendingBoundsDataGenerationElements.FindByPredicate( [ existing_bounds ]( const FPendingBoundsDataGenerationElement & pending_element ) {
-                     return pending_element.VolumeBounds == *existing_bounds;
+            if ( PendingBoundsDataGenerationElements.FindByPredicate( [ &matching_bounds_element ]( const FPendingBoundsDataGenerationElement & pending_element ) {
+                     return pending_element.VolumeBounds == matching_bounds_element;
                  } ) == nullptr )
             {
                 FPendingBoundsDataGenerationElement pending_box_element;
-                pending_box_element.VolumeBounds = *existing_bounds;
+                pending_box_element.VolumeBounds = matching_bounds_element;
 
                 PendingBoundsDataGenerationElements.Emplace( pending_box_element );
 
-                NavigationData.SVODataPtr->RemoveDataInBounds( *existing_bounds );
+                NavigationData.SVODataPtr->RemoveDataInBounds( matching_bounds_element );
             }
         }
     }
@@ -256,10 +256,23 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
 
                 RegisteredNavigationBounds.Reset( supported_navigation_bounds.Num() );
 
-                for ( const FBox & Box : supported_navigation_bounds )
+                for ( const auto & box : supported_navigation_bounds )
                 {
-                    RegisteredNavigationBounds.Add( Box );
-                    bounds_sum += Box;
+                    RegisteredNavigationBounds.Add( box );
+                    bounds_sum += box;
+                }
+
+                // Remove the existing navigation bounds which don't match the new navigation bounds
+                auto existing_navigation_bounds = NavigationData.SVODataPtr->GetNavigationBoundsData();
+
+                for ( const auto & existing_bounds : existing_navigation_bounds )
+                {
+                    if ( RegisteredNavigationBounds.FindByPredicate( [ &existing_bounds ]( const FBox & registered_bounds ) {
+                             return registered_bounds == existing_bounds.GetVolumeBounds();
+                         } ) == nullptr )
+                    {
+                        NavigationData.SVODataPtr->RemoveDataInBounds( existing_bounds.GetVolumeBounds() );
+                    }
                 }
             }
             TotalNavigationBounds = bounds_sum;
