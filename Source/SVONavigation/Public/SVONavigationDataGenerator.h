@@ -38,7 +38,7 @@ struct SVONAVIGATION_API FSVOBoxGeneratorWrapper : public FNonAbandonableTask
 {
     TSharedRef< FSVOBoundsNavigationDataGenerator > BoxNavigationDataGenerator;
 
-    FSVOBoxGeneratorWrapper( TSharedRef< FSVOBoundsNavigationDataGenerator > box_navigation_generator ) :
+    FSVOBoxGeneratorWrapper( const TSharedRef< FSVOBoundsNavigationDataGenerator > box_navigation_generator ) :
         BoxNavigationDataGenerator( box_navigation_generator )
     {
     }
