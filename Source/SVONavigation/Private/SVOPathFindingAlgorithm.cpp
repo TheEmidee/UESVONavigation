@@ -415,7 +415,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::Pro
 
     const auto neighbor_link = Neighbors[ NeighborIndex ];
 
-    if ( Graph.Graph.IsValidRef( neighbor_link ) == false || neighbor_link == Graph.NodePool[ ConsideredNodeIndex ].ParentRef || neighbor_link == Graph.NodePool[ ConsideredNodeIndex ].NodeRef /*|| query_filter.IsTraversalAllowed( Graph.NodePool[ ConsideredNodeIndex ].NodeRef, NeighbourRef ) == false*/ )
+    if ( !Graph.Graph.IsValidRef( neighbor_link ) || neighbor_link == Graph.NodePool[ ConsideredNodeIndex ].ParentRef || neighbor_link == Graph.NodePool[ ConsideredNodeIndex ].NodeRef /*|| query_filter.IsTraversalAllowed( Graph.NodePool[ ConsideredNodeIndex ].NodeRef, NeighbourRef ) == false*/ )
     {
         return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
     }
@@ -538,7 +538,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
 
     const auto neighbor_link = Neighbors[ NeighborIndex ];
 
-    if ( Graph.Graph.IsValidRef( neighbor_link ) == false || neighbor_link == Graph.NodePool[ ConsideredNodeIndex ].ParentRef || neighbor_link == Graph.NodePool[ ConsideredNodeIndex ].NodeRef /*|| query_filter.IsTraversalAllowed( Graph.NodePool[ ConsideredNodeIndex ].NodeRef, NeighbourRef ) == false*/ )
+    if ( !Graph.Graph.IsValidRef( neighbor_link ) || neighbor_link == Graph.NodePool[ ConsideredNodeIndex ].ParentRef || neighbor_link == Graph.NodePool[ ConsideredNodeIndex ].NodeRef /*|| query_filter.IsTraversalAllowed( Graph.NodePool[ ConsideredNodeIndex ].NodeRef, NeighbourRef ) == false*/ )
     {
         return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
     }
@@ -744,7 +744,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
     // Again, let's take a pointer as we call FindOrAdd below
     auto * current_node = &Graph.NodePool[ ConsideredNodeIndex ];
 
-    if ( Graph.Graph.IsValidRef( neighbor_link ) == false || neighbor_link == current_node->ParentRef || neighbor_link == current_node->NodeRef /*|| query_filter.IsTraversalAllowed( Graph.NodePool[ ConsideredNodeIndex ].NodeRef, NeighbourRef ) == false*/ )
+    if ( !Graph.Graph.IsValidRef( neighbor_link ) || neighbor_link == current_node->ParentRef || neighbor_link == current_node->NodeRef /*|| query_filter.IsTraversalAllowed( Graph.NodePool[ ConsideredNodeIndex ].NodeRef, NeighbourRef ) == false*/ )
     {
         return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
     }
