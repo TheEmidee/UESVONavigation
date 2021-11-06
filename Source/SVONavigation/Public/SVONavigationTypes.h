@@ -292,7 +292,12 @@ public:
 
     FSVOOctreeLeaf GetLeaf( const LeafIndex leaf_index ) const;
     const TArray< FSVOOctreeLeaf > & GetLeaves() const;
+    float GetLeafExtent() const;
+    float GetLeafHalfExtent() const;
+    float GetLeafSubNodeExtent() const;
+    float GetLeafSubNodeHalfExtent() const;
 
+    void Initialize( float leaf_extent );
     void Reset();
     int GetAllocatedSize() const;
     void AllocateLeaves( int leaf_count );
@@ -300,6 +305,7 @@ public:
     void AddEmptyLeaf();
 
 private:
+    float LeafExtent;
     TArray< FSVOOctreeLeaf > Leaves;
 };
 
@@ -311,6 +317,26 @@ FORCEINLINE FSVOOctreeLeaf FSVOLeaves::GetLeaf( const LeafIndex leaf_index ) con
 FORCEINLINE const TArray< FSVOOctreeLeaf > & FSVOLeaves::GetLeaves() const
 {
     return Leaves;
+}
+
+FORCEINLINE float FSVOLeaves::GetLeafExtent() const
+{
+    return LeafExtent;
+}
+
+FORCEINLINE float FSVOLeaves::GetLeafHalfExtent() const
+{
+    return GetLeafExtent() * 0.5f;
+}
+
+FORCEINLINE float FSVOLeaves::GetLeafSubNodeExtent() const
+{
+    return GetLeafExtent() * 0.25f;
+}
+
+FORCEINLINE float FSVOLeaves::GetLeafSubNodeHalfExtent() const
+{
+    return GetLeafSubNodeExtent() * 0.5f;
 }
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves )

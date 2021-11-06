@@ -278,7 +278,7 @@ void FSVOBoundsNavigationData::GenerateNavigationData( const FBox & volume_bound
     }
 }
 
-void FSVOBoundsNavigationData::Serialize( FArchive & archive, const ESVOVersion version )
+void FSVOBoundsNavigationData::Serialize( FArchive & archive, const ESVOVersion /*version*/ )
 {
     archive << SVOData;
 }
@@ -305,10 +305,12 @@ FVector FSVOBoundsNavigationData::GetLinkPosition( const FSVOOctreeLink & link )
 
     if ( link.LayerIndex == 0 && node.FirstChild.IsValid() )
     {
-        const auto & layer = SVOData.GetLayer( 0 );
-        const auto voxel_size = layer.GetVoxelExtent();
+        const auto & leaves = SVOData.GetLeaves();
+        const auto leaf_extent = leaves.GetLeafExtent();
+        const auto leaf_subnode_extent = SVOData.GetLeaves().GetLeafSubNodeExtent();
         const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( link.SubNodeIndex );
-        position += morton_coords * voxel_size / 4 - voxel_size * 0.375f;
+
+        position += morton_coords * leaf_subnode_extent - leaf_extent * 0.375f;
     }
 
     return position;
@@ -355,27 +357,22 @@ void FSVOBoundsNavigationData::FirstPassRasterization()
     }
 }
 
-void FSVOBoundsNavigationData::AllocateLeafNodes()
-{
-    
-}
-
 void FSVOBoundsNavigationData::RasterizeLeaf( const FVector & node_position, const LeafIndex leaf_index )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_RasterizeLeaf );
 
-    const auto & layer = SVOData.GetLayer( 0 );
-    const auto layer_voxel_half_extent = layer.GetVoxelHalfExtent();
-    const auto location = node_position - layer_voxel_half_extent;
-    const auto leaf_half_extent = layer_voxel_half_extent * 0.5f;
-    const auto leaf_subnode_half_extent = leaf_half_extent * 0.5f;
+    const auto leaf_half_extent = SVOData.GetLeaves().GetLeafHalfExtent();
+    const auto leaf_subnode_extent = SVOData.GetLeaves().GetLeafSubNodeExtent();
+    const auto leaf_subnode_half_extent = SVOData.GetLeaves().GetLeafSubNodeHalfExtent();
+    const auto location = node_position - leaf_half_extent;
 
     for ( SubNodeIndex subnode_index = 0; subnode_index < 64; subnode_index++ )
     {
         const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( subnode_index );
-        const auto voxel_location = location + morton_coords * leaf_half_extent + leaf_half_extent * 0.5f;
+        const auto voxel_location = location + morton_coords * leaf_subnode_extent + leaf_subnode_half_extent;
+        const bool is_leaf_occluded = IsPositionOccluded( voxel_location, leaf_subnode_half_extent );
 
-        SVOData.GetLeaves().AddLeaf( leaf_index, subnode_index, IsPositionOccluded( voxel_location, leaf_subnode_half_extent ) );
+        SVOData.GetLeaves().AddLeaf( leaf_index, subnode_index, is_leaf_occluded );
     }
 }
 

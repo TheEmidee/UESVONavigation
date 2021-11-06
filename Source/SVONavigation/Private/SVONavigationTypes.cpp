@@ -19,6 +19,11 @@ void FSVOOctreeLeaf::SetSubNodeAt( uint_fast32_t x, uint_fast32_t y, uint_fast32
     SubNodes |= 1ULL << morton3D_64_encode( x, y, z );
 }
 
+void FSVOLeaves::Initialize( const float leaf_extent )
+{
+    LeafExtent = leaf_extent;
+}
+
 void FSVOLeaves::Reset()
 {
     Leaves.Reset();
@@ -77,8 +82,8 @@ bool FSVOOctreeData::Initialize( const float voxel_extent, const FBox & volume_b
 
     const auto volume_extent = volume_bounds.GetSize().GetAbsMax();
 
-    const auto layer_zero_node_extent = voxel_extent * 4;
-    const auto voxel_exponent = FMath::CeilToInt( FMath::Log2( volume_extent / layer_zero_node_extent ) );
+    const auto leaf_extent = voxel_extent * 4;
+    const auto voxel_exponent = FMath::CeilToInt( FMath::Log2( volume_extent / leaf_extent ) );
     const auto layer_count = voxel_exponent + 1;
 
     if ( layer_count < 2 )
@@ -86,7 +91,9 @@ bool FSVOOctreeData::Initialize( const float voxel_extent, const FBox & volume_b
         return false;
     }
 
-    const auto navigation_bounds_extent = FMath::Pow( 2, voxel_exponent ) * layer_zero_node_extent;
+    Leaves.Initialize( leaf_extent );
+
+    const auto navigation_bounds_extent = FMath::Pow( 2, voxel_exponent ) * leaf_extent;
 
     for ( LayerIndex layer_index = 0; layer_index < layer_count; ++layer_index )
     {

@@ -40,7 +40,6 @@ private:
     int GetLayerCount() const;
     bool IsPositionOccluded( const FVector & position, float box_half_extent ) const;
     void FirstPassRasterization();
-    void AllocateLeafNodes();
     void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index );
     void RasterizeInitialLayer();
     void RasterizeLayer( LayerIndex layer_index );
