@@ -291,14 +291,14 @@ public:
     friend FArchive & operator<<( FArchive & archive, FSVOLayer & layer );
 
     FSVOLayer();
-    FSVOLayer( int max_node_count, float voxel_size );
+    FSVOLayer( int max_node_count, float voxel_extent );
 
     const TArray< FSVOOctreeNode > & GetNodes() const;
     TArray< FSVOOctreeNode > & GetNodes();
     int32 GetNodeCount() const;
     const FSVOOctreeNode & GetNode( NodeIndex node_index ) const;
-    float GetVoxelSize() const;
-    float GetVoxelHalfSize() const;
+    float GetVoxelExtent() const;
+    float GetVoxelHalfExtent() const;
     uint32 GetMaxNodeCount() const;
 
     int GetAllocatedSize() const;
@@ -306,8 +306,8 @@ public:
 private:
     TArray< FSVOOctreeNode > Nodes;
     int MaxNodeCount;
-    float VoxelSize;
-    float VoxelHalfSize;
+    float VoxelExtent;
+    float VoxelHalfExtent;
 };
 
 FORCEINLINE const TArray< FSVOOctreeNode > & FSVOLayer::GetNodes() const
@@ -330,14 +330,14 @@ FORCEINLINE const FSVOOctreeNode & FSVOLayer::GetNode( const NodeIndex node_inde
     return Nodes[ node_index ];
 }
 
-FORCEINLINE float FSVOLayer::GetVoxelSize() const
+FORCEINLINE float FSVOLayer::GetVoxelExtent() const
 {
-    return VoxelSize;
+    return VoxelExtent;
 }
 
-FORCEINLINE float FSVOLayer::GetVoxelHalfSize() const
+FORCEINLINE float FSVOLayer::GetVoxelHalfExtent() const
 {
-    return VoxelHalfSize;
+    return VoxelHalfExtent;
 }
 
 FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
@@ -349,8 +349,8 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
 {
     archive << layer.Nodes;
     archive << layer.MaxNodeCount;
-    archive << layer.VoxelSize;
-    archive << layer.VoxelHalfSize;
+    archive << layer.VoxelExtent;
+    archive << layer.VoxelHalfExtent;
 
     return archive;
 }

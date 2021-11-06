@@ -6,7 +6,7 @@ enum class ESVOVersion : uint8;
 
 struct FSVOBoundsNavigationDataGenerationSettings
 {
-    float VoxelSize;
+    float VoxelExtent;
     UWorld * World;
     FSVODataGenerationSettings GenerationSettings;
 };

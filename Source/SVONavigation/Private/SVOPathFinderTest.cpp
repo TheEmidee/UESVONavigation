@@ -116,8 +116,6 @@ void FSVOPathFindingSceneProxy::GetDynamicMeshElements( const TArray< const FSce
 
         if ( visibility_map & ( 1 << view_index ) )
         {
-            const auto actor_location = RenderingComponent->GetOwner()->GetActorLocation();
-
             for ( const auto & pair : ArrowHeadLocations )
             {
                 DrawArrowHead( pdi, pair.Value, pair.Key, 50.f, FColor::Red, SDPG_World, 10.0f );

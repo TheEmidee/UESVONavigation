@@ -58,7 +58,7 @@ bool FSVOBoundsNavigationData::GetLinkFromPosition( FSVOOctreeLink & link, const
     {
         const auto & layer = SVOData.GetLayer( layer_index );
         const auto & layer_nodes = layer.GetNodes();
-        const auto voxel_size = layer.GetVoxelSize();
+        const auto voxel_size = layer.GetVoxelExtent();
 
         FIntVector voxel_coords;
         voxel_coords.X = FMath::FloorToInt( local_position.X / voxel_size );
@@ -67,7 +67,7 @@ bool FSVOBoundsNavigationData::GetLinkFromPosition( FSVOOctreeLink & link, const
 
         // Get the morton code we want for this layer
         const auto code = morton3D_64_encode( voxel_coords.X, voxel_coords.Y, voxel_coords.Z );
-        const auto half_voxel_size = layer.GetVoxelHalfSize();
+        const auto half_voxel_size = layer.GetVoxelHalfExtent();
 
         for ( NodeIndex node_index = nodeIndex; node_index < static_cast< uint32 >( layer_nodes.Num() ); node_index++ )
         {
@@ -299,8 +299,8 @@ FVector FSVOBoundsNavigationData::GetNodePosition( const LayerIndex layer_index,
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodePosition );
 
     const auto & layer = SVOData.GetLayer( layer_index );
-    const auto voxel_size = layer.GetVoxelSize();
-    const auto voxel_half_size = layer.GetVoxelHalfSize();
+    const auto voxel_size = layer.GetVoxelExtent();
+    const auto voxel_half_size = layer.GetVoxelHalfExtent();
 
     uint_fast32_t x, y, z;
     morton3D_64_decode( morton_code, x, y, z );
@@ -317,7 +317,7 @@ FVector FSVOBoundsNavigationData::GetLinkPosition( const FSVOOctreeLink & link )
     if ( link.LayerIndex == 0 && node.FirstChild.IsValid() )
     {
         const auto & layer = SVOData.GetLayer( 0 );
-        const auto voxel_size = layer.GetVoxelSize();
+        const auto voxel_size = layer.GetVoxelExtent();
         uint_fast32_t x, y, z;
         morton3D_32_decode( link.SubNodeIndex, x, y, z );
         position += FVector( x, y, z ) * voxel_size / 4 - voxel_size * 0.375f;
@@ -326,14 +326,14 @@ FVector FSVOBoundsNavigationData::GetLinkPosition( const FSVOOctreeLink & link )
     return position;
 }
 
-bool FSVOBoundsNavigationData::IsPositionOccluded( const FVector & position, const float box_size ) const
+bool FSVOBoundsNavigationData::IsPositionOccluded( const FVector & position, const float box_half_extent ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_IsPositionOccluded );
     return Settings.World->OverlapBlockingTestByChannel(
         position,
         FQuat::Identity,
         Settings.GenerationSettings.CollisionChannel,
-        FCollisionShape::MakeBox( FVector( box_size + Settings.GenerationSettings.Clearance ) ),
+        FCollisionShape::MakeBox( FVector( box_half_extent + Settings.GenerationSettings.Clearance ) ),
         Settings.GenerationSettings.CollisionQueryParameters );
 }
 
@@ -348,7 +348,7 @@ void FSVOBoundsNavigationData::FirstPassRasterization()
         for ( MortonCode node_index = 0; node_index < node_count; ++node_index )
         {
             const auto position = GetNodePosition( 1, node_index );
-            if ( IsPositionOccluded( position, layer.GetVoxelHalfSize() ) )
+            if ( IsPositionOccluded( position, layer.GetVoxelHalfExtent() ) )
             {
                 layer_blocked_indices.Add( node_index );
             }
@@ -378,18 +378,18 @@ void FSVOBoundsNavigationData::RasterizeLeaf( const FVector & node_position, con
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_RasterizeLeaf );
 
     const auto & layer = SVOData.GetLayer( 0 );
-    const auto layer_voxel_half_size = layer.GetVoxelHalfSize();
-    const auto location = node_position - layer_voxel_half_size;
-    const auto leaf_voxel_size = layer_voxel_half_size * 0.5f;
-    const auto leaf_occlusion_voxel_size = leaf_voxel_size * 0.5f;
+    const auto layer_voxel_half_extent = layer.GetVoxelHalfExtent();
+    const auto location = node_position - layer_voxel_half_extent;
+    const auto leaf_half_extent = layer_voxel_half_extent * 0.5f;
+    const auto leaf_subnode_half_extent = leaf_half_extent * 0.5f;
 
     for ( SubNodeIndex subnode_index = 0; subnode_index < 64; subnode_index++ )
     {
         uint_fast32_t x, y, z;
         morton3D_32_decode( subnode_index, x, y, z );
-        const auto voxel_location = location + FVector( x, y, z ) * leaf_voxel_size + leaf_voxel_size * 0.5f;
+        const auto voxel_location = location + FVector( x, y, z ) * leaf_half_extent + leaf_half_extent * 0.5f;
 
-        SVOData.AddLeaf( leaf_index, subnode_index, IsPositionOccluded( voxel_location, leaf_occlusion_voxel_size ) );
+        SVOData.GetLeaves().AddLeaf( leaf_index, subnode_index, IsPositionOccluded( voxel_location, leaf_subnode_half_extent ) );
     }
 }
 
@@ -404,7 +404,7 @@ void FSVOBoundsNavigationData::RasterizeInitialLayer()
     layer_nodes.Reserve( BlockedIndices[ 0 ].Num() * 8 );
 
     const auto layer_max_node_count = layer.GetMaxNodeCount();
-    const auto layer_voxel_half_size = layer.GetVoxelHalfSize();
+    const auto layer_voxel_half_size = layer.GetVoxelHalfExtent();
 
     for ( NodeIndex node_index = 0; node_index < layer_max_node_count; node_index++ )
     {

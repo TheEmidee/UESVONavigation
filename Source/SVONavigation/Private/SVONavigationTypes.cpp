@@ -21,15 +21,15 @@ void FSVOOctreeLeaf::SetSubNodeAt( uint_fast32_t X, uint_fast32_t Y, uint_fast32
 
 FSVOLayer::FSVOLayer() :
     MaxNodeCount( -1 ),
-    VoxelSize( 0.0f ),
-    VoxelHalfSize( 0.0f )
+    VoxelExtent( 0.0f ),
+    VoxelHalfExtent( 0.0f )
 {
 }
 
-FSVOLayer::FSVOLayer( const int max_node_count, const float voxel_size ) :
+FSVOLayer::FSVOLayer( const int max_node_count, const float voxel_extent ) :
     MaxNodeCount( max_node_count ),
-    VoxelSize( voxel_size ),
-    VoxelHalfSize( voxel_size * 0.5f )
+    VoxelExtent( voxel_extent ),
+    VoxelHalfExtent( voxel_extent * 0.5f )
 {
 }
 
