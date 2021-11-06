@@ -1,5 +1,6 @@
 #include "SVOBoundsNavigationData.h"
 
+#include "SVOHelpers.h"
 #include "SVONavigationData.h"
 #include "SVONavigationTypes.h"
 #include "SVOVersion.h"
@@ -70,7 +71,7 @@ bool FSVOBoundsNavigationData::GetLinkFromPosition( FSVOOctreeLink & link, const
         voxel_coords.Z = FMath::FloorToInt( local_position.Z / voxel_size );
 
         // Get the morton code we want for this layer
-        const auto code = morton3D_64_encode( voxel_coords.X, voxel_coords.Y, voxel_coords.Z );
+        const auto code = FSVOHelpers::GetMortonCodeFromVector( voxel_coords );
         const auto half_voxel_size = layer.GetVoxelHalfExtent();
 
         for ( NodeIndex node_index = nodeIndex; node_index < static_cast< uint32 >( layer_nodes.Num() ); node_index++ )
@@ -111,11 +112,10 @@ bool FSVOBoundsNavigationData::GetLinkFromPosition( FSVOOctreeLink & link, const
                 leaf_coords.Y = FMath::FloorToInt( nodeLocalPos.Y / voxel_quarter_size );
                 leaf_coords.Z = FMath::FloorToInt( nodeLocalPos.Z / voxel_quarter_size );
 
-                // So our link is.....*drum roll*
-                link.LayerIndex = 0;         // Layer 0 (leaf)
-                link.NodeIndex = node_index; // This index
+                link.LayerIndex = 0;
+                link.NodeIndex = node_index;
 
-                const auto leaf_code = morton3D_64_encode( leaf_coords.X, leaf_coords.Y, leaf_coords.Z ); // This morton code is our key into the 64-bit leaf node
+                const auto leaf_code = FSVOHelpers::GetMortonCodeFromVector( leaf_coords ); // This morton code is our key into the 64-bit leaf node
 
                 if ( leaf.GetSubNode( leaf_code ) )
                 {
@@ -290,12 +290,10 @@ FVector FSVOBoundsNavigationData::GetNodePosition( const LayerIndex layer_index,
     const auto & layer = SVOData.GetLayer( layer_index );
     const auto voxel_size = layer.GetVoxelExtent();
     const auto voxel_half_size = layer.GetVoxelHalfExtent();
-
-    uint_fast32_t x, y, z;
-    morton3D_64_decode( morton_code, x, y, z );
+    const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( morton_code );
     const auto & navigation_bounds = SVOData.GetNavigationBounds();
 
-    return navigation_bounds.GetCenter() - navigation_bounds.GetExtent() + FVector( x, y, z ) * voxel_size + voxel_half_size;
+    return navigation_bounds.GetCenter() - navigation_bounds.GetExtent() + morton_coords * voxel_size + voxel_half_size;
 }
 
 FVector FSVOBoundsNavigationData::GetLinkPosition( const FSVOOctreeLink & link ) const
@@ -309,9 +307,8 @@ FVector FSVOBoundsNavigationData::GetLinkPosition( const FSVOOctreeLink & link )
     {
         const auto & layer = SVOData.GetLayer( 0 );
         const auto voxel_size = layer.GetVoxelExtent();
-        uint_fast32_t x, y, z;
-        morton3D_32_decode( link.SubNodeIndex, x, y, z );
-        position += FVector( x, y, z ) * voxel_size / 4 - voxel_size * 0.375f;
+        const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( link.SubNodeIndex );
+        position += morton_coords * voxel_size / 4 - voxel_size * 0.375f;
     }
 
     return position;
@@ -375,9 +372,8 @@ void FSVOBoundsNavigationData::RasterizeLeaf( const FVector & node_position, con
 
     for ( SubNodeIndex subnode_index = 0; subnode_index < 64; subnode_index++ )
     {
-        uint_fast32_t x, y, z;
-        morton3D_32_decode( subnode_index, x, y, z );
-        const auto voxel_location = location + FVector( x, y, z ) * leaf_half_extent + leaf_half_extent * 0.5f;
+        const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( subnode_index );
+        const auto voxel_location = location + morton_coords * leaf_half_extent + leaf_half_extent * 0.5f;
 
         SVOData.GetLeaves().AddLeaf( leaf_index, subnode_index, IsPositionOccluded( voxel_location, leaf_subnode_half_extent ) );
     }
@@ -549,17 +545,11 @@ bool FSVOBoundsNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, c
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_FindNeighborInDirection );
 
-    /*GetLayerMaxNodeCount does not return the same value as MaxNodeCount when we create a layer
-    Also there seem to be an error here when displaying the non occluded leaves*/
-
     const auto max_coordinates = static_cast< int32 >( SVOData.GetLayer( layer_index ).GetMaxNodeCount() );
     const auto & layer_nodes = SVOData.GetLayer( layer_index ).GetNodes();
     const auto & target_node = layer_nodes[ node_index ];
 
-    uint_fast32_t x, y, z;
-    morton3D_64_decode( target_node.MortonCode, x, y, z );
-
-    FIntVector neighbor_coords( x, y, z );
+    FIntVector neighbor_coords( FSVOHelpers::GetVectorFromMortonCode( target_node.MortonCode ) );
     neighbor_coords += NeighborDirections[ direction ];
 
     if ( neighbor_coords.X < 0 || neighbor_coords.X >= max_coordinates ||
@@ -570,11 +560,7 @@ bool FSVOBoundsNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, c
         return true;
     }
 
-    x = neighbor_coords.X;
-    y = neighbor_coords.Y;
-    z = neighbor_coords.Z;
-
-    const MortonCode neighbor_code = morton3D_64_encode( x, y, z );
+    const auto neighbor_code = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
 
     int32 stop_index = layer_nodes.Num();
     int32 increment = 1;
@@ -608,9 +594,6 @@ bool FSVOBoundsNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, c
 
             link.NodeIndex = neighbor_node_index;
 
-            /*FVector AdjacentLocation;
-            GetNodeLocation( LayerIndex, AdjacentCode, AdjacentLocation );*/
-
             return true;
         }
 
@@ -631,20 +614,18 @@ void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
     const FSVOOctreeNode & node = GetNodeFromLink( link );
     const FSVOOctreeLeaf & leaf = SVOData.GetLeaves().GetLeaf( node.FirstChild.NodeIndex );
 
-    // Get our starting co-ordinates
     uint_fast32_t x = 0, y = 0, z = 0;
     morton3D_64_decode( leaf_index, x, y, z );
 
     for ( int neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
     {
-        // Need to switch to signed ints
         FIntVector neighbor_coords( x, y, z );
         neighbor_coords += NeighborDirections[ neighbor_direction ];
 
         // If the neighbor is in bounds of this leaf node
         if ( neighbor_coords.X >= 0 && neighbor_coords.X < 4 && neighbor_coords.Y >= 0 && neighbor_coords.Y < 4 && neighbor_coords.Z >= 0 && neighbor_coords.Z < 4 )
         {
-            MortonCode subnode_index = morton3D_64_encode( neighbor_coords.X, neighbor_coords.Y, neighbor_coords.Z );
+            const MortonCode subnode_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
             // If this node is not blocked, this is a valid link, add it. Otherwise, no link in this direction, continue
             if ( !leaf.GetSubNode( subnode_index ) )
             {
@@ -693,12 +674,12 @@ void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
                     neighbor_coords.Z = 0;
                 }
 
-                const auto subnode_code = morton3D_64_encode( neighbor_coords.X, neighbor_coords.Y, neighbor_coords.Z );
+                const MortonCode subnode_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
 
                 // Only return the neighbor if it isn't blocked!
-                if ( !leaf_node.GetSubNode( subnode_code ) )
+                if ( !leaf_node.GetSubNode( subnode_index ) )
                 {
-                    neighbors.Emplace( FSVOOctreeLink( 0, neighbor_node.FirstChild.NodeIndex, subnode_code ) );
+                    neighbors.Emplace( FSVOOctreeLink( 0, neighbor_node.FirstChild.NodeIndex, subnode_index ) );
                 }
             }
             // else the leaf node is completely blocked, we don't return it
