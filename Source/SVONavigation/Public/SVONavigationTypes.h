@@ -285,6 +285,40 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeNode & data )
     return archive;
 }
 
+class FSVOLeaves
+{
+public:
+    friend FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves );
+
+    FSVOOctreeLeaf GetLeaf( const LeafIndex leaf_index ) const;
+    const TArray< FSVOOctreeLeaf > & GetLeaves() const;
+
+    void Reset();
+    int GetAllocatedSize() const;
+    void AllocateLeaves( int leaf_count );
+    void AddLeaf( LeafIndex leaf_index, SubNodeIndex subnode_index, bool is_occluded );
+    void AddEmptyLeaf();
+
+private:
+    TArray< FSVOOctreeLeaf > Leaves;
+};
+
+FORCEINLINE FSVOOctreeLeaf FSVOLeaves::GetLeaf( const LeafIndex leaf_index ) const
+{
+    return Leaves[ leaf_index ];
+}
+
+FORCEINLINE const TArray< FSVOOctreeLeaf > & FSVOLeaves::GetLeaves() const
+{
+    return Leaves;
+}
+
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves )
+{
+    archive << leaves.Leaves;
+    return archive;
+}
+
 class FSVOLayer
 {
 public:
@@ -364,19 +398,18 @@ public:
     FSVOLayer & GetLayer( LayerIndex layer_index );
     const FSVOLayer & GetLayer( LayerIndex layer_index ) const;
     const FSVOLayer & GetLastLayer() const;
-    const TArray< FSVOOctreeLeaf > & GetLeaves() const;
-    FSVOOctreeLeaf GetLeaf( LeafIndex leaf_index ) const;
-    void AddLayer( int max_node_count, float voxel_size );
+    const FSVOLeaves & GetLeaves() const;
+    FSVOLeaves & GetLeaves();
+    const FBox & GetNavigationBounds() const;
 
+    bool Initialize( float voxel_extent, const FBox & volume_bounds );
     void Reset();
     int GetAllocatedSize() const;
-    void AllocateLeafNodes( int leaf_count );
-    void AddLeaf( LeafIndex leaf_index, SubNodeIndex subnode_index, bool is_occluded );
-    void AddEmptyLeaf();
 
 private:
     TArray< FSVOLayer > Layers;
-    TArray< FSVOOctreeLeaf > Leaves;
+    FSVOLeaves Leaves;
+    FBox NavigationBounds;
 };
 
 FORCEINLINE int FSVOOctreeData::GetLayerCount() const
@@ -399,25 +432,26 @@ FORCEINLINE const FSVOLayer & FSVOOctreeData::GetLastLayer() const
     return Layers.Last();
 }
 
-FORCEINLINE const TArray< FSVOOctreeLeaf > & FSVOOctreeData::GetLeaves() const
+FORCEINLINE const FSVOLeaves & FSVOOctreeData::GetLeaves() const
 {
     return Leaves;
 }
 
-FORCEINLINE FSVOOctreeLeaf FSVOOctreeData::GetLeaf( const LeafIndex leaf_index ) const
+FORCEINLINE FSVOLeaves & FSVOOctreeData::GetLeaves()
 {
-    return Leaves[ leaf_index ];
+    return Leaves;
 }
 
-FORCEINLINE void FSVOOctreeData::AddLayer( const int max_node_count, const float voxel_size )
+FORCEINLINE const FBox & FSVOOctreeData::GetNavigationBounds() const
 {
-    Layers.Emplace( max_node_count, voxel_size );
+    return NavigationBounds;
 }
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeData & data )
 {
     archive << data.Layers;
     archive << data.Leaves;
+    archive << data.NavigationBounds;
 
     return archive;
 }
