@@ -1,5 +1,8 @@
 #pragma once
+
 #include "SVONavigationTypes.h"
+
+enum class ESVOVersion : uint8;
 
 struct FSVOBoundsNavigationDataGenerationSettings
 {
@@ -11,8 +14,6 @@ struct FSVOBoundsNavigationDataGenerationSettings
 class SVONAVIGATION_API FSVOBoundsNavigationData
 {
 public:
-    friend FArchive & operator<<( FArchive & archive, FSVOBoundsNavigationData & data );
-
     typedef FSVOOctreeLink FNodeRef;
 
     // Used by FGraphAStar
@@ -34,6 +35,7 @@ public:
     float GetLayerInverseRatio( LayerIndex layer_index ) const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOBoundsNavigationDataGenerationSettings & generation_settings );
+    void Serialize( FArchive & archive, const ESVOVersion version );
 
 private:
     int32 GetLayerMaxNodeCount( LayerIndex layer_index ) const;
@@ -57,19 +59,6 @@ private:
     FSVOOctreeData SVOData;
     TArray< TSet< MortonCode > > BlockedIndices;
 };
-
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOBoundsNavigationData & data )
-{
-    archive << data.NavigationBounds;
-    archive << data.VolumeBounds;
-    archive << data.VoxelExponent;
-    archive << data.LayerCount;
-    archive << data.UsedBoxExtent;
-    archive << data.SVOData;
-
-    archive << data.VolumeBounds;
-    return archive;
-}
 
 FORCEINLINE const FSVOBoundsNavigationDataGenerationSettings & FSVOBoundsNavigationData::GetDataGenerationSettings() const
 {

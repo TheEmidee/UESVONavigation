@@ -1,6 +1,7 @@
 #include "SVOBoundsNavigationData.h"
 
 #include "SVONavigationTypes.h"
+#include "SVOVersion.h"
 
 #include <libmorton/morton.h>
 
@@ -286,6 +287,11 @@ void FSVOBoundsNavigationData::GenerateNavigationData( const FBox & volume_bound
     {
         BuildNeighborLinks( layer_index );
     }
+}
+
+void FSVOBoundsNavigationData::Serialize( FArchive & archive, const ESVOVersion version )
+{
+    archive << SVOData;
 }
 
 FVector FSVOBoundsNavigationData::GetNodePosition( const LayerIndex layer_index, const MortonCode morton_code ) const

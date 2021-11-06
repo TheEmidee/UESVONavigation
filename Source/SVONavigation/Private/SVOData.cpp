@@ -1,8 +1,19 @@
 #include "SVOData.h"
 
-void FSVOData::Serialize( FArchive & archive )
+void FSVOData::Serialize( FArchive & archive, const ESVOVersion version )
 {
-    archive << NavigationBoundsData;
+    auto bounds_count = NavigationBoundsData.Num();
+    archive << bounds_count;
+    if ( archive.IsLoading() )
+    {
+        NavigationBoundsData.Reset( bounds_count );
+        NavigationBoundsData.SetNum( bounds_count );
+    }
+
+    for ( auto index = 0; index < bounds_count; index++ )
+    {
+        NavigationBoundsData[ index ].Serialize( archive, version );
+    }
 }
 
 void FSVOData::ClearData()

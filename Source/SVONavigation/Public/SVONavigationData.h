@@ -116,7 +116,7 @@ private:
     UPROPERTY( EditAnywhere, Category = "Generation", config, meta = ( ClampMin = "0", UIMin = "0" ), AdvancedDisplay )
     int32 MaxSimultaneousBoxGenerationJobsCount;
 
-    uint32 SVOVersion;
+    ESVOVersion Version;
 };
 
 FORCEINLINE const FSVONavigationBoundsDataDebugInfos & ASVONavigationData::GetDebugInfos() const
