@@ -141,8 +141,8 @@ struct FSVODataGenerationSettings
 
 struct FSVOOctreeLeaf
 {
-    bool GetSubNodeAt( uint_fast32_t X, uint_fast32_t Y, uint_fast32_t Z ) const;
-    void SetSubNodeAt( uint_fast32_t X, uint_fast32_t Y, uint_fast32_t Z );
+    bool GetSubNodeAt( uint_fast32_t x, uint_fast32_t y, uint_fast32_t z ) const;
+    void SetSubNodeAt( uint_fast32_t x, uint_fast32_t y, uint_fast32_t z );
 
     void SetSubNode( const SubNodeIndex index );
     bool GetSubNode( const MortonCode morton_code ) const;
