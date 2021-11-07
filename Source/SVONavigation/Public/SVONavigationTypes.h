@@ -358,7 +358,6 @@ private:
     TSet< MortonCode > BlockedNodes;
     int MaxNodeCount;
     float VoxelExtent;
-    float VoxelHalfExtent;
 };
 
 FORCEINLINE const TArray< FSVOOctreeNode > & FSVOLayer::GetNodes() const
@@ -388,7 +387,7 @@ FORCEINLINE float FSVOLayer::GetVoxelExtent() const
 
 FORCEINLINE float FSVOLayer::GetVoxelHalfExtent() const
 {
-    return VoxelHalfExtent;
+    return GetVoxelExtent() * 0.5f;
 }
 
 FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
@@ -409,10 +408,7 @@ FORCEINLINE uint32 FSVOLayer::GetBlockedNodesCount() const
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
 {
     archive << layer.Nodes;
-    archive << layer.MaxNodeCount;
     archive << layer.VoxelExtent;
-    archive << layer.VoxelHalfExtent;
-
     return archive;
 }
 
