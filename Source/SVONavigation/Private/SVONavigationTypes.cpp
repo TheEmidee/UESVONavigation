@@ -5,20 +5,6 @@
 
 #include <libmorton/morton.h>
 
-bool FSVOOctreeLeaf::GetSubNodeAt( uint_fast32_t x, uint_fast32_t y, uint_fast32_t z ) const
-{
-    constexpr uint_fast64_t MortonCode = 0;
-    morton3D_64_decode( MortonCode, x, y, z );
-    return ( SubNodes & 1ULL << morton3D_64_encode( x, y, z ) ) != 0;
-}
-
-void FSVOOctreeLeaf::SetSubNodeAt( uint_fast32_t x, uint_fast32_t y, uint_fast32_t z )
-{
-    constexpr uint_fast64_t MortonCode = 0;
-    morton3D_64_decode( MortonCode, x, y, z );
-    SubNodes |= 1ULL << morton3D_64_encode( x, y, z );
-}
-
 void FSVOLeaves::Initialize( const float leaf_extent )
 {
     LeafExtent = leaf_extent;
@@ -48,7 +34,7 @@ void FSVOLeaves::AddLeaf( const LeafIndex leaf_index, const SubNodeIndex subnode
 
     if ( is_occluded )
     {
-        Leaves[ leaf_index ].SetSubNode( subnode_index );
+        Leaves[ leaf_index ].MarkSubNodeAsOccluded( subnode_index );
     }
 }
 

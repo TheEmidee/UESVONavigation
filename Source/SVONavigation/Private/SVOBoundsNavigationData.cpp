@@ -117,7 +117,7 @@ bool FSVOBoundsNavigationData::GetLinkFromPosition( FSVOOctreeLink & link, const
 
                 const auto leaf_code = FSVOHelpers::GetMortonCodeFromVector( leaf_coords ); // This morton code is our key into the 64-bit leaf node
 
-                if ( leaf.GetSubNode( leaf_code ) )
+                if ( leaf.IsSubNodeOccluded( leaf_code ) )
                 {
                     return false; // This voxel is blocked
                 }
@@ -222,7 +222,7 @@ void FSVOBoundsNavigationData::GetNeighbors( TArray< FSVOOctreeLink > & neighbor
 
                     child_link.SubNodeIndex = leaf_index;
 
-                    if ( !leaf_node.GetSubNode( leaf_index ) )
+                    if ( !leaf_node.IsSubNodeOccluded( leaf_index ) )
                     {
                         neighbors.Emplace( child_link );
                     }
@@ -593,7 +593,7 @@ bool FSVOBoundsNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, c
         {
             if ( layer_index == 0 &&
                  node.HasChildren() &&
-                 SVOData.GetLeaves().GetLeaf( node.FirstChild.NodeIndex ).IsOccluded() )
+                 SVOData.GetLeaves().GetLeaf( node.FirstChild.NodeIndex ).IsCompletelyOccluded() )
             {
                 link.Invalidate();
                 return true;
@@ -641,7 +641,7 @@ void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
         {
             const MortonCode subnode_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
             // If this node is not blocked, this is a valid link, add it. Otherwise, no link in this direction, continue
-            if ( !leaf.GetSubNode( subnode_index ) )
+            if ( !leaf.IsSubNodeOccluded( subnode_index ) )
             {
                 neighbors.Emplace( FSVOOctreeLink( 0, link.NodeIndex, subnode_index ) );
             }
@@ -661,7 +661,7 @@ void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
             const FSVOOctreeLeaf & leaf_node = SVOData.GetLeaves().GetLeaf( neighbor_node.FirstChild.NodeIndex );
 
             // leaf not occluded. Find the correct subnode
-            if ( !leaf_node.IsOccluded() )
+            if ( !leaf_node.IsCompletelyOccluded() )
             {
                 if ( neighbor_coords.X < 0 )
                 {
@@ -691,7 +691,7 @@ void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
                 const MortonCode subnode_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
 
                 // Only return the neighbor if it isn't blocked!
-                if ( !leaf_node.GetSubNode( subnode_index ) )
+                if ( !leaf_node.IsSubNodeOccluded( subnode_index ) )
                 {
                     neighbors.Emplace( FSVOOctreeLink( 0, neighbor_node.FirstChild.NodeIndex, subnode_index ) );
                 }

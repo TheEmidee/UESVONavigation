@@ -141,39 +141,30 @@ struct FSVODataGenerationSettings
 
 struct FSVOOctreeLeaf
 {
-    bool GetSubNodeAt( uint_fast32_t x, uint_fast32_t y, uint_fast32_t z ) const;
-    void SetSubNodeAt( uint_fast32_t x, uint_fast32_t y, uint_fast32_t z );
-
-    void SetSubNode( const SubNodeIndex index );
-    bool GetSubNode( const MortonCode morton_code ) const;
-    void ClearSubNode( const SubNodeIndex index );
-    bool IsOccluded() const;
-    bool IsEmpty() const;
+    void MarkSubNodeAsOccluded( const SubNodeIndex index );
+    bool IsSubNodeOccluded( const MortonCode morton_code ) const;
+    bool IsCompletelyOccluded() const;
+    bool IsCompletelyFree() const;
 
     uint_fast64_t SubNodes = 0;
 };
 
-FORCEINLINE void FSVOOctreeLeaf::SetSubNode( const SubNodeIndex index )
+FORCEINLINE void FSVOOctreeLeaf::MarkSubNodeAsOccluded( const SubNodeIndex index )
 {
     SubNodes |= 1ULL << index;
 }
 
-FORCEINLINE bool FSVOOctreeLeaf::GetSubNode( const MortonCode morton_code ) const
+FORCEINLINE bool FSVOOctreeLeaf::IsSubNodeOccluded( const MortonCode morton_code ) const
 {
     return ( SubNodes & 1ULL << morton_code ) != 0;
 }
 
-FORCEINLINE void FSVOOctreeLeaf::ClearSubNode( const SubNodeIndex index )
-{
-    SubNodes &= !( 1ULL << index );
-}
-
-FORCEINLINE bool FSVOOctreeLeaf::IsOccluded() const
+FORCEINLINE bool FSVOOctreeLeaf::IsCompletelyOccluded() const
 {
     return SubNodes == -1;
 }
 
-FORCEINLINE bool FSVOOctreeLeaf::IsEmpty() const
+FORCEINLINE bool FSVOOctreeLeaf::IsCompletelyFree() const
 {
     return SubNodes == 0;
 }
