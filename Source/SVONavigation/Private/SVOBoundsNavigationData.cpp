@@ -360,7 +360,7 @@ void FSVOBoundsNavigationData::FirstPassRasterization()
             auto & parent_layer = SVOData.GetLayer( layer_index - 1 );
             for ( MortonCode morton_code : parent_layer.GetBlockedNodes() )
             {
-                layer.AddBlockedNode( morton_code >> 3 );
+                layer.AddBlockedNode( FSVOHelpers::GetParentMortonCode( morton_code ) );
             }
         }
     }
@@ -402,7 +402,7 @@ void FSVOBoundsNavigationData::RasterizeInitialLayer()
 
     for ( NodeIndex node_index = 0; node_index < layer_max_node_count; node_index++ )
     {
-        const auto is_blocked = layer_zero.GetBlockedNodes().Contains( node_index >> 3 );
+        const auto is_blocked = layer_zero.GetBlockedNodes().Contains( FSVOHelpers::GetParentMortonCode( node_index ) );
 
         // If we know this node needs to be added, from the low res first pass
         if ( !is_blocked )
@@ -449,7 +449,7 @@ void FSVOBoundsNavigationData::RasterizeLayer( const LayerIndex layer_index )
 
     for ( NodeIndex node_index = 0; node_index < layer_max_node_count; node_index++ )
     {
-        const auto is_blocked = layer_blocked_nodes.Contains( node_index >> 3 );
+        const auto is_blocked = layer_blocked_nodes.Contains( FSVOHelpers::GetParentMortonCode( node_index ) );
 
         if ( !is_blocked )
         {
@@ -462,7 +462,7 @@ void FSVOBoundsNavigationData::RasterizeLayer( const LayerIndex layer_index )
         layer_node.MortonCode = node_index;
 
         const auto child_layer_index = layer_index - 1;
-        const auto child_index_from_code = GetNodeIndexFromMortonCode( child_layer_index, layer_node.MortonCode << 3 );
+        const auto child_index_from_code = GetNodeIndexFromMortonCode( child_layer_index, FSVOHelpers::GetFirstChildMortonCode( layer_node.MortonCode ) );
 
         if ( child_index_from_code.IsSet() )
         {
@@ -549,7 +549,7 @@ void FSVOBoundsNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
                 else
                 {
                     current_layer++;
-                    node_index = GetNodeIndexFromMortonCode( current_layer, node.MortonCode >> 3 ).Get( 0 );
+                    node_index = GetNodeIndexFromMortonCode( current_layer, FSVOHelpers::GetParentMortonCode( node.MortonCode ) ).Get( 0 );
                 }
             }
         }
