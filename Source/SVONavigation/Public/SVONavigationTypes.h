@@ -328,6 +328,7 @@ FORCEINLINE float FSVOLeaves::GetLeafSubNodeHalfExtent() const
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves )
 {
     archive << leaves.Leaves;
+    archive << leaves.LeafExtent;
     return archive;
 }
 

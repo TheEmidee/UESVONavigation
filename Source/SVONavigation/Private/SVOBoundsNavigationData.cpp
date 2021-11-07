@@ -283,6 +283,7 @@ void FSVOBoundsNavigationData::GenerateNavigationData( const FBox & volume_bound
 
 void FSVOBoundsNavigationData::Serialize( FArchive & archive, const ESVOVersion /*version*/ )
 {
+    archive << VolumeBounds;
     archive << SVOData;
 }
 
