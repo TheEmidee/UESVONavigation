@@ -33,8 +33,6 @@ public:
 
     SIZE_T GetTypeHash() const override;
 
-    void GetDynamicMeshElements( const TArray< const FSceneView * > & views, const FSceneViewFamily & view_family, uint32 visibility_map, FMeshElementCollector & collector ) const override;
-
 protected:
     FPrimitiveViewRelevance GetViewRelevance( const FSceneView * view ) const override;
     TWeakObjectPtr< USVONavDataRenderingComponent > RenderingComponent;

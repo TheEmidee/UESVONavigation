@@ -3,8 +3,6 @@
 #include "SVOPathFindingAlgorithm.h"
 #include "SVOTraversalCostCalculator.h"
 
-#include <libmorton/morton.h>
-
 void FSVOLeaves::Initialize( const float leaf_extent )
 {
     LeafExtent = leaf_extent;
