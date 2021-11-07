@@ -51,7 +51,6 @@ private:
     FSVOBoundsNavigationDataGenerationSettings Settings;
     FBox VolumeBounds;
     FSVOOctreeData SVOData;
-    TArray< TSet< MortonCode > > BlockedIndices;
 };
 
 FORCEINLINE const FSVOBoundsNavigationDataGenerationSettings & FSVOBoundsNavigationData::GetDataGenerationSettings() const

@@ -220,7 +220,7 @@ struct FSVOOctreeLink
         return !operator==( other );
     }
 
-    static FSVOOctreeLink InvalidEdge()
+    static FSVOOctreeLink InvalidLink()
     {
         return FSVOOctreeLink();
     }
@@ -260,8 +260,8 @@ struct FSVOOctreeNode
 
     FSVOOctreeNode() :
         MortonCode( 0 ),
-        Parent( FSVOOctreeLink::InvalidEdge() ),
-        FirstChild( FSVOOctreeLink::InvalidEdge() )
+        Parent( FSVOOctreeLink::InvalidLink() ),
+        FirstChild( FSVOOctreeLink::InvalidLink() )
     {
     }
 
@@ -360,11 +360,15 @@ public:
     float GetVoxelExtent() const;
     float GetVoxelHalfExtent() const;
     uint32 GetMaxNodeCount() const;
+    uint32 GetBlockedNodesCount() const;
+    const TSet< MortonCode > & GetBlockedNodes() const;
 
     int GetAllocatedSize() const;
+    void AddBlockedNode( NodeIndex node_index );
 
 private:
     TArray< FSVOOctreeNode > Nodes;
+    TSet< MortonCode > BlockedNodes;
     int MaxNodeCount;
     float VoxelExtent;
     float VoxelHalfExtent;
@@ -405,6 +409,16 @@ FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
     return MaxNodeCount;
 }
 
+FORCEINLINE const TSet< MortonCode > & FSVOLayer::GetBlockedNodes() const
+{
+    return BlockedNodes;
+}
+
+FORCEINLINE uint32 FSVOLayer::GetBlockedNodesCount() const
+{
+    return BlockedNodes.Num();
+}
+
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
 {
     archive << layer.Nodes;
@@ -419,6 +433,8 @@ class FSVOOctreeData
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOOctreeData & data );
+
+    FSVOOctreeData() = default;
 
     int GetLayerCount() const;
     FSVOLayer & GetLayer( LayerIndex layer_index );

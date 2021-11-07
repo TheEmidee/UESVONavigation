@@ -151,7 +151,7 @@ void FSVOBoundsNavigationData::GetNeighbors( TArray< FSVOOctreeLink > & neighbor
 
     const auto & node = GetNodeFromLink( link );
 
-    for ( int neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
+    for ( NeighborDirection neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
     {
         const auto & neighbor_link = node.Neighbors[ neighbor_direction ];
 
@@ -262,7 +262,8 @@ void FSVOBoundsNavigationData::GenerateNavigationData( const FBox & volume_bound
 
     {
         QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_AllocateLeafNodes );
-        SVOData.GetLeaves().AllocateLeaves( BlockedIndices[ 0 ].Num() * 8 );
+        const auto leaf_count = SVOData.GetLayer( 0 ).GetBlockedNodesCount() * 8;
+        SVOData.GetLeaves().AllocateLeaves( leaf_count );
     }
 
     RasterizeInitialLayer();
@@ -300,7 +301,9 @@ FVector FSVOBoundsNavigationData::GetLinkPosition( const FSVOOctreeLink & link )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodePositionFromLink );
 
-    const auto & node = SVOData.GetLayer( link.LayerIndex ).GetNode( link.NodeIndex );
+    const auto & layer = SVOData.GetLayer( link.LayerIndex );
+
+    const auto & node = layer.GetNode( link.NodeIndex );
     auto position = GetNodePosition( link.LayerIndex, node.MortonCode );
 
     if ( link.LayerIndex == 0 && node.FirstChild.IsValid() )
@@ -331,27 +334,31 @@ void FSVOBoundsNavigationData::FirstPassRasterization()
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_FirstPassRasterization );
     {
-        auto & layer_blocked_indices = BlockedIndices.Emplace_GetRef();
         const auto & layer = SVOData.GetLayer( 1 );
-        const auto node_count = layer.GetMaxNodeCount();
+        const auto layer_max_node_count = layer.GetMaxNodeCount();
+        const auto layer_voxel_half_extent = layer.GetVoxelHalfExtent();
 
-        for ( MortonCode node_index = 0; node_index < node_count; ++node_index )
+        auto & layer_zero = SVOData.GetLayer( 0 );
+
+        for ( MortonCode node_index = 0; node_index < layer_max_node_count; ++node_index )
         {
             const auto position = GetNodePosition( 1, node_index );
-            if ( IsPositionOccluded( position, layer.GetVoxelHalfExtent() ) )
+            
+            if ( IsPositionOccluded( position, layer_voxel_half_extent ) )
             {
-                layer_blocked_indices.Add( node_index );
+                layer_zero.AddBlockedNode( node_index );
             }
         }
     }
 
     {
-        for ( int32 voxel_index = 0; voxel_index < GetLayerCount() - 1; voxel_index++ )
+        for ( int32 layer_index = 1; layer_index < GetLayerCount(); layer_index++ )
         {
-            auto & layer_blocked_indices = BlockedIndices.Emplace_GetRef();
-            for ( MortonCode morton_code : BlockedIndices[ voxel_index ] )
+            auto & layer = SVOData.GetLayer( layer_index );
+            auto & parent_layer = SVOData.GetLayer( layer_index - 1 );
+            for ( MortonCode morton_code : parent_layer.GetBlockedNodes() )
             {
-                layer_blocked_indices.Add( morton_code >> 3 );
+                layer.AddBlockedNode( morton_code >> 3 );
             }
         }
     }
@@ -380,25 +387,29 @@ void FSVOBoundsNavigationData::RasterizeInitialLayer()
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_RasterizeInitialLayer );
 
-    auto & layer = SVOData.GetLayer( 0 );
-    auto & layer_nodes = layer.GetNodes();
+    auto & layer_zero = SVOData.GetLayer( 0 );
+    auto & layer_zero_nodes = layer_zero.GetNodes();
+
     LeafIndex leaf_index = 0;
 
-    layer_nodes.Reserve( BlockedIndices[ 0 ].Num() * 8 );
+    const auto layer_one_blocked_node_count = SVOData.GetLayer( 1 ).GetBlockedNodesCount();
+    layer_zero_nodes.Reserve( layer_one_blocked_node_count  * 8 );
 
-    const auto layer_max_node_count = layer.GetMaxNodeCount();
-    const auto layer_voxel_half_size = layer.GetVoxelHalfExtent();
+    const auto layer_max_node_count = layer_zero.GetMaxNodeCount();
+    const auto layer_voxel_half_size = layer_zero.GetVoxelHalfExtent();
 
     for ( NodeIndex node_index = 0; node_index < layer_max_node_count; node_index++ )
     {
+        const auto is_blocked = layer_zero.GetBlockedNodes().Contains( node_index >> 3 );
+
         // If we know this node needs to be added, from the low res first pass
-        if ( !BlockedIndices[ 0 ].Contains( node_index >> 3 ) )
+        if ( !is_blocked )
         {
             continue;
         }
 
-        auto & octree_node = layer_nodes.Emplace_GetRef();
-        octree_node.MortonCode = node_index;
+        auto & layer_zero_node = layer_zero_nodes.Emplace_GetRef();
+        layer_zero_node.MortonCode = node_index;
 
         const auto node_position = GetNodePosition( 0, node_index );
 
@@ -406,17 +417,17 @@ void FSVOBoundsNavigationData::RasterizeInitialLayer()
         if ( IsPositionOccluded( node_position, layer_voxel_half_size ) )
         {
             RasterizeLeaf( node_position, leaf_index );
-            octree_node.FirstChild.LayerIndex = 0;
-            octree_node.FirstChild.NodeIndex = leaf_index;
-            octree_node.FirstChild.SubNodeIndex = 0;
-            leaf_index++;
+            layer_zero_node.FirstChild.LayerIndex = 0;
+            layer_zero_node.FirstChild.NodeIndex = leaf_index;
+            layer_zero_node.FirstChild.SubNodeIndex = 0;
         }
         else
         {
             SVOData.GetLeaves().AddEmptyLeaf();
-            leaf_index++;
-            octree_node.FirstChild.Invalidate();
+            layer_zero_node.FirstChild.Invalidate();
         }
+
+        leaf_index++;
     }
 }
 
@@ -426,44 +437,52 @@ void FSVOBoundsNavigationData::RasterizeLayer( const LayerIndex layer_index )
 
     auto & layer = SVOData.GetLayer( layer_index );
     auto & layer_nodes = layer.GetNodes();
+    const auto & layer_blocked_nodes = layer.GetBlockedNodes();
 
     checkf( layer_index > 0 && layer_index < GetLayerCount(), TEXT( "layer_index is out of bounds" ) );
 
-    layer_nodes.Reserve( BlockedIndices[ layer_index ].Num() * 8 );
+    layer_nodes.Reserve( layer_blocked_nodes.Num() * 8 );
 
     const auto layer_max_node_count = layer.GetMaxNodeCount();
 
     for ( NodeIndex node_index = 0; node_index < layer_max_node_count; node_index++ )
     {
-        if ( !BlockedIndices[ layer_index ].Contains( node_index >> 3 ) )
+        const auto is_blocked = layer_blocked_nodes.Contains( node_index >> 3 );
+
+        if ( !is_blocked )
         {
             continue;
         }
 
         const auto new_node_index = layer_nodes.Emplace();
 
-        auto & new_octree_node = layer_nodes[ new_node_index ];
-        new_octree_node.MortonCode = node_index;
+        auto & layer_node = layer_nodes[ new_node_index ];
+        layer_node.MortonCode = node_index;
 
-        const auto child_index_from_code = GetNodeIndexFromMortonCode( layer_index - 1, new_octree_node.MortonCode << 3 );
+        const auto child_layer_index = layer_index - 1;
+        const auto child_index_from_code = GetNodeIndexFromMortonCode( child_layer_index, layer_node.MortonCode << 3 );
+
         if ( child_index_from_code.IsSet() )
         {
             // Set parent->child links
-            new_octree_node.FirstChild.LayerIndex = layer_index - 1;
-            new_octree_node.FirstChild.NodeIndex = child_index_from_code.GetValue();
+            layer_node.FirstChild.LayerIndex = child_layer_index;
+            layer_node.FirstChild.NodeIndex = child_index_from_code.GetValue();
+
+            auto & child_layer = SVOData.GetLayer( layer_node.FirstChild.LayerIndex );
 
             // Set child->parent links
             for ( auto child_index = 0; child_index < 8; ++child_index )
             {
-                auto & child_node_layer = SVOData.GetLayer( new_octree_node.FirstChild.LayerIndex );
-                auto & child_node = child_node_layer.GetNodes()[ new_octree_node.FirstChild.NodeIndex + child_index ];
+                auto & child_node_layer = child_layer;
+                auto & child_node = child_node_layer.GetNodes()[ layer_node.FirstChild.NodeIndex + child_index ];
+
                 child_node.Parent.LayerIndex = layer_index;
                 child_node.Parent.NodeIndex = new_node_index;
             }
         }
         else
         {
-            new_octree_node.FirstChild.Invalidate();
+            layer_node.FirstChild.Invalidate();
         }
     }
 }
@@ -504,6 +523,7 @@ void FSVOBoundsNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_BuildNeighborLinks );
 
     auto & layer_nodes = SVOData.GetLayer( layer_index ).GetNodes();
+    const auto max_layer_index = GetLayerCount() - 2;
 
     for ( NodeIndex layer_node_index = 0; layer_node_index < static_cast< uint32 >( layer_nodes.Num() ); layer_node_index++ )
     {
@@ -513,20 +533,16 @@ void FSVOBoundsNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
         for ( NeighborDirection direction = 0; direction < 6; direction++ )
         {
             NodeIndex node_index = layer_node_index;
-
             FSVOOctreeLink & link = node.Neighbors[ direction ];
-
             LayerIndex current_layer = layer_index;
-
-            const auto max_layer_index = GetLayerCount() - 2;
 
             while ( !FindNeighborInDirection( link, current_layer, node_index, direction, node_position ) && current_layer < max_layer_index )
             {
-                auto & parent_node = SVOData.GetLayer( current_layer ).GetNodes()[ node_index ].Parent;
-                if ( parent_node.IsValid() )
+                auto & parent_link = SVOData.GetLayer( current_layer ).GetNodes()[ node_index ].Parent;
+                if ( parent_link.IsValid() )
                 {
-                    node_index = parent_node.NodeIndex;
-                    current_layer = parent_node.LayerIndex;
+                    node_index = parent_link.NodeIndex;
+                    current_layer = parent_link.LayerIndex;
                 }
                 else
                 {
@@ -544,6 +560,7 @@ bool FSVOBoundsNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, c
 
     const auto max_coordinates = static_cast< int32 >( SVOData.GetLayer( layer_index ).GetMaxNodeCount() );
     const auto & layer_nodes = SVOData.GetLayer( layer_index ).GetNodes();
+    const auto layer_nodes_count = layer_nodes.Num();
     const auto & target_node = layer_nodes[ node_index ];
 
     FIntVector neighbor_coords( FSVOHelpers::GetVectorFromMortonCode( target_node.MortonCode ) );
@@ -559,7 +576,7 @@ bool FSVOBoundsNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, c
 
     const auto neighbor_code = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
 
-    int32 stop_index = layer_nodes.Num();
+    int32 stop_index = layer_nodes_count;
     int32 increment = 1;
 
     if ( neighbor_code < target_node.MortonCode )
@@ -584,7 +601,7 @@ bool FSVOBoundsNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, c
 
             link.LayerIndex = layer_index;
 
-            if ( neighbor_node_index >= layer_nodes.Num() || neighbor_node_index < 0 )
+            if ( neighbor_node_index >= layer_nodes_count || neighbor_node_index < 0 )
             {
                 break;
             }
@@ -614,7 +631,7 @@ void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
     uint_fast32_t x = 0, y = 0, z = 0;
     morton3D_64_decode( leaf_index, x, y, z );
 
-    for ( int neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
+    for ( NeighborDirection neighbor_direction = 0; neighbor_direction < 6; neighbor_direction++ )
     {
         FIntVector neighbor_coords( x, y, z );
         neighbor_coords += NeighborDirections[ neighbor_direction ];

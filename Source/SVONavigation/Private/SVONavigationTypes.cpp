@@ -76,6 +76,11 @@ int FSVOLayer::GetAllocatedSize() const
     return Nodes.Num() * sizeof( FSVOOctreeNode );
 }
 
+void FSVOLayer::AddBlockedNode( const NodeIndex node_index )
+{
+    BlockedNodes.Add( node_index );
+}
+
 bool FSVOOctreeData::Initialize( const float voxel_extent, const FBox & volume_bounds )
 {
     Reset();
