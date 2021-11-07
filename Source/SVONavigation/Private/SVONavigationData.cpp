@@ -84,9 +84,34 @@ void ASVONavigationData::Serialize( FArchive & archive )
 
     archive << Version;
 
+    // Same as in RecastNavMesh
+    uint32 svo_size_bytes = 0;
+    const auto svo_size_position = archive.Tell();
+
+    archive << svo_size_bytes;
+
+    if ( archive.IsLoading() )
+    {
+        if ( Version < ESVOVersion::MinCompatible )
+        {
+            // incompatible, just skip over this data.  nav mesh needs rebuilt.
+            archive.Seek( svo_size_position + svo_size_bytes );
+            return;
+        }
+    }
+
     SVODataPtr->Serialize( archive, Version );
 
-    archive << DebugInfos;
+    if ( archive.IsSaving() )
+    {
+        const int64 current_position = archive.Tell();
+
+        svo_size_bytes = current_position - svo_size_position;
+
+        archive.Seek( svo_size_position );
+        archive << svo_size_bytes;
+        archive.Seek( current_position );
+    }
 }
 
 void ASVONavigationData::CleanUp()
