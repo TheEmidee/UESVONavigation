@@ -42,7 +42,7 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
         bDebugDrawsBounds( false ),
         bDebugDrawsLayers( false ),
         LayerIndexToDraw( 1 ),
-        bDebugDrawsLeaves( false ),
+        bDebugDrawsFreeLeaves( false ),
         bDebugDrawsOccludedLeaves( false ),
         bDebugDrawsLinks( false ),
         LinksLayerIndexToDraw( false ),
@@ -67,7 +67,7 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
     uint8 LayerIndexToDraw;
 
     UPROPERTY( EditInstanceOnly )
-    bool bDebugDrawsLeaves;
+    bool bDebugDrawsFreeLeaves;
 
     UPROPERTY( EditInstanceOnly )
     bool bDebugDrawsOccludedLeaves;
@@ -102,7 +102,7 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataD
     archive << data.bDebugDrawsBounds;
     archive << data.bDebugDrawsLayers;
     archive << data.LayerIndexToDraw;
-    archive << data.bDebugDrawsLeaves;
+    archive << data.bDebugDrawsFreeLeaves;
     archive << data.bDebugDrawsOccludedLeaves;
     archive << data.bDebugDrawsLinks;
     archive << data.LinksLayerIndexToDraw;

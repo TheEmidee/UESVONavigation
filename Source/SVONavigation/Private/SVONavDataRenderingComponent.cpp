@@ -15,275 +15,113 @@
 #include "EditorViewportClient.h"
 #endif
 
-namespace
+FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComponent * component ) :
+    FDebugRenderSceneProxy( component )
 {
-    void DrawDebugBox( FPrimitiveDrawInterface * pdi, FVector const & center, FVector const & box, FColor const & color, const float line_thickness )
+    DrawType = EDrawType::SolidAndWireMeshes;
+
+    RenderingComponent = MakeWeakObjectPtr( const_cast< USVONavDataRenderingComponent * >( Cast< USVONavDataRenderingComponent >( component ) ) );
+    auto * navigation_data = Cast< ASVONavigationData >( RenderingComponent->GetOwner() );
+
+    if ( navigation_data == nullptr )
     {
-        // no debug line drawing on dedicated server
-        if ( pdi == nullptr )
+        return;
+    }
+
+    const auto & debug_infos = navigation_data->GetDebugInfos();
+    const auto & svo_data = navigation_data->GetSVOData();
+    const auto & all_navigation_bounds_data = svo_data.GetNavigationBoundsData();
+
+    for ( const auto & navigation_bounds_data : all_navigation_bounds_data )
+    {
+        const auto & octree_data = navigation_bounds_data.GetOctreeData();
+        const auto layer_count = octree_data.GetLayerCount();
+
+        if ( layer_count == 0 )
         {
-            return;
+            continue;
         }
 
-        pdi->DrawLine( center + FVector( box.X, box.Y, box.Z ), center + FVector( box.X, -box.Y, box.Z ), color, SDPG_World, line_thickness );
-        pdi->DrawLine( center + FVector( box.X, -box.Y, box.Z ), center + FVector( -box.X, -box.Y, box.Z ), color, SDPG_World, line_thickness );
-        pdi->DrawLine( center + FVector( -box.X, -box.Y, box.Z ), center + FVector( -box.X, box.Y, box.Z ), color, SDPG_World, line_thickness );
-        pdi->DrawLine( center + FVector( -box.X, box.Y, box.Z ), center + FVector( box.X, box.Y, box.Z ), color, SDPG_World, line_thickness );
+        const auto corrected_layer_index = FMath::Clamp( static_cast< int >( debug_infos.LayerIndexToDraw ), 0, layer_count - 1 );
 
-        pdi->DrawLine( center + FVector( box.X, box.Y, -box.Z ), center + FVector( box.X, -box.Y, -box.Z ), color, SDPG_World, line_thickness );
-        pdi->DrawLine( center + FVector( box.X, -box.Y, -box.Z ), center + FVector( -box.X, -box.Y, -box.Z ), color, SDPG_World, line_thickness );
-        pdi->DrawLine( center + FVector( -box.X, -box.Y, -box.Z ), center + FVector( -box.X, box.Y, -box.Z ), color, SDPG_World, line_thickness );
-        pdi->DrawLine( center + FVector( -box.X, box.Y, -box.Z ), center + FVector( box.X, box.Y, -box.Z ), color, SDPG_World, line_thickness );
-
-        pdi->DrawLine( center + FVector( box.X, box.Y, box.Z ), center + FVector( box.X, box.Y, -box.Z ), color, SDPG_World, line_thickness );
-        pdi->DrawLine( center + FVector( box.X, -box.Y, box.Z ), center + FVector( box.X, -box.Y, -box.Z ), color, SDPG_World, line_thickness );
-        pdi->DrawLine( center + FVector( -box.X, -box.Y, box.Z ), center + FVector( -box.X, -box.Y, -box.Z ), color, SDPG_World, line_thickness );
-        pdi->DrawLine( center + FVector( -box.X, box.Y, box.Z ), center + FVector( -box.X, box.Y, -box.Z ), color, SDPG_World, line_thickness );
-    }
-}
-
-void FSVONavigationSceneProxyData::Reset()
-{
-    OctreeBounds.Reset();
-}
-
-void FSVONavigationSceneProxyData::Serialize( FArchive & archive )
-{
-    auto octree_bounds_count = OctreeBounds.Num();
-    archive << octree_bounds_count;
-    if ( archive.IsLoading() )
-    {
-        OctreeBounds.Reset( octree_bounds_count );
-        OctreeBounds.AddUninitialized( octree_bounds_count );
-    }
-
-    for ( auto index = 0; index < octree_bounds_count; index++ )
-    {
-        archive << OctreeBounds[ index ].Center;
-        archive << OctreeBounds[ index ].Extent;
-    }
-
-    auto links_count = Links.Num();
-    archive << links_count;
-    if ( archive.IsLoading() )
-    {
-        Links.Reset( links_count );
-        Links.AddUninitialized( links_count );
-    }
-
-    for ( auto index = 0; index < links_count; index++ )
-    {
-        archive << Links[ index ].Thickness;
-        archive << Links[ index ].Start;
-        archive << Links[ index ].End;
-        archive << Links[ index ].Color;
-    }
-
-    int32 num_texts = DebugTexts.Num();
-    archive << num_texts;
-    if ( archive.IsLoading() )
-    {
-        DebugTexts.SetNum( num_texts );
-    }
-
-    for ( int32 index = 0; index < num_texts; index++ )
-    {
-        archive << DebugTexts[ index ].Location;
-        archive << DebugTexts[ index ].Text;
-    }
-}
-
-uint32 FSVONavigationSceneProxyData::GetAllocatedSize() const
-{
-    return OctreeBounds.GetAllocatedSize() +
-           Layers.GetAllocatedSize() +
-           Leaves.GetAllocatedSize() +
-           OccludedLeaves.GetAllocatedSize() +
-           Links.GetAllocatedSize() +
-           DebugTexts.GetAllocatedSize();
-}
-
-void FSVONavigationSceneProxyData::GatherData( const ASVONavigationData & navigation_data )
-{
-    Reset();
-
-    DebugInfos = navigation_data.GetDebugInfos();
-
-    const auto & svo_data = navigation_data.GetSVOData();
-    const auto & navigation_bounds = svo_data.GetNavigationBoundsData();
-
-    if ( DebugInfos.bDebugDrawsBounds )
-    {
-        for ( const auto & bounds_data : navigation_bounds )
+        if ( debug_infos.bDebugDrawsBounds )
         {
-            OctreeBounds.Emplace( FBoxCenterAndExtent( bounds_data.GetNavigationBounds() ) );
+            Boxes.Emplace( navigation_bounds_data.GetOctreeData().GetNavigationBounds(), FColor::White );
         }
-    }
 
-    const auto it_draws_layers = DebugInfos.bDebugDrawsLayers;
-    const auto it_draws_leaves = DebugInfos.bDebugDrawsLeaves;
-    const auto it_draws_morton_codes = DebugInfos.bDebugDrawsMortonCodes;
-
-    if ( it_draws_layers || it_draws_leaves || it_draws_morton_codes )
-    {
-        for ( const auto & bounds_data : navigation_bounds )
+        if ( debug_infos.bDebugDrawsLayers )
         {
-            const auto & octree_data = bounds_data.GetOctreeData();
+            const auto half_voxel_size = navigation_bounds_data.GetOctreeData().GetLayer( corrected_layer_index ).GetVoxelHalfExtent();
 
-            const auto layer_count = octree_data.GetLayerCount();
-
-            if ( layer_count == 0 )
+            for ( const auto & node : octree_data.GetLayer( corrected_layer_index ).GetNodes() )
             {
-                break;
-            }
-
-            const auto fill_array = [ &octree_data, &bounds_data ]( TArray< FBoxCenterAndExtent > & array, const LayerIndex layer_index ) {
-                for ( const auto & node : octree_data.GetLayer( layer_index ).GetNodes() )
-                {
-                    const auto code = node.MortonCode;
-                    const auto node_position = bounds_data.GetNodePosition( layer_index, code );
-                    const auto half_voxel_size = bounds_data.GetOctreeData().GetLayer( layer_index ).GetVoxelHalfSize();
-
-                    array.Emplace( FBoxCenterAndExtent( node_position, FVector( half_voxel_size ) ) );
-                }
-            };
-
-            if ( it_draws_leaves )
-            {
-                fill_array( Leaves, 0 );
-            }
-
-            if ( it_draws_layers )
-            {
-                const auto layer_index_to_draw = DebugInfos.LayerIndexToDraw;
-
-                if ( layer_index_to_draw >= 1 && layer_index_to_draw < layer_count )
-                {
-                    fill_array( Layers, layer_index_to_draw );
-                }
-            }
-
-            if ( it_draws_morton_codes )
-            {
-                const auto morton_codes_layer_index = DebugInfos.MortonCodeLayerIndexToDraw;
-
-                if ( morton_codes_layer_index >= 0 && morton_codes_layer_index < layer_count )
-                {
-                    for ( const auto & node : octree_data.GetLayer( morton_codes_layer_index ).GetNodes() )
-                    {
-                        DebugTexts.Emplace( FDebugText( bounds_data.GetNodePosition( morton_codes_layer_index, node.MortonCode ),
-                            FString::Printf( TEXT( "%i:%llu" ), morton_codes_layer_index, node.MortonCode ) ) );
-                    }
-                }
+                const auto code = node.MortonCode;
+                const auto node_position = navigation_bounds_data.GetNodePosition( corrected_layer_index, code );
+                const auto color = node.HasChildren() ? FColor::Blue : FColor::Green;
+                Boxes.Emplace( FBox::BuildAABB( node_position, FVector( half_voxel_size ) ), color );
             }
         }
-    }
 
-    if ( DebugInfos.bDebugDrawsOccludedLeaves )
-    {
-        for ( const auto & bounds_data : navigation_bounds )
+        /*if ( debug_infos.bDebugDrawsFreeLeaves )
         {
-            const auto & octree_data = bounds_data.GetOctreeData();
-            const auto occluded_leaf_voxel_size = octree_data.GetLayer( 0 ).GetVoxelHalfSize() * 0.25f;
-            const auto & leaves = octree_data.GetLeaves();
+            for ( const auto & leaf : octree_data.GetLeaves() )
+            {
+                navigation_bounds_data.GetLinkPosition( leaf )
+                Boxes.Emplace( leaf.GetBox(), FColor::Magenta );
+            }
+        }
+        */
+
+        const auto & leaves = octree_data.GetLeaves().GetLeaves();
+
+        if ( debug_infos.bDebugDrawsFreeLeaves )
+        {
+            const auto leaf_subnode_half_extent = octree_data.GetLeaves().GetLeafSubNodeHalfExtent();
 
             for ( uint_fast32_t leaf_index = 0; leaf_index < static_cast< uint_fast32_t >( leaves.Num() ); leaf_index++ )
             {
                 for ( uint8 leaf_voxel = 0; leaf_voxel < 64; leaf_voxel++ )
                 {
-                    if ( leaves[ leaf_index ].GetSubNode( leaf_voxel ) )
+                    if ( !leaves[ leaf_index ].IsSubNodeOccluded( leaf_voxel ) )
                     {
-                        const FSVOOctreeLink link { 0, leaf_index, leaf_voxel };
-                        const auto node_location = bounds_data.GetLinkPosition( link );
+                        const FSVOOctreeLink link( 0, leaf_index, leaf_voxel );
+                        const auto node_position = navigation_bounds_data.GetLinkPosition( link );
 
-                        OccludedLeaves.Emplace( FBoxCenterAndExtent( node_location, FVector( occluded_leaf_voxel_size ) ) );
+                        Boxes.Emplace( FBox::BuildAABB( node_position, FVector( leaf_subnode_half_extent ) ), FColor::Green );
                     }
                 }
             }
         }
-    }
-
-    if ( DebugInfos.bDebugDrawsLinks )
-    {
-        for ( const auto & bounds_data : navigation_bounds )
+        
+        if ( debug_infos.bDebugDrawsOccludedLeaves )
         {
-            const auto & octree_data = bounds_data.GetOctreeData();
+            const auto leaf_subnode_half_extent = octree_data.GetLeaves().GetLeafSubNodeHalfExtent();
 
-            const auto layer_count = octree_data.GetLayerCount();
-            if ( layer_count == 0 )
+            for ( uint_fast32_t leaf_index = 0; leaf_index < static_cast< uint_fast32_t >( leaves.Num() ); leaf_index++ )
             {
-                break;
-            }
-
-            const auto layer_index_to_draw = DebugInfos.LinksLayerIndexToDraw;
-
-            if ( layer_index_to_draw >= 1 && layer_index_to_draw < layer_count )
-            {
-                const auto & layer = octree_data.GetLayer( layer_index_to_draw );
-
-                for ( const auto & node : layer.GetNodes() )
+                for ( uint8 leaf_voxel = 0; leaf_voxel < 64; leaf_voxel++ )
                 {
-                    const auto code = node.MortonCode;
-                    const auto node_position = bounds_data.GetNodePosition( layer_index_to_draw, code );
-
-                    const auto add_link = [ &bounds_data, &node_position, line_thickness = DebugInfos.DebugLineThickness ]( TArray< FDebugRenderSceneProxy::FDebugLine > & links, const FSVOOctreeLink & link ) {
-                        if ( !link.IsValid() )
-                        {
-                            return;
-                        }
-
-                        const auto neighbor_position = bounds_data.GetLinkPosition( link );
-                        links.Emplace( FDebugRenderSceneProxy::FDebugLine( node_position, neighbor_position, FColor::Orange, line_thickness ) );
-                    };
-
-                    if ( DebugInfos.bDebugDrawsNeighborLinks )
+                    if ( leaves[ leaf_index ].IsSubNodeOccluded( leaf_voxel ) )
                     {
-                        for ( const auto & link : node.Neighbors )
-                        {
-                            add_link( Links, link );
-                        }
-                    }
+                        const FSVOOctreeLink link( 0, leaf_index, leaf_voxel );
+                        const auto node_position = navigation_bounds_data.GetLinkPosition( link );
 
-                    if ( DebugInfos.bDebugDrawsParentLinks )
-                    {
-                        const auto & link = node.Parent;
-
-                        add_link( Links, link );
-                    }
-
-                    if ( DebugInfos.bDebugDrawsFirstChildLinks )
-                    {
-                        const auto & link = node.FirstChild;
-
-                        add_link( Links, link );
+                        Boxes.Emplace( FBox::BuildAABB( node_position, FVector( leaf_subnode_half_extent ) ), FColor::Orange );
                     }
                 }
             }
         }
     }
+}
+
+FSVONavigationMeshSceneProxy::~FSVONavigationMeshSceneProxy()
+{
 }
 
 SIZE_T FSVONavigationMeshSceneProxy::GetTypeHash() const
 {
     static size_t UniquePointer;
     return reinterpret_cast< size_t >( &UniquePointer );
-}
-
-FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComponent * component, FSVONavigationSceneProxyData * proxy_data ) :
-    FDebugRenderSceneProxy( component )
-{
-    DrawType = EDrawType::SolidAndWireMeshes;
-
-    if ( proxy_data )
-    {
-        ProxyData = *proxy_data;
-    }
-
-    RenderingComponent = MakeWeakObjectPtr( const_cast< USVONavDataRenderingComponent * >( Cast< USVONavDataRenderingComponent >( component ) ) );
-}
-
-FSVONavigationMeshSceneProxy::~FSVONavigationMeshSceneProxy()
-{
 }
 
 void FSVONavigationMeshSceneProxy::GetDynamicMeshElements( const TArray< const FSceneView * > & views, const FSceneViewFamily & view_family, uint32 visibility_map, FMeshElementCollector & collector ) const
@@ -302,7 +140,7 @@ void FSVONavigationMeshSceneProxy::GetDynamicMeshElements( const TArray< const F
                 continue;
             }
 
-            FPrimitiveDrawInterface * pdi = collector.GetPDI( view_index );
+            /*FPrimitiveDrawInterface * pdi = collector.GetPDI( view_index );
             const auto line_thickness = ProxyData.GetDebugInfos().DebugLineThickness;
 
             const auto draw_boxes = [ pdi, line_thickness ]( const TArray< FBoxCenterAndExtent > & boxes, const FColor & color ) {
@@ -310,17 +148,17 @@ void FSVONavigationMeshSceneProxy::GetDynamicMeshElements( const TArray< const F
                 {
                     DrawDebugBox( pdi, box.Center, box.Extent, color, line_thickness );
                 }
-            };
+            };*/
 
-            draw_boxes( ProxyData.GetOctreeBounds(), FColor::White );
-            draw_boxes( ProxyData.GetLayers(), FColor::Blue );
-            draw_boxes( ProxyData.GetLeaves(), FColor::Magenta );
-            draw_boxes( ProxyData.GetOccludedLeaves(), FColor::Yellow );
+            //draw_boxes( ProxyData.GetOctreeBounds(), FColor::White );
+            //draw_boxes( ProxyData.GetLayers(), FColor::Blue );
+            //draw_boxes( ProxyData.GetLeaves(), FColor::Magenta );
+            //draw_boxes( ProxyData.GetOccludedLeaves(), FColor::Yellow );
 
-            for ( const auto & line : ProxyData.GetLinks() )
+            /*for ( const auto & line : ProxyData.GetLinks() )
             {
                 pdi->DrawLine( line.Start, line.End, line.Color, SDPG_World, line.Thickness, 0, true );
-            }
+            }*/
         }
     }
 }
@@ -411,10 +249,7 @@ FPrimitiveSceneProxy * USVONavDataRenderingComponent::CreateSceneProxy()
         {
             if ( navigation_data->IsDrawingEnabled() )
             {
-                FSVONavigationSceneProxyData ProxyData;
-                GatherData( ProxyData, *navigation_data );
-
-                proxy = new FSVONavigationMeshSceneProxy( this, &ProxyData );
+                proxy = new FSVONavigationMeshSceneProxy( this );
             }
         }
     }
@@ -491,9 +326,4 @@ bool USVONavDataRenderingComponent::IsNavigationShowFlagSet( const UWorld * worl
     }
 
     return show_navigation;
-}
-
-void USVONavDataRenderingComponent::GatherData( FSVONavigationSceneProxyData & proxy_data, const ASVONavigationData & navigation_data ) const
-{
-    proxy_data.GatherData( navigation_data );
 }
