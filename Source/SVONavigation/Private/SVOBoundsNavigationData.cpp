@@ -96,21 +96,23 @@ bool FSVOBoundsNavigationData::GetLinkFromPosition( FSVOOctreeLink & link, const
             // If this is a leaf node, we need to find our subnode
             if ( layer_index == 0 )
             {
-                const auto & leaf = SVOData.GetLeaves().GetLeaf( node.FirstChild.NodeIndex );
+                const auto & leaves = SVOData.GetLeaves();
+                const auto & leaf = leaves.GetLeaf( node.FirstChild.NodeIndex );
+
                 // We need to calculate the node local position to get the morton code for the leaf
                 // The world position of the 0 node
-                const auto nodePosition = GetNodePosition( layer_index, node.MortonCode );
+                const auto node_position = GetNodePosition( layer_index, node.MortonCode );
                 // The morton origin of the node
-                const auto nodeOrigin = nodePosition - FVector( half_voxel_size );
+                const auto node_origin = node_position - FVector( half_voxel_size );
                 // The requested position, relative to the node origin
-                const auto nodeLocalPos = position - nodeOrigin;
+                const auto node_local_position = position - node_origin;
                 // Now get our voxel coordinates
                 const auto voxel_quarter_size = voxel_size * 0.25f;
 
                 FIntVector leaf_coords;
-                leaf_coords.X = FMath::FloorToInt( nodeLocalPos.X / voxel_quarter_size );
-                leaf_coords.Y = FMath::FloorToInt( nodeLocalPos.Y / voxel_quarter_size );
-                leaf_coords.Z = FMath::FloorToInt( nodeLocalPos.Z / voxel_quarter_size );
+                leaf_coords.X = FMath::FloorToInt( node_local_position.X / voxel_quarter_size );
+                leaf_coords.Y = FMath::FloorToInt( node_local_position.Y / voxel_quarter_size );
+                leaf_coords.Z = FMath::FloorToInt( node_local_position.Z / voxel_quarter_size );
 
                 link.LayerIndex = 0;
                 link.NodeIndex = node_index;
