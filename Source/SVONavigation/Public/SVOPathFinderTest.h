@@ -55,6 +55,7 @@ struct SVONAVIGATION_API FSVOPathFindingSceneProxyData final : public TSharedFro
     FVector EndLocation;
     FSVOPathFinderDebugInfos DebugInfos;
     TOptional< EGraphAStarResult > PathFindingResult;
+    TSharedPtr< FSVOPathFindingAlgorithmStepper > Stepper;
 };
 
 class SVONAVIGATION_API FSVOPathFindingSceneProxy final : public FDebugRenderSceneProxy
@@ -146,6 +147,7 @@ public:
 
     FVector GetStartLocation() const;
     FVector GetEndLocation() const;
+    TSharedPtr< FSVOPathFindingAlgorithmStepper > GetStepper() const;
     const FSVOPathFinderDebugInfos & GetPathFinderDebugInfos() const;
     const FSVOPathRenderingDebugDrawOptions & GetDebugDrawOptions() const;
     ESVOPathFindingAlgorithmStepperStatus GetStepperLastStatus() const;
@@ -226,6 +228,11 @@ FORCEINLINE FVector ASVOPathFinderTest::GetEndLocation() const
     return OtherActor != nullptr
                ? OtherActor->GetActorLocation()
                : FVector::ZeroVector;
+}
+
+FORCEINLINE TSharedPtr< FSVOPathFindingAlgorithmStepper > ASVOPathFinderTest::GetStepper() const
+{
+    return Stepper;
 }
 
 FORCEINLINE const FSVOPathFinderDebugInfos & ASVOPathFinderTest::GetPathFinderDebugInfos() const

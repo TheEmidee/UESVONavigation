@@ -17,6 +17,7 @@ void FSVOPathFindingSceneProxyData::GatherData( const ASVOPathFinderTest & path_
     StartLocation = path_finder_test.GetStartLocation();
     EndLocation = path_finder_test.GetEndLocation();
     DebugInfos = path_finder_test.GetPathFinderDebugInfos();
+    Stepper = path_finder_test.GetStepper();
 
     if ( path_finder_test.GetStepperLastStatus() == ESVOPathFindingAlgorithmStepperStatus::IsStopped )
     {
@@ -47,11 +48,20 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
 
     if ( DebugDrawOptions.bDrawLastProcessedNode )
     {
-        Lines.Emplace( FDebugLine( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Location, proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Location, FColor::Blue, 2.0f ) );
-
-        if ( DebugDrawOptions.bDrawLastProcessedNodeCost )
+        if ( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Link.IsValid() && proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Link.IsValid() )
         {
-            add_text( proxy_data.DebugInfos.LastLastProcessedSingleNode );
+            Lines.Emplace( FDebugLine( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Location, proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Location, FColor::Blue, 2.0f ) );
+
+            const auto from_extent = proxy_data.Stepper->GetParameters().BoundsNavigationData->GetOctreeData().GetLayer( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Link.LayerIndex ).GetVoxelHalfExtent();
+            Boxes.Emplace( FBox::BuildAABB( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Location, FVector( from_extent ) ), FColor::Blue );
+
+            const auto to_extent = proxy_data.Stepper->GetParameters().BoundsNavigationData->GetOctreeData().GetLayer( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Link.LayerIndex ).GetVoxelHalfExtent();
+            Boxes.Emplace( FBox::BuildAABB( proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Location, FVector( to_extent ) ), FColor::Blue );
+
+            if ( DebugDrawOptions.bDrawLastProcessedNodeCost )
+            {
+                add_text( proxy_data.DebugInfos.LastLastProcessedSingleNode );
+            }
         }
     }
 
@@ -68,8 +78,7 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
         }
     }
 
-    if ( proxy_data.PathFindingResult.Get( EGraphAStarResult::SearchFail ) == EGraphAStarResult::SearchSuccess 
-        || DebugDrawOptions.bDrawBestPath )
+    if ( proxy_data.PathFindingResult.Get( EGraphAStarResult::SearchFail ) == EGraphAStarResult::SearchSuccess || DebugDrawOptions.bDrawBestPath )
     {
         const auto & best_path_points = proxy_data.DebugInfos.CurrentBestPath.GetPathPoints();
 
