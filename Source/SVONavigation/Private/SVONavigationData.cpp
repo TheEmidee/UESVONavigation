@@ -98,17 +98,17 @@ void ASVONavigationData::Serialize( FArchive & archive )
         }
     }
 
-    auto bounds_count = NavigationBoundsData.Num();
-    archive << bounds_count;
+    auto volume_count = VolumeNavigationData.Num();
+    archive << volume_count;
     if ( archive.IsLoading() )
     {
-        NavigationBoundsData.Reset( bounds_count );
-        NavigationBoundsData.SetNum( bounds_count );
+        VolumeNavigationData.Reset( volume_count );
+        VolumeNavigationData.SetNum( volume_count );
     }
 
-    for ( auto index = 0; index < bounds_count; index++ )
+    for ( auto index = 0; index < volume_count; index++ )
     {
-        NavigationBoundsData[ index ].Serialize( archive, Version );
+        VolumeNavigationData[ index ].Serialize( archive, Version );
     }
 
     if ( archive.IsSaving() )
@@ -131,7 +131,7 @@ void ASVONavigationData::CleanUp()
 
 bool ASVONavigationData::NeedsRebuild() const
 {
-    const auto needs_rebuild = NavigationBoundsData.FindByPredicate( []( const FSVOBoundsNavigationData & data ) {
+    const auto needs_rebuild = VolumeNavigationData.FindByPredicate( []( const FSVOVolumeNavigationData & data ) {
         return !data.GetOctreeData().IsValid();
     } ) != nullptr;
 
@@ -326,7 +326,7 @@ uint32 ASVONavigationData::LogMemUsed() const
     const auto super_mem_used = Super::LogMemUsed();
 
     auto navigation_mem_size = 0;
-    for ( const auto & nav_bounds_data : NavigationBoundsData )
+    for ( const auto & nav_bounds_data : VolumeNavigationData )
     {
         const auto octree_data_mem_size = nav_bounds_data.GetOctreeData().GetAllocatedSize();
         navigation_mem_size += octree_data_mem_size;
@@ -389,7 +389,7 @@ FBox ASVONavigationData::GetBoundingBox() const
 {
     FBox bounding_box( ForceInit );
 
-    for ( const auto & bounds : NavigationBoundsData )
+    for ( const auto & bounds : VolumeNavigationData )
     {
         bounding_box += bounds.GetOctreeData().GetNavigationBounds();
     }
@@ -399,19 +399,19 @@ FBox ASVONavigationData::GetBoundingBox() const
 
 void ASVONavigationData::RemoveDataInBounds( const FBox & bounds )
 {
-    NavigationBoundsData.RemoveAll( [ &bounds ]( const FSVOBoundsNavigationData & data ) {
+    VolumeNavigationData.RemoveAll( [ &bounds ]( const FSVOVolumeNavigationData & data ) {
         return data.GetVolumeBounds() == bounds;
     } );
 }
 
-void ASVONavigationData::AddNavigationBoundsData( FSVOBoundsNavigationData data )
+void ASVONavigationData::AddVolumeNavigationData( FSVOVolumeNavigationData data )
 {
-    NavigationBoundsData.Emplace( MoveTemp( data ) );
+    VolumeNavigationData.Emplace( MoveTemp( data ) );
 }
 
-const FSVOBoundsNavigationData * ASVONavigationData::GetBoundsNavigationDataContainingPoints( const TArray< FVector > & points ) const
+const FSVOVolumeNavigationData * ASVONavigationData::GetVolumeNavigationDataContainingPoints( const TArray< FVector > & points ) const
 {
-    return NavigationBoundsData.FindByPredicate( [ this, &points ]( const FSVOBoundsNavigationData & data ) {
+    return VolumeNavigationData.FindByPredicate( [ this, &points ]( const FSVOVolumeNavigationData & data ) {
         const auto & bounds = data.GetOctreeData().GetNavigationBounds();
         for ( const auto & point : points )
         {
@@ -462,8 +462,7 @@ void ASVONavigationData::OnNavigationDataUpdatedInBounds( const TArray< FBox > &
 
 void ASVONavigationData::ClearNavigationData()
 {
-    NavigationBoundsData.Reset();
-    //SVODataPtr->ClearData();
+    VolumeNavigationData.Reset();
     RequestDrawingUpdate();
 }
 

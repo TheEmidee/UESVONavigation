@@ -33,7 +33,7 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
 
     const auto & debug_infos = navigation_data->GetDebugInfos();
     //const auto & svo_data = navigation_data->GetSVOData();
-    const auto & all_navigation_bounds_data = navigation_data->GetNavigationBoundsData();
+    const auto & all_navigation_bounds_data = navigation_data->GetVolumeNavigationData();
 
     for ( const auto & navigation_bounds_data : all_navigation_bounds_data )
     {

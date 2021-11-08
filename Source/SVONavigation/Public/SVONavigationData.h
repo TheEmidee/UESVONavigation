@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SVOBoundsNavigationData.h"
+#include "SVOVolumeNavigationData.h"
 
 #include <CoreMinimal.h>
 
@@ -22,7 +22,7 @@ public:
     friend class FSVONavigationDataGenerator;
 
     const FSVONavigationBoundsDataDebugInfos & GetDebugInfos() const;
-    const TArray< FSVOBoundsNavigationData > & GetNavigationBoundsData() const;
+    const TArray< FSVOVolumeNavigationData > & GetVolumeNavigationData() const;
 
     void PostInitProperties() override;
     void PostLoad() override;
@@ -66,8 +66,8 @@ public:
     void RequestDrawingUpdate( bool force = false );
     FBox GetBoundingBox() const;
     void RemoveDataInBounds( const FBox & bounds );
-    void AddNavigationBoundsData( FSVOBoundsNavigationData data );
-    const FSVOBoundsNavigationData * GetBoundsNavigationDataContainingPoints( const TArray< FVector > & points ) const;
+    void AddVolumeNavigationData( FSVOVolumeNavigationData data );
+    const FSVOVolumeNavigationData * GetVolumeNavigationDataContainingPoints( const TArray< FVector > & points ) const;
 
 private:
     void RecreateDefaultFilter();
@@ -92,13 +92,13 @@ private:
     UPROPERTY( EditAnywhere, Category = "Generation", config, meta = ( ClampMin = "0", UIMin = "0" ), AdvancedDisplay )
     int32 MaxSimultaneousBoxGenerationJobsCount;
 
-    TArray< FSVOBoundsNavigationData > NavigationBoundsData;
+    TArray< FSVOVolumeNavigationData > VolumeNavigationData;
     ESVOVersion Version;
 };
 
-FORCEINLINE const TArray< FSVOBoundsNavigationData > & ASVONavigationData::GetNavigationBoundsData() const
+FORCEINLINE const TArray< FSVOVolumeNavigationData > & ASVONavigationData::GetVolumeNavigationData() const
 {
-    return NavigationBoundsData;
+    return VolumeNavigationData;
 }
 
 FORCEINLINE const FSVONavigationBoundsDataDebugInfos & ASVONavigationData::GetDebugInfos() const

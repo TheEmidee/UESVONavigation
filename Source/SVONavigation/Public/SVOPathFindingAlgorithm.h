@@ -8,7 +8,7 @@
 #include "SVOPathFindingAlgorithm.generated.h"
 
 struct FSVOLinkWithCost;
-class FSVOBoundsNavigationData;
+class FSVOVolumeNavigationData;
 class USVOTraversalCostCalculator;
 class USVOHeuristicCalculator;
 class FSVONavigationQueryFilterImpl;
@@ -18,7 +18,7 @@ struct FSVOLinkWithLocation
 {
     FSVOLinkWithLocation() = default;
     FSVOLinkWithLocation( const FSVOOctreeLink & link, const FVector & location );
-    FSVOLinkWithLocation( const FSVOOctreeLink & link, const FSVOBoundsNavigationData & bounds_navigation_data );
+    FSVOLinkWithLocation( const FSVOOctreeLink & link, const FSVOVolumeNavigationData & bounds_navigation_data );
 
     bool operator==( const FSVOLinkWithLocation & other ) const
     {
@@ -90,7 +90,7 @@ struct FSVOPathFindingParameters
     const FSVONavigationQueryFilterSettings & QueryFilterSettings;
     const USVOHeuristicCalculator * HeuristicCalculator;
     const USVOTraversalCostCalculator * CostCalculator;
-    const FSVOBoundsNavigationData * BoundsNavigationData;
+    const FSVOVolumeNavigationData * BoundsNavigationData;
     FSVOOctreeLink StartLink;
     FSVOOctreeLink EndLink;
     float VerticalOffset;
@@ -119,11 +119,11 @@ public:
 
     virtual ~FSVOPathFindingAlgorithmObserver() = default;
 
-    virtual void OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & node )
+    virtual void OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & node )
     {}
-    virtual void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & parent, const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor, const float cost )
+    virtual void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & parent, const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor, const float cost )
     {}
-    virtual void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor )
+    virtual void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor )
     {}
     virtual void OnSearchSuccess( const TArray< FSVOOctreeLink > & link_path )
     {}
@@ -148,9 +148,9 @@ class FSVOPathFindingAStarObserver_GenerateDebugInfos final : public FSVOPathFin
 public:
     FSVOPathFindingAStarObserver_GenerateDebugInfos( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingAlgorithmStepper & stepper );
 
-    void OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & node ) override;
-    void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & parent, const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor, const float cost ) override;
-    void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor ) override;
+    void OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & node ) override;
+    void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & parent, const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor, const float cost ) override;
+    void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor ) override;
     void OnSearchSuccess( const TArray< FSVOOctreeLink > & ) override;
 
 private:
@@ -158,10 +158,10 @@ private:
     FSVOPathFinderDebugInfos & DebugInfos;
 };
 
-class FSVOGraphAStar final : public FGraphAStar< FSVOBoundsNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOBoundsNavigationData > >
+class FSVOGraphAStar final : public FGraphAStar< FSVOVolumeNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOVolumeNavigationData > >
 {
 public:
-    explicit FSVOGraphAStar( const FSVOBoundsNavigationData & graph );
+    explicit FSVOGraphAStar( const FSVOVolumeNavigationData & graph );
 };
 
 // This class is a wrapper around FGraphAStar.

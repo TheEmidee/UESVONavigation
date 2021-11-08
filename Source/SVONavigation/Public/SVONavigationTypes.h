@@ -232,7 +232,7 @@ class FSVOLeaves
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves );
-    friend class FSVOBoundsNavigationData;
+    friend class FSVOVolumeNavigationData;
     friend class FSVOOctreeData;
 
     const FSVOOctreeLeaf & GetLeaf( const LeafIndex leaf_index ) const;
@@ -303,7 +303,7 @@ class FSVOLayer
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOLayer & layer );
-    friend class FSVOBoundsNavigationData;
+    friend class FSVOVolumeNavigationData;
 
     FSVOLayer();
     FSVOLayer( int max_node_count, float voxel_extent );
@@ -385,7 +385,7 @@ class FSVOOctreeData
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOOctreeData & data );
-    friend class FSVOBoundsNavigationData;
+    friend class FSVOVolumeNavigationData;
 
     FSVOOctreeData();
 

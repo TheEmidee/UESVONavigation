@@ -1,8 +1,8 @@
 #include "SVOHeuristicCalculator.h"
 
-#include "SVOBoundsNavigationData.h"
+#include "SVOVolumeNavigationData.h"
 
-float USVOPathHeuristicCalculator_Manhattan::GetHeuristicCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const
+float USVOPathHeuristicCalculator_Manhattan::GetHeuristicCost( const FSVOVolumeNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const
 {
     const auto start_location = bounds_data.GetLinkPosition( start );
     const auto end_location = bounds_data.GetLinkPosition( end );
@@ -10,7 +10,7 @@ float USVOPathHeuristicCalculator_Manhattan::GetHeuristicCost( const FSVOBoundsN
     return score;
 }
 
-float USVOPathHeuristicCalculator_Euclidean::GetHeuristicCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const
+float USVOPathHeuristicCalculator_Euclidean::GetHeuristicCost( const FSVOVolumeNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const
 {
     const auto start_location = bounds_data.GetLinkPosition( start );
     const auto end_location = bounds_data.GetLinkPosition( end );

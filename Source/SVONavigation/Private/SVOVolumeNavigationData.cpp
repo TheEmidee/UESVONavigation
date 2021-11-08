@@ -1,4 +1,4 @@
-#include "SVOBoundsNavigationData.h"
+#include "SVOVolumeNavigationData.h"
 
 #include "SVOHelpers.h"
 #include "SVONavigationData.h"
@@ -35,7 +35,7 @@ const NodeIndex LeafChildOffsetsDirections[ 6 ][ 16 ] = {
 
 };
 
-bool FSVOBoundsNavigationData::GetLinkFromPosition( FSVOOctreeLink & link, const FVector & position ) const
+bool FSVOVolumeNavigationData::GetLinkFromPosition( FSVOOctreeLink & link, const FVector & position ) const
 {
     const auto & navigation_bounds = SVOData.GetNavigationBounds();
 
@@ -140,7 +140,7 @@ bool FSVOBoundsNavigationData::GetLinkFromPosition( FSVOOctreeLink & link, const
     return false;
 }
 
-void FSVOBoundsNavigationData::GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const
+void FSVOVolumeNavigationData::GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNeighbors );
 
@@ -234,17 +234,17 @@ void FSVOBoundsNavigationData::GetNeighbors( TArray< FSVOOctreeLink > & neighbor
     }
 }
 
-float FSVOBoundsNavigationData::GetLayerRatio( const LayerIndex layer_index ) const
+float FSVOVolumeNavigationData::GetLayerRatio( const LayerIndex layer_index ) const
 {
     return static_cast< float >( layer_index ) / GetLayerCount();
 }
 
-float FSVOBoundsNavigationData::GetLayerInverseRatio( const LayerIndex layer_index ) const
+float FSVOVolumeNavigationData::GetLayerInverseRatio( const LayerIndex layer_index ) const
 {
     return 1.0f - GetLayerRatio( layer_index );
 }
 
-float FSVOBoundsNavigationData::GetVoxelHalfExtentFromLink( FSVOOctreeLink link ) const
+float FSVOVolumeNavigationData::GetVoxelHalfExtentFromLink( FSVOOctreeLink link ) const
 {
     if ( link.LayerIndex == 0 )
     {
@@ -254,7 +254,7 @@ float FSVOBoundsNavigationData::GetVoxelHalfExtentFromLink( FSVOOctreeLink link 
     return SVOData.GetLayer( link.LayerIndex ).GetVoxelHalfExtent();
 }
 
-void FSVOBoundsNavigationData::GenerateNavigationData( const FBox & volume_bounds, const FSVOBoundsNavigationDataGenerationSettings & generation_settings )
+void FSVOVolumeNavigationData::GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GenerateNavigationData );
 
@@ -293,19 +293,19 @@ void FSVOBoundsNavigationData::GenerateNavigationData( const FBox & volume_bound
     SVOData.bIsValid = true;
 }
 
-void FSVOBoundsNavigationData::Serialize( FArchive & archive, const ESVOVersion /*version*/ )
+void FSVOVolumeNavigationData::Serialize( FArchive & archive, const ESVOVersion /*version*/ )
 {
     archive << VolumeBounds;
     archive << SVOData;
 }
 
-FSVOBoundsNavigationDataGenerationSettings::FSVOBoundsNavigationDataGenerationSettings():
+FSVOVolumeNavigationDataGenerationSettings::FSVOVolumeNavigationDataGenerationSettings():
     VoxelExtent( 0.0f ),
     World( nullptr )
 {
 }
 
-FVector FSVOBoundsNavigationData::GetNodePosition( const LayerIndex layer_index, const MortonCode morton_code ) const
+FVector FSVOVolumeNavigationData::GetNodePosition( const LayerIndex layer_index, const MortonCode morton_code ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodePosition );
 
@@ -318,7 +318,7 @@ FVector FSVOBoundsNavigationData::GetNodePosition( const LayerIndex layer_index,
     return navigation_bounds.GetCenter() - navigation_bounds.GetExtent() + morton_coords * voxel_size + voxel_half_size;
 }
 
-FVector FSVOBoundsNavigationData::GetLinkPosition( const FSVOOctreeLink & link ) const
+FVector FSVOVolumeNavigationData::GetLinkPosition( const FSVOOctreeLink & link ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodePositionFromLink );
 
@@ -340,7 +340,7 @@ FVector FSVOBoundsNavigationData::GetLinkPosition( const FSVOOctreeLink & link )
     return position;
 }
 
-bool FSVOBoundsNavigationData::IsPositionOccluded( const FVector & position, const float box_half_extent ) const
+bool FSVOVolumeNavigationData::IsPositionOccluded( const FVector & position, const float box_half_extent ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_IsPositionOccluded );
     return Settings.World->OverlapBlockingTestByChannel(
@@ -351,7 +351,7 @@ bool FSVOBoundsNavigationData::IsPositionOccluded( const FVector & position, con
         Settings.GenerationSettings.CollisionQueryParameters );
 }
 
-void FSVOBoundsNavigationData::FirstPassRasterization()
+void FSVOVolumeNavigationData::FirstPassRasterization()
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_FirstPassRasterization );
     {
@@ -385,7 +385,7 @@ void FSVOBoundsNavigationData::FirstPassRasterization()
     }
 }
 
-void FSVOBoundsNavigationData::RasterizeLeaf( const FVector & node_position, const LeafIndex leaf_index )
+void FSVOVolumeNavigationData::RasterizeLeaf( const FVector & node_position, const LeafIndex leaf_index )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_RasterizeLeaf );
 
@@ -404,7 +404,7 @@ void FSVOBoundsNavigationData::RasterizeLeaf( const FVector & node_position, con
     }
 }
 
-void FSVOBoundsNavigationData::RasterizeInitialLayer()
+void FSVOVolumeNavigationData::RasterizeInitialLayer()
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_RasterizeInitialLayer );
 
@@ -452,7 +452,7 @@ void FSVOBoundsNavigationData::RasterizeInitialLayer()
     }
 }
 
-void FSVOBoundsNavigationData::RasterizeLayer( const LayerIndex layer_index )
+void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_RasterizeLayer );
 
@@ -508,7 +508,7 @@ void FSVOBoundsNavigationData::RasterizeLayer( const LayerIndex layer_index )
     }
 }
 
-TOptional< NodeIndex > FSVOBoundsNavigationData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
+TOptional< NodeIndex > FSVOVolumeNavigationData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodeIndexFromMortonCode );
 
@@ -539,7 +539,7 @@ TOptional< NodeIndex > FSVOBoundsNavigationData::GetNodeIndexFromMortonCode( con
     return TOptional< NodeIndex >();
 }
 
-void FSVOBoundsNavigationData::BuildNeighborLinks( const LayerIndex layer_index )
+void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_BuildNeighborLinks );
 
@@ -575,7 +575,7 @@ void FSVOBoundsNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
     }
 }
 
-bool FSVOBoundsNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position )
+bool FSVOVolumeNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_FindNeighborInDirection );
 
@@ -641,7 +641,7 @@ bool FSVOBoundsNavigationData::FindNeighborInDirection( FSVOOctreeLink & link, c
     return false;
 }
 
-void FSVOBoundsNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const
+void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetLeafNeighbors );
 
