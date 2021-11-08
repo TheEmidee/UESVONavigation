@@ -6,6 +6,8 @@ enum class ESVOVersion : uint8;
 
 struct FSVOBoundsNavigationDataGenerationSettings
 {
+    FSVOBoundsNavigationDataGenerationSettings();
+
     float VoxelExtent;
     UWorld * World;
     FSVODataGenerationSettings GenerationSettings;
@@ -15,6 +17,8 @@ class SVONAVIGATION_API FSVOBoundsNavigationData
 {
 public:
     typedef FSVOOctreeLink FNodeRef;
+
+    FSVOBoundsNavigationData() = default;
 
     // Used by FGraphAStar
     bool IsValidRef( const FSVOOctreeLink ref ) const

@@ -299,6 +299,12 @@ void FSVOBoundsNavigationData::Serialize( FArchive & archive, const ESVOVersion 
     archive << SVOData;
 }
 
+FSVOBoundsNavigationDataGenerationSettings::FSVOBoundsNavigationDataGenerationSettings():
+    VoxelExtent( 0.0f ),
+    World( nullptr )
+{
+}
+
 FVector FSVOBoundsNavigationData::GetNodePosition( const LayerIndex layer_index, const MortonCode morton_code ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodePosition );
