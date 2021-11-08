@@ -1,5 +1,6 @@
 #include "SVONavigationData.h"
 
+#include "Chaos/AABB.h"
 #include "NavMesh/NavMeshPath.h"
 #include "SVONavDataRenderingComponent.h"
 #include "SVONavigationDataGenerator.h"
@@ -455,9 +456,9 @@ void ASVONavigationData::ResetGenerator( const bool cancel_build )
     }
 }
 
-void ASVONavigationData::OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_boxes )
+void ASVONavigationData::OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_bounds )
 {
-    //InvalidateAffectedPaths(ChangedTiles);
+    InvalidateAffectedPaths( updated_bounds );
 }
 
 void ASVONavigationData::ClearNavigationData()
@@ -469,6 +470,63 @@ void ASVONavigationData::ClearNavigationData()
 void ASVONavigationData::BuildNavigationData()
 {
     RebuildAll();
+}
+
+void ASVONavigationData::InvalidateAffectedPaths( const TArray< FBox > & updated_bounds )
+{
+    const int32 paths_count = ActivePaths.Num();
+    const int32 updated_bounds_count = updated_bounds.Num();
+
+    if ( updated_bounds_count == 0 || paths_count == 0 )
+    {
+        return;
+    }
+
+    // Paths can be registered from async pathfinding thread.
+    // Theoretically paths are invalidated synchronously by the navigation system
+    // before starting async queries task but protecting ActivePaths will make
+    // the system safer in case of future timing changes.
+    {
+        FScopeLock path_lock( &ActivePathsLock );
+
+        FNavPathWeakPtr * weak_path_ptr = ( ActivePaths.GetData() + paths_count - 1 );
+
+        for ( int32 path_index = paths_count - 1; path_index >= 0; --path_index, --weak_path_ptr )
+        {
+            FNavPathSharedPtr shared_path = weak_path_ptr->Pin();
+            if ( !weak_path_ptr->IsValid() )
+            {
+                ActivePaths.RemoveAtSwap( path_index, 1, /*bAllowShrinking=*/false );
+            }
+            else
+            {
+                const FNavigationPath * path = shared_path.Get();
+                if ( !path->IsReady() || path->GetIgnoreInvalidation() )
+                {
+                    // path not filled yet or doesn't care about invalidation
+                    continue;
+                }
+
+                for ( const auto & path_point : path->GetPathPoints() )
+                {
+                    if ( updated_bounds.FindByPredicate( [ &path_point ]( const FBox & bounds ) {
+                             return bounds.IsInside( path_point.Location );
+                         } ) != nullptr )
+                    {
+                        shared_path->Invalidate();
+                        ActivePaths.RemoveAtSwap( path_index, 1, /*bAllowShrinking=*/false );
+
+                        break;
+                    }
+                }
+
+                if ( !shared_path->IsValid() )
+                {
+                    break;
+                }
+            }
+        }
+    }
 }
 
 FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query )

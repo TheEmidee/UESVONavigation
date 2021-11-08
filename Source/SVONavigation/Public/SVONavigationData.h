@@ -3,7 +3,6 @@
 #include "SVOVolumeNavigationData.h"
 
 #include <CoreMinimal.h>
-
 #include <NavigationData.h>
 
 #include "SVONavigationData.generated.h"
@@ -73,13 +72,15 @@ private:
     void RecreateDefaultFilter() const;
     void UpdateDrawing() const;
     void ResetGenerator( bool cancel_build = true );
-    void OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_boxes );
+    void OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_bounds );
 
     UFUNCTION( CallInEditor )
     void ClearNavigationData();
 
     UFUNCTION( CallInEditor )
     void BuildNavigationData();
+
+    void InvalidateAffectedPaths( const TArray< FBox > & updated_bounds );
 
     static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
 
