@@ -289,6 +289,8 @@ void FSVOBoundsNavigationData::GenerateNavigationData( const FBox & volume_bound
     {
         BuildNeighborLinks( layer_index );
     }
+
+    SVOData.bIsValid = true;
 }
 
 void FSVOBoundsNavigationData::Serialize( FArchive & archive, const ESVOVersion /*version*/ )

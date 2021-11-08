@@ -387,7 +387,7 @@ public:
     friend FArchive & operator<<( FArchive & archive, FSVOOctreeData & data );
     friend class FSVOBoundsNavigationData;
 
-    FSVOOctreeData() = default;
+    FSVOOctreeData();
 
     int GetLayerCount() const;
     const FSVOLayer & GetLayer( LayerIndex layer_index ) const;
@@ -406,6 +406,7 @@ private:
     TArray< FSVOLayer > Layers;
     FSVOLeaves Leaves;
     FBox NavigationBounds;
+    uint8 bIsValid : 1;
 };
 
 FORCEINLINE int FSVOOctreeData::GetLayerCount() const
@@ -448,6 +449,16 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeData & data )
     archive << data.Layers;
     archive << data.Leaves;
     archive << data.NavigationBounds;
+
+    if ( archive.IsLoading() )
+    {
+        data.bIsValid = ( data.Layers.Num() > 0 && data.NavigationBounds.IsValid );
+
+        if ( !data.bIsValid )
+        {
+            data.Reset();
+        }
+    }
 
     return archive;
 }
