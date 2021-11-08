@@ -141,39 +141,30 @@ struct FSVODataGenerationSettings
 
 struct FSVOOctreeLeaf
 {
-    bool GetSubNodeAt( uint_fast32_t X, uint_fast32_t Y, uint_fast32_t Z ) const;
-    void SetSubNodeAt( uint_fast32_t X, uint_fast32_t Y, uint_fast32_t Z );
-
-    void SetSubNode( const SubNodeIndex index );
-    bool GetSubNode( const MortonCode morton_code ) const;
-    void ClearSubNode( const SubNodeIndex index );
-    bool IsOccluded() const;
-    bool IsEmpty() const;
+    void MarkSubNodeAsOccluded( const SubNodeIndex index );
+    bool IsSubNodeOccluded( const MortonCode morton_code ) const;
+    bool IsCompletelyOccluded() const;
+    bool IsCompletelyFree() const;
 
     uint_fast64_t SubNodes = 0;
 };
 
-FORCEINLINE void FSVOOctreeLeaf::SetSubNode( const SubNodeIndex index )
+FORCEINLINE void FSVOOctreeLeaf::MarkSubNodeAsOccluded( const SubNodeIndex index )
 {
     SubNodes |= 1ULL << index;
 }
 
-FORCEINLINE bool FSVOOctreeLeaf::GetSubNode( const MortonCode morton_code ) const
+FORCEINLINE bool FSVOOctreeLeaf::IsSubNodeOccluded( const MortonCode morton_code ) const
 {
     return ( SubNodes & 1ULL << morton_code ) != 0;
 }
 
-FORCEINLINE void FSVOOctreeLeaf::ClearSubNode( const SubNodeIndex index )
-{
-    SubNodes &= !( 1ULL << index );
-}
-
-FORCEINLINE bool FSVOOctreeLeaf::IsOccluded() const
+FORCEINLINE bool FSVOOctreeLeaf::IsCompletelyOccluded() const
 {
     return SubNodes == -1;
 }
 
-FORCEINLINE bool FSVOOctreeLeaf::IsEmpty() const
+FORCEINLINE bool FSVOOctreeLeaf::IsCompletelyFree() const
 {
     return SubNodes == 0;
 }
@@ -220,7 +211,7 @@ struct FSVOOctreeLink
         return !operator==( other );
     }
 
-    static FSVOOctreeLink InvalidEdge()
+    static FSVOOctreeLink InvalidLink()
     {
         return FSVOOctreeLink();
     }
@@ -260,8 +251,8 @@ struct FSVOOctreeNode
 
     FSVOOctreeNode() :
         MortonCode( 0 ),
-        Parent( FSVOOctreeLink::InvalidEdge() ),
-        FirstChild( FSVOOctreeLink::InvalidEdge() )
+        Parent( FSVOOctreeLink::InvalidLink() ),
+        FirstChild( FSVOOctreeLink::InvalidLink() )
     {
     }
 
@@ -285,29 +276,93 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeNode & data )
     return archive;
 }
 
+class FSVOLeaves
+{
+public:
+    friend FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves );
+
+    FSVOOctreeLeaf GetLeaf( const LeafIndex leaf_index ) const;
+    const TArray< FSVOOctreeLeaf > & GetLeaves() const;
+    float GetLeafExtent() const;
+    float GetLeafHalfExtent() const;
+    float GetLeafSubNodeExtent() const;
+    float GetLeafSubNodeHalfExtent() const;
+
+    void Initialize( float leaf_extent );
+    void Reset();
+    int GetAllocatedSize() const;
+    void AllocateLeaves( int leaf_count );
+    void AddLeaf( LeafIndex leaf_index, SubNodeIndex subnode_index, bool is_occluded );
+    void AddEmptyLeaf();
+
+private:
+    float LeafExtent;
+    TArray< FSVOOctreeLeaf > Leaves;
+};
+
+FORCEINLINE FSVOOctreeLeaf FSVOLeaves::GetLeaf( const LeafIndex leaf_index ) const
+{
+    return Leaves[ leaf_index ];
+}
+
+FORCEINLINE const TArray< FSVOOctreeLeaf > & FSVOLeaves::GetLeaves() const
+{
+    return Leaves;
+}
+
+FORCEINLINE float FSVOLeaves::GetLeafExtent() const
+{
+    return LeafExtent;
+}
+
+FORCEINLINE float FSVOLeaves::GetLeafHalfExtent() const
+{
+    return GetLeafExtent() * 0.5f;
+}
+
+FORCEINLINE float FSVOLeaves::GetLeafSubNodeExtent() const
+{
+    return GetLeafExtent() * 0.25f;
+}
+
+FORCEINLINE float FSVOLeaves::GetLeafSubNodeHalfExtent() const
+{
+    return GetLeafSubNodeExtent() * 0.5f;
+}
+
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves )
+{
+    archive << leaves.Leaves;
+    return archive;
+}
+
 class FSVOLayer
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOLayer & layer );
 
     FSVOLayer();
-    FSVOLayer( int max_node_count, float voxel_size );
+    FSVOLayer( int max_node_count, float voxel_extent );
 
     const TArray< FSVOOctreeNode > & GetNodes() const;
     TArray< FSVOOctreeNode > & GetNodes();
     int32 GetNodeCount() const;
     const FSVOOctreeNode & GetNode( NodeIndex node_index ) const;
-    float GetVoxelSize() const;
-    float GetVoxelHalfSize() const;
+    float GetVoxelExtent() const;
+    float GetVoxelHalfExtent() const;
     uint32 GetMaxNodeCount() const;
+    uint32 GetBlockedNodesCount() const;
+    const TSet< MortonCode > & GetBlockedNodes() const;
 
     int GetAllocatedSize() const;
+    void AddBlockedNode( NodeIndex node_index );
 
 private:
     TArray< FSVOOctreeNode > Nodes;
+    TSet< MortonCode > BlockedNodes;
     int MaxNodeCount;
-    float VoxelSize;
-    float VoxelHalfSize;
+    float VoxelExtent;
+    float VoxelHalfExtent;
 };
 
 FORCEINLINE const TArray< FSVOOctreeNode > & FSVOLayer::GetNodes() const
@@ -330,14 +385,14 @@ FORCEINLINE const FSVOOctreeNode & FSVOLayer::GetNode( const NodeIndex node_inde
     return Nodes[ node_index ];
 }
 
-FORCEINLINE float FSVOLayer::GetVoxelSize() const
+FORCEINLINE float FSVOLayer::GetVoxelExtent() const
 {
-    return VoxelSize;
+    return VoxelExtent;
 }
 
-FORCEINLINE float FSVOLayer::GetVoxelHalfSize() const
+FORCEINLINE float FSVOLayer::GetVoxelHalfExtent() const
 {
-    return VoxelHalfSize;
+    return VoxelHalfExtent;
 }
 
 FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
@@ -345,12 +400,22 @@ FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
     return MaxNodeCount;
 }
 
+FORCEINLINE const TSet< MortonCode > & FSVOLayer::GetBlockedNodes() const
+{
+    return BlockedNodes;
+}
+
+FORCEINLINE uint32 FSVOLayer::GetBlockedNodesCount() const
+{
+    return BlockedNodes.Num();
+}
+
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
 {
     archive << layer.Nodes;
     archive << layer.MaxNodeCount;
-    archive << layer.VoxelSize;
-    archive << layer.VoxelHalfSize;
+    archive << layer.VoxelExtent;
+    archive << layer.VoxelHalfExtent;
 
     return archive;
 }
@@ -360,23 +425,24 @@ class FSVOOctreeData
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOOctreeData & data );
 
+    FSVOOctreeData() = default;
+
     int GetLayerCount() const;
     FSVOLayer & GetLayer( LayerIndex layer_index );
     const FSVOLayer & GetLayer( LayerIndex layer_index ) const;
     const FSVOLayer & GetLastLayer() const;
-    const TArray< FSVOOctreeLeaf > & GetLeaves() const;
-    FSVOOctreeLeaf GetLeaf( LeafIndex leaf_index ) const;
-    void AddLayer( int max_node_count, float voxel_size );
+    const FSVOLeaves & GetLeaves() const;
+    FSVOLeaves & GetLeaves();
+    const FBox & GetNavigationBounds() const;
 
+    bool Initialize( float voxel_extent, const FBox & volume_bounds );
     void Reset();
     int GetAllocatedSize() const;
-    void AllocateLeafNodes( int leaf_count );
-    void AddLeaf( LeafIndex leaf_index, SubNodeIndex subnode_index, bool is_occluded );
-    void AddEmptyLeaf();
 
 private:
     TArray< FSVOLayer > Layers;
-    TArray< FSVOOctreeLeaf > Leaves;
+    FSVOLeaves Leaves;
+    FBox NavigationBounds;
 };
 
 FORCEINLINE int FSVOOctreeData::GetLayerCount() const
@@ -399,25 +465,26 @@ FORCEINLINE const FSVOLayer & FSVOOctreeData::GetLastLayer() const
     return Layers.Last();
 }
 
-FORCEINLINE const TArray< FSVOOctreeLeaf > & FSVOOctreeData::GetLeaves() const
+FORCEINLINE const FSVOLeaves & FSVOOctreeData::GetLeaves() const
 {
     return Leaves;
 }
 
-FORCEINLINE FSVOOctreeLeaf FSVOOctreeData::GetLeaf( const LeafIndex leaf_index ) const
+FORCEINLINE FSVOLeaves & FSVOOctreeData::GetLeaves()
 {
-    return Leaves[ leaf_index ];
+    return Leaves;
 }
 
-FORCEINLINE void FSVOOctreeData::AddLayer( const int max_node_count, const float voxel_size )
+FORCEINLINE const FBox & FSVOOctreeData::GetNavigationBounds() const
 {
-    Layers.Emplace( max_node_count, voxel_size );
+    return NavigationBounds;
 }
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeData & data )
 {
     archive << data.Layers;
     archive << data.Leaves;
+    archive << data.NavigationBounds;
 
     return archive;
 }

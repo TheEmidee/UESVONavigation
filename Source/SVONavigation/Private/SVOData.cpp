@@ -1,8 +1,19 @@
 #include "SVOData.h"
 
-void FSVOData::Serialize( FArchive & archive )
+void FSVOData::Serialize( FArchive & archive, const ESVOVersion version )
 {
-    archive << NavigationBoundsData;
+    auto bounds_count = NavigationBoundsData.Num();
+    archive << bounds_count;
+    if ( archive.IsLoading() )
+    {
+        NavigationBoundsData.Reset( bounds_count );
+        NavigationBoundsData.SetNum( bounds_count );
+    }
+
+    for ( auto index = 0; index < bounds_count; index++ )
+    {
+        NavigationBoundsData[ index ].Serialize( archive, version );
+    }
 }
 
 void FSVOData::ClearData()
@@ -28,7 +39,7 @@ FBox FSVOData::GetBoundingBox() const
 
     for ( const auto & bounds : NavigationBoundsData )
     {
-        bounding_box += bounds.GetNavigationBounds();
+        bounding_box += bounds.GetOctreeData().GetNavigationBounds();
     }
 
     return bounding_box;
@@ -37,7 +48,7 @@ FBox FSVOData::GetBoundingBox() const
 const FSVOBoundsNavigationData * FSVOData::GetBoundsNavigationDataContainingPoints( const TArray< FVector > & points ) const
 {
     return NavigationBoundsData.FindByPredicate( [ this, &points ]( const FSVOBoundsNavigationData & data ) {
-        const auto & bounds = data.GetNavigationBounds();
+        const auto & bounds = data.GetOctreeData().GetNavigationBounds();
         for ( const auto & point : points )
         {
             if ( !bounds.IsInside( point ) )

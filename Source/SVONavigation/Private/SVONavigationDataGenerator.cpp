@@ -19,7 +19,7 @@ bool FSVOBoundsNavigationDataGenerator::DoWork()
     FSVOBoundsNavigationDataGenerationSettings generation_settings;
     generation_settings.GenerationSettings = ParentGenerator.GetGenerationSettings();
     generation_settings.World = ParentGenerator.GetWorld();
-    generation_settings.VoxelSize = FMath::Max( NavDataConfig.AgentHeight, NavDataConfig.AgentRadius );
+    generation_settings.VoxelExtent = NavDataConfig.AgentRadius * 2.0f;
 
     BoundsNavigationData.GenerateNavigationData( VolumeBounds, generation_settings );
 

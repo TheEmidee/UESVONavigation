@@ -8,17 +8,17 @@
 #include "SVONavigationSettings.h"
 #include "SVOPathFinder.h"
 #include "SVOPathFindingAlgorithm.h"
+#include "SVOVersion.h"
 
 #include <AI/NavDataGenerator.h>
 #include <NavigationSystem.h>
+
 #if WITH_EDITOR
 #include <ObjectEditorUtils.h>
 #endif
 
-static constexpr uint32 SVOVersion_Initial = 1,
-                        SVOVersion_Latest = SVOVersion_Initial;
-
-ASVONavigationData::ASVONavigationData()
+ASVONavigationData::ASVONavigationData() :
+    Version( ESVOVersion::Latest )
 {
     PrimaryActorTick.bCanEverTick = false;
     MaxSimultaneousBoxGenerationJobsCount = 1024;
@@ -41,7 +41,6 @@ ASVONavigationData::ASVONavigationData()
         //SupportedAreas.Add( FSupportedAreaData( UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA ) );
     }
 
-    SVOVersion = SVOVersion_Latest;
     SVODataPtr = MakeUnique< FSVOData >();
 }
 
@@ -83,9 +82,9 @@ void ASVONavigationData::Serialize( FArchive & archive )
 {
     Super::Serialize( archive );
 
-    archive << SVOVersion;
+    archive << Version;
 
-    SVODataPtr->Serialize( archive );
+    SVODataPtr->Serialize( archive, Version );
 
     archive << DebugInfos;
 }
