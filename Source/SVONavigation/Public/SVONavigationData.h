@@ -70,8 +70,8 @@ public:
     const FSVOVolumeNavigationData * GetVolumeNavigationDataContainingPoints( const TArray< FVector > & points ) const;
 
 private:
-    void RecreateDefaultFilter();
-    void UpdateDrawing();
+    void RecreateDefaultFilter() const;
+    void UpdateDrawing() const;
     void ResetGenerator( bool cancel_build = true );
     void OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_boxes );
 

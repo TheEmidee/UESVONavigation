@@ -262,6 +262,7 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
                 }
 
                 // Remove the existing navigation bounds which don't match the new navigation bounds
+                // :TODO: Avoid copying data
                 auto existing_navigation_bounds = NavigationData.GetVolumeNavigationData();
 
                 for ( const auto & existing_bounds : existing_navigation_bounds )

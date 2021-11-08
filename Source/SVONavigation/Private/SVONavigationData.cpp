@@ -424,12 +424,12 @@ const FSVOVolumeNavigationData * ASVONavigationData::GetVolumeNavigationDataCont
     } );
 }
 
-void ASVONavigationData::RecreateDefaultFilter()
+void ASVONavigationData::RecreateDefaultFilter() const
 {
     DefaultQueryFilter->SetFilterType< FSVONavigationQueryFilterImpl >();
 }
 
-void ASVONavigationData::UpdateDrawing()
+void ASVONavigationData::UpdateDrawing() const
 {
 #if !UE_BUILD_SHIPPING
     if ( USVONavDataRenderingComponent * rendering_component = Cast< USVONavDataRenderingComponent >( RenderingComp ) )
