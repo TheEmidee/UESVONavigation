@@ -11,32 +11,6 @@
 class USVONavDataRenderingComponent;
 struct FSVONavigationBounds;
 
-struct FSVONavigationDataBoundsKey
-{
-    FSVONavigationDataBoundsKey() = default;
-    FSVONavigationDataBoundsKey( const FBox & volume_bounds ) :
-        VolumeBounds( volume_bounds )
-    {}
-
-    FBox VolumeBounds;
-
-    friend uint32 GetTypeHash( const FSVONavigationDataBoundsKey & element )
-    {
-        return HashCombine( GetTypeHash( element.VolumeBounds.GetCenter() ), GetTypeHash( element.VolumeBounds.GetExtent() ) );
-    }
-
-    bool operator==( const FSVONavigationDataBoundsKey & other ) const
-    {
-        return VolumeBounds == other.VolumeBounds;
-    }
-};
-
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationDataBoundsKey & data )
-{
-    archive << data.VolumeBounds;
-    return archive;
-}
-
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
 class SVONAVIGATION_API ASVONavigationData final : public ANavigationData
 {
