@@ -147,7 +147,7 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
     }
     else
     {
-        DebugInfos.LastLastProcessedSingleNode.From = FSVOLinkWithLocation( FSVOOctreeLink::InvalidEdge(), Stepper.GetParameters().StartLocation );
+        DebugInfos.LastLastProcessedSingleNode.From = FSVOLinkWithLocation( FSVOOctreeLink::InvalidLink(), Stepper.GetParameters().StartLocation );
     }
 
     DebugInfos.LastLastProcessedSingleNode.To = FSVOLinkWithLocation( node.NodeRef, *Stepper.GetParameters().BoundsNavigationData );

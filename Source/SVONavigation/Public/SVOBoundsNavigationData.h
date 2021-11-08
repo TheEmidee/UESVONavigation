@@ -6,7 +6,7 @@ enum class ESVOVersion : uint8;
 
 struct FSVOBoundsNavigationDataGenerationSettings
 {
-    float VoxelSize;
+    float VoxelExtent;
     UWorld * World;
     FSVODataGenerationSettings GenerationSettings;
 };
@@ -24,7 +24,6 @@ public:
 
     const FSVOBoundsNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
-    const FBox & GetNavigationBounds() const;
     const FSVOOctreeData & GetOctreeData() const;
     FVector GetNodePosition( const LayerIndex layer_index, MortonCode morton_code ) const;
     FVector GetLinkPosition( const FSVOOctreeLink & link ) const;
@@ -38,10 +37,9 @@ public:
     void Serialize( FArchive & archive, const ESVOVersion version );
 
 private:
-    int32 GetLayerMaxNodeCount( LayerIndex layer_index ) const;
-    bool IsPositionOccluded( const FVector & position, float box_size ) const;
+    int GetLayerCount() const;
+    bool IsPositionOccluded( const FVector & position, float box_half_extent ) const;
     void FirstPassRasterization();
-    void AllocateLeafNodes();
     void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index );
     void RasterizeInitialLayer();
     void RasterizeLayer( LayerIndex layer_index );
@@ -51,13 +49,8 @@ private:
     void GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
 
     FSVOBoundsNavigationDataGenerationSettings Settings;
-    int VoxelExponent;
-    uint8 LayerCount = 0;
-    FBox NavigationBounds;
     FBox VolumeBounds;
-    float UsedBoxExtent;
     FSVOOctreeData SVOData;
-    TArray< TSet< MortonCode > > BlockedIndices;
 };
 
 FORCEINLINE const FSVOBoundsNavigationDataGenerationSettings & FSVOBoundsNavigationData::GetDataGenerationSettings() const
@@ -70,20 +63,9 @@ FORCEINLINE const FBox & FSVOBoundsNavigationData::GetVolumeBounds() const
     return VolumeBounds;
 }
 
-FORCEINLINE const FBox & FSVOBoundsNavigationData::GetNavigationBounds() const
-{
-    return NavigationBounds;
-}
-
 FORCEINLINE const FSVOOctreeData & FSVOBoundsNavigationData::GetOctreeData() const
 {
     return SVOData;
-}
-
-FORCEINLINE int32 FSVOBoundsNavigationData::GetLayerMaxNodeCount( const LayerIndex layer_index ) const
-{
-    // :TODO: check if valid
-    return FMath::Pow( 2, VoxelExponent - layer_index );
 }
 
 FORCEINLINE const FSVOOctreeNode & FSVOBoundsNavigationData::GetNodeFromLink( const FSVOOctreeLink & link ) const
@@ -91,4 +73,9 @@ FORCEINLINE const FSVOOctreeNode & FSVOBoundsNavigationData::GetNodeFromLink( co
     return link.LayerIndex < 15
                ? SVOData.GetLayer( link.LayerIndex ).GetNode( link.NodeIndex )
                : SVOData.GetLastLayer().GetNode( 0 );
+}
+
+FORCEINLINE int FSVOBoundsNavigationData::GetLayerCount() const
+{
+    return SVOData.GetLayerCount();
 }
