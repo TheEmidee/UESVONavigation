@@ -98,7 +98,7 @@ FSVOPathFindingParameters::FSVOPathFindingParameters( const FNavAgentProperties 
     QueryFilterSettings( QueryFilterImplementation->QueryFilterSettings ),
     HeuristicCalculator( QueryFilterSettings.HeuristicCalculator ),
     CostCalculator( QueryFilterSettings.TraversalCostCalculator ),
-    BoundsNavigationData( navigation_data.GetSVOData().GetBoundsNavigationDataContainingPoints( { start_location, end_location } ) ),
+    BoundsNavigationData( navigation_data.GetBoundsNavigationDataContainingPoints( { start_location, end_location } ) ),
     VerticalOffset( QueryFilterSettings.bOffsetPathVerticallyByAgentRadius ? -path_finding_query.NavAgentProperties.AgentRadius : 0.0f )
 {
     if ( BoundsNavigationData != nullptr )

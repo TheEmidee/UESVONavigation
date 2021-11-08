@@ -4,8 +4,6 @@
 
 #include <CoreMinimal.h>
 
-#include "SVOData.h"
-
 #include <NavigationData.h>
 
 #include "SVONavigationData.generated.h"
@@ -50,7 +48,7 @@ public:
     friend class FSVONavigationDataGenerator;
 
     const FSVONavigationBoundsDataDebugInfos & GetDebugInfos() const;
-    const FSVOData & GetSVOData() const;
+    const TArray< FSVOBoundsNavigationData > & GetNavigationBoundsData() const;
 
     void PostInitProperties() override;
     void PostLoad() override;
@@ -92,6 +90,10 @@ public:
     void ConditionalConstructGenerator() override;
 
     void RequestDrawingUpdate( bool force = false );
+    FBox GetBoundingBox() const;
+    void RemoveDataInBounds( const FBox & bounds );
+    void AddNavigationBoundsData( FSVOBoundsNavigationData data );
+    const FSVOBoundsNavigationData * GetBoundsNavigationDataContainingPoints( const TArray< FVector > & points ) const;
 
 private:
     void RecreateDefaultFilter();
@@ -107,8 +109,6 @@ private:
 
     static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
 
-    FUniqueSVODataPtr SVODataPtr;
-
     UPROPERTY( EditAnywhere, config, Category = "Display" )
     FSVONavigationBoundsDataDebugInfos DebugInfos;
 
@@ -118,15 +118,16 @@ private:
     UPROPERTY( EditAnywhere, Category = "Generation", config, meta = ( ClampMin = "0", UIMin = "0" ), AdvancedDisplay )
     int32 MaxSimultaneousBoxGenerationJobsCount;
 
+    TArray< FSVOBoundsNavigationData > NavigationBoundsData;
     ESVOVersion Version;
 };
+
+FORCEINLINE const TArray< FSVOBoundsNavigationData > & ASVONavigationData::GetNavigationBoundsData() const
+{
+    return NavigationBoundsData;
+}
 
 FORCEINLINE const FSVONavigationBoundsDataDebugInfos & ASVONavigationData::GetDebugInfos() const
 {
     return DebugInfos;
-}
-
-FORCEINLINE const FSVOData & ASVONavigationData::GetSVOData() const
-{
-    return *SVODataPtr.Get();
 }

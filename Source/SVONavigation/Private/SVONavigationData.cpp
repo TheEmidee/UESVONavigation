@@ -40,8 +40,6 @@ ASVONavigationData::ASVONavigationData() :
         //SupportedAreas.Add( FSupportedAreaData( UNavArea_LowHeight::StaticClass(), RECAST_LOW_AREA ) );
         //SupportedAreas.Add( FSupportedAreaData( UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA ) );
     }
-
-    SVODataPtr = MakeUnique< FSVOData >();
 }
 
 void ASVONavigationData::PostInitProperties()
@@ -100,7 +98,18 @@ void ASVONavigationData::Serialize( FArchive & archive )
         }
     }
 
-    SVODataPtr->Serialize( archive, Version );
+    auto bounds_count = NavigationBoundsData.Num();
+    archive << bounds_count;
+    if ( archive.IsLoading() )
+    {
+        NavigationBoundsData.Reset( bounds_count );
+        NavigationBoundsData.SetNum( bounds_count );
+    }
+
+    for ( auto index = 0; index < bounds_count; index++ )
+    {
+        NavigationBoundsData[ index ].Serialize( archive, Version );
+    }
 
     if ( archive.IsSaving() )
     {
@@ -122,7 +131,9 @@ void ASVONavigationData::CleanUp()
 
 bool ASVONavigationData::NeedsRebuild() const
 {
-    const auto needs_rebuild = SVODataPtr->NeedsRebuild();
+    const auto needs_rebuild = NavigationBoundsData.FindByPredicate( []( const FSVOBoundsNavigationData & data ) {
+        return !data.GetOctreeData().IsValid();
+    } ) != nullptr;
 
     if ( NavDataGenerator.IsValid() )
     {
@@ -314,7 +325,13 @@ uint32 ASVONavigationData::LogMemUsed() const
 {
     const auto super_mem_used = Super::LogMemUsed();
 
-    const auto mem_used = super_mem_used + SVODataPtr->GetAllocatedSize();
+    auto navigation_mem_size = 0;
+    for ( const auto & nav_bounds_data : NavigationBoundsData )
+    {
+        const auto octree_data_mem_size = nav_bounds_data.GetOctreeData().GetAllocatedSize();
+        navigation_mem_size += octree_data_mem_size;
+    }
+    const auto mem_used = super_mem_used + navigation_mem_size;
 
     UE_LOG( LogNavigation, Warning, TEXT( "%s: ASVONavigationData: %u\n    self: %d" ), *GetName(), mem_used, sizeof( ASVONavigationData ) );
 
@@ -368,6 +385,45 @@ void ASVONavigationData::RequestDrawingUpdate( bool force )
 #endif // !UE_BUILD_SHIPPING
 }
 
+FBox ASVONavigationData::GetBoundingBox() const
+{
+    FBox bounding_box( ForceInit );
+
+    for ( const auto & bounds : NavigationBoundsData )
+    {
+        bounding_box += bounds.GetOctreeData().GetNavigationBounds();
+    }
+
+    return bounding_box;
+}
+
+void ASVONavigationData::RemoveDataInBounds( const FBox & bounds )
+{
+    NavigationBoundsData.RemoveAll( [ &bounds ]( const FSVOBoundsNavigationData & data ) {
+        return data.GetVolumeBounds() == bounds;
+    } );
+}
+
+void ASVONavigationData::AddNavigationBoundsData( FSVOBoundsNavigationData data )
+{
+    NavigationBoundsData.Emplace( MoveTemp( data ) );
+}
+
+const FSVOBoundsNavigationData * ASVONavigationData::GetBoundsNavigationDataContainingPoints( const TArray< FVector > & points ) const
+{
+    return NavigationBoundsData.FindByPredicate( [ this, &points ]( const FSVOBoundsNavigationData & data ) {
+        const auto & bounds = data.GetOctreeData().GetNavigationBounds();
+        for ( const auto & point : points )
+        {
+            if ( !bounds.IsInside( point ) )
+            {
+                return false;
+            }
+        }
+        return true;
+    } );
+}
+
 void ASVONavigationData::RecreateDefaultFilter()
 {
     DefaultQueryFilter->SetFilterType< FSVONavigationQueryFilterImpl >();
@@ -406,7 +462,8 @@ void ASVONavigationData::OnNavigationDataUpdatedInBounds( const TArray< FBox > &
 
 void ASVONavigationData::ClearNavigationData()
 {
-    SVODataPtr->ClearData();
+    NavigationBoundsData.Reset();
+    //SVODataPtr->ClearData();
     RequestDrawingUpdate();
 }
 

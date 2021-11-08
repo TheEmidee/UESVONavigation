@@ -1,6 +1,5 @@
 #include "SVONavigationDataGenerator.h"
 
-#include "SVOData.h"
 #include "SVONavigationData.h"
 
 #include <GameFramework/PlayerController.h>
@@ -172,7 +171,7 @@ void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDi
 
                 PendingBoundsDataGenerationElements.Emplace( pending_box_element );
 
-                NavigationData.SVODataPtr->RemoveDataInBounds( matching_bounds_element );
+                NavigationData.RemoveDataInBounds( matching_bounds_element );
             }
         }
     }
@@ -263,7 +262,7 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
                 }
 
                 // Remove the existing navigation bounds which don't match the new navigation bounds
-                auto existing_navigation_bounds = NavigationData.SVODataPtr->GetNavigationBoundsData();
+                auto existing_navigation_bounds = NavigationData.GetNavigationBoundsData();
 
                 for ( const auto & existing_bounds : existing_navigation_bounds )
                 {
@@ -271,7 +270,7 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
                              return registered_bounds == existing_bounds.GetVolumeBounds();
                          } ) == nullptr )
                     {
-                        NavigationData.SVODataPtr->RemoveDataInBounds( existing_bounds.GetVolumeBounds() );
+                        NavigationData.RemoveDataInBounds( existing_bounds.GetVolumeBounds() );
                     }
                 }
             }
@@ -345,7 +344,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
         auto & box_generator = *element.AsyncTask->GetTask().BoxNavigationDataGenerator;
 
-        NavigationData.SVODataPtr->AddNavigationBoundsData( box_generator.GetBoundsNavigationData() );
+        NavigationData.AddNavigationBoundsData( box_generator.GetBoundsNavigationData() );
 
         finished_boxes.Emplace( MoveTemp( element.VolumeBounds ) );
 
