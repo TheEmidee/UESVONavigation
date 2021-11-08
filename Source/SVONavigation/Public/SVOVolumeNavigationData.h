@@ -37,6 +37,7 @@ public:
     float GetLayerRatio( LayerIndex layer_index ) const;
     float GetLayerInverseRatio( LayerIndex layer_index ) const;
     float GetVoxelHalfExtentFromLink( FSVOOctreeLink link ) const;
+    TOptional< FNavLocation > GetRandomPoint() const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings );
     void Serialize( FArchive & archive, const ESVOVersion version );
@@ -52,6 +53,7 @@ private:
     void BuildNeighborLinks( LayerIndex layer_index );
     bool FindNeighborInDirection( FSVOOctreeLink & link, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
     void GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
+    void GetFreeNodesFromLink( FSVOOctreeLink link, TArray< FSVOOctreeLink > & free_nodes ) const;
 
     FSVOVolumeNavigationDataGenerationSettings Settings;
     FBox VolumeBounds;

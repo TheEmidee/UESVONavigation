@@ -345,7 +345,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
         auto & box_generator = *element.AsyncTask->GetTask().BoxNavigationDataGenerator;
 
-        NavigationData.AddVolumeBoundsData( box_generator.GetBoundsNavigationData() );
+        NavigationData.AddVolumeNavigationData( box_generator.GetBoundsNavigationData() );
 
         finished_boxes.Emplace( MoveTemp( element.VolumeBounds ) );
 

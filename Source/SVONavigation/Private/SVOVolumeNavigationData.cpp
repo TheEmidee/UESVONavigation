@@ -244,7 +244,7 @@ float FSVOVolumeNavigationData::GetLayerInverseRatio( const LayerIndex layer_ind
     return 1.0f - GetLayerRatio( layer_index );
 }
 
-float FSVOVolumeNavigationData::GetVoxelHalfExtentFromLink( FSVOOctreeLink link ) const
+float FSVOVolumeNavigationData::GetVoxelHalfExtentFromLink( const FSVOOctreeLink link ) const
 {
     if ( link.LayerIndex == 0 )
     {
@@ -252,6 +252,29 @@ float FSVOVolumeNavigationData::GetVoxelHalfExtentFromLink( FSVOOctreeLink link 
     }
 
     return SVOData.GetLayer( link.LayerIndex ).GetVoxelHalfExtent();
+}
+
+TOptional< FNavLocation > FSVOVolumeNavigationData::GetRandomPoint() const
+{
+    TArray< FSVOOctreeLink > non_occluded_nodes;
+    const FSVOOctreeLink top_most_link( GetLayerCount(), 0, 0 );
+
+    GetFreeNodesFromLink( top_most_link, non_occluded_nodes );
+
+    if ( non_occluded_nodes.Num() == 0 )
+    {
+        return TOptional< FNavLocation >();
+    }
+
+    const auto random_index = FMath::RandRange( 0, non_occluded_nodes.Num() - 1 );
+    const auto random_node = non_occluded_nodes[ random_index ];
+    const auto random_node_location = GetLinkPosition( random_node );
+    const auto random_node_half_extent = GetVoxelHalfExtentFromLink( random_node );
+
+    const auto node_bounds = FBox::BuildAABB( random_node_location, FVector( random_node_half_extent ) );
+    const auto random_point_in_node = FMath::RandPointInBox( node_bounds );
+
+    return FNavLocation( random_point_in_node );
 }
 
 void FSVOVolumeNavigationData::GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings )
@@ -299,7 +322,7 @@ void FSVOVolumeNavigationData::Serialize( FArchive & archive, const ESVOVersion 
     archive << SVOData;
 }
 
-FSVOVolumeNavigationDataGenerationSettings::FSVOVolumeNavigationDataGenerationSettings():
+FSVOVolumeNavigationDataGenerationSettings::FSVOVolumeNavigationDataGenerationSettings() :
     VoxelExtent( 0.0f ),
     World( nullptr )
 {
@@ -483,19 +506,20 @@ void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
         const auto child_layer_index = layer_index - 1;
         const auto child_index_from_code = GetNodeIndexFromMortonCode( child_layer_index, FSVOHelpers::GetFirstChildMortonCode( layer_node.MortonCode ) );
 
+        auto & first_child = layer_node.FirstChild;
+
         if ( child_index_from_code.IsSet() )
         {
             // Set parent->child links
-            layer_node.FirstChild.LayerIndex = child_layer_index;
-            layer_node.FirstChild.NodeIndex = child_index_from_code.GetValue();
+            first_child.LayerIndex = child_layer_index;
+            first_child.NodeIndex = child_index_from_code.GetValue();
 
-            auto & child_layer = SVOData.GetLayer( layer_node.FirstChild.LayerIndex );
+            auto & child_layer = SVOData.GetLayer( child_layer_index );
 
             // Set child->parent links
             for ( auto child_index = 0; child_index < 8; ++child_index )
             {
-                auto & child_node_layer = child_layer;
-                auto & child_node = child_node_layer.GetNodes()[ layer_node.FirstChild.NodeIndex + child_index ];
+                auto & child_node = child_layer.GetNodes()[ first_child.NodeIndex + child_index ];
 
                 child_node.Parent.LayerIndex = layer_index;
                 child_node.Parent.NodeIndex = new_node_index;
@@ -503,7 +527,7 @@ void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
         }
         else
         {
-            layer_node.FirstChild.Invalidate();
+            first_child.Invalidate();
         }
     }
 }
@@ -718,6 +742,58 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
                 }
             }
             // else the leaf node is completely blocked, we don't return it
+        }
+    }
+}
+
+void FSVOVolumeNavigationData::GetFreeNodesFromLink( const FSVOOctreeLink link, TArray<FSVOOctreeLink> & free_nodes ) const
+{
+    const auto layer_index = link.LayerIndex;
+    const auto node_index = link.NodeIndex;
+
+    if ( layer_index == 0 )
+    {
+        const auto & leaf_node = SVOData.Leaves.GetLeaf( node_index );
+
+        if ( leaf_node.IsCompletelyOccluded() )
+        {
+            return;
+        }
+
+        if ( leaf_node.IsCompletelyFree() )
+        {
+            // the link is the leaf
+            free_nodes.Emplace( link );
+            return;
+        }
+
+        for ( auto morton_code = 0; morton_code < 64; ++morton_code )
+        {
+            if ( !leaf_node.IsSubNodeOccluded( morton_code ) )
+            {
+                free_nodes.Emplace( FSVOOctreeLink( 0, node_index, morton_code ) );
+            }
+        }
+    }
+    else
+    {
+        const auto & node = SVOData.GetLayer( layer_index ).GetNode( node_index );
+
+        if ( !node.HasChildren() )
+        {
+            free_nodes.Emplace( link );
+        }
+        else
+        {
+            const auto & first_child = node.FirstChild;
+            const auto child_layer_index = first_child.LayerIndex;
+            const auto & child_layer = SVOData.GetLayer( child_layer_index );
+
+            for ( auto child_index = 0; child_index < 8; ++child_index )
+            {
+                const auto & child_node = child_layer.GetNodes()[ first_child.NodeIndex + child_index ];
+                GetFreeNodesFromLink( FSVOOctreeLink( child_layer_index, child_node.MortonCode, 0 ) , free_nodes );
+            }
         }
     }
 }

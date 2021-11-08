@@ -166,11 +166,46 @@ bool ASVONavigationData::SupportsStreaming() const
     return false;
 }
 
-FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const
+FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter /*filter*/, const UObject * /*querier*/ ) const
 {
-    // :TODO:
-    ensure( false );
-    return FNavLocation();
+    FNavLocation result;
+
+    const auto navigation_bounds_num = VolumeNavigationData.Num();
+
+    if ( navigation_bounds_num == 0 )
+    {
+        return result;
+    }
+
+    TArray< int > navigation_bounds_indices;
+    navigation_bounds_indices.Reserve( VolumeNavigationData.Num() );
+
+    for ( auto index = 0; index < navigation_bounds_num; index++ )
+    {
+        navigation_bounds_indices.Add( index );
+    }
+
+    // Shuffle the array
+    for ( int index = navigation_bounds_indices.Num() - 1; index > 0; --index )
+    {
+        const auto new_index = FMath::RandRange( 0, index );
+        Swap( navigation_bounds_indices[ index ], navigation_bounds_indices[ new_index ] );
+    }
+
+    do
+    {
+        const auto index = navigation_bounds_indices.Pop( false );
+        const auto & volume_navigation_data = VolumeNavigationData[ index ];
+
+        const auto random_point = volume_navigation_data.GetRandomPoint();
+        if ( random_point.IsSet() )
+        {
+            result = random_point.GetValue();
+            break;
+        }
+    } while ( navigation_bounds_indices.Num() > 0 );
+
+    return result;
 }
 
 bool ASVONavigationData::GetRandomReachablePointInRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter, const UObject * querier ) const
