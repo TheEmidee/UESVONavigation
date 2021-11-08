@@ -120,6 +120,18 @@ void ASVONavigationData::CleanUp()
     ResetGenerator();
 }
 
+bool ASVONavigationData::NeedsRebuild() const
+{
+    const auto needs_rebuild = SVODataPtr->NeedsRebuild();
+
+    if ( NavDataGenerator.IsValid() )
+    {
+        return needs_rebuild || NavDataGenerator->GetNumRemaningBuildTasks() > 0;
+    }
+
+    return needs_rebuild;
+}
+
 void ASVONavigationData::EnsureBuildCompletion()
 {
     Super::EnsureBuildCompletion();

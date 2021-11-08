@@ -56,7 +56,7 @@ public:
     void PostLoad() override;
     void Serialize( FArchive & archive ) override;
     void CleanUp() override;
-
+    bool NeedsRebuild() const override;
     void EnsureBuildCompletion() override;
     FNavLocation GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const override;
     bool GetRandomReachablePointInRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;

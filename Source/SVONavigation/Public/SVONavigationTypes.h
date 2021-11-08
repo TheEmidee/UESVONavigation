@@ -394,6 +394,7 @@ public:
     const FSVOLayer & GetLastLayer() const;
     const FSVOLeaves & GetLeaves() const;
     const FBox & GetNavigationBounds() const;
+    bool IsValid() const;
 
     int GetAllocatedSize() const;
 
@@ -442,6 +443,11 @@ FORCEINLINE FSVOLeaves & FSVOOctreeData::GetLeaves()
 FORCEINLINE const FBox & FSVOOctreeData::GetNavigationBounds() const
 {
     return NavigationBounds;
+}
+
+FORCEINLINE bool FSVOOctreeData::IsValid() const
+{
+    return bIsValid && GetLayerCount() > 0;
 }
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeData & data )

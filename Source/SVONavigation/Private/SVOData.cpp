@@ -1,5 +1,13 @@
 #include "SVOData.h"
 
+bool FSVOData::NeedsRebuild() const
+{
+    return NavigationBoundsData.FindByPredicate( []( const FSVOBoundsNavigationData & data )
+    {
+        return !data.GetOctreeData().IsValid();
+    } ) != nullptr;
+}
+
 void FSVOData::Serialize( FArchive & archive, const ESVOVersion version )
 {
     auto bounds_count = NavigationBoundsData.Num();

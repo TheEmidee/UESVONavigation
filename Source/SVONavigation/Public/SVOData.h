@@ -10,6 +10,7 @@ struct FSVOData
 {
 public:
     const TArray< FSVOBoundsNavigationData > & GetNavigationBoundsData() const;
+    bool NeedsRebuild() const;
 
     void Serialize( FArchive & archive, ESVOVersion version );
     void ClearData();
