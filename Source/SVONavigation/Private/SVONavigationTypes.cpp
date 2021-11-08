@@ -105,6 +105,7 @@ void FSVOOctreeData::Reset()
 }
 
 FSVOOctreeData::FSVOOctreeData() :
+    Leaves(),
     bIsValid( false )
 {
 }

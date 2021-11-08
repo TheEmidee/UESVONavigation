@@ -142,6 +142,18 @@ void ASVONavigationData::EnsureBuildCompletion()
     RecreateDefaultFilter();
 }
 
+bool ASVONavigationData::SupportsRuntimeGeneration() const
+{
+    // :TODO:
+    return false;
+}
+
+bool ASVONavigationData::SupportsStreaming() const
+{
+    // :TODO:
+    return false;
+}
+
 FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     // :TODO:

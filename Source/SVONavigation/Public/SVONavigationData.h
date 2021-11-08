@@ -58,6 +58,8 @@ public:
     void CleanUp() override;
     bool NeedsRebuild() const override;
     void EnsureBuildCompletion() override;
+    bool SupportsRuntimeGeneration() const override;
+    bool SupportsStreaming() const override;
     FNavLocation GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const override;
     bool GetRandomReachablePointInRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
     bool GetRandomPointInNavigableRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
