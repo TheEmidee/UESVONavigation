@@ -14,6 +14,8 @@ class USphereComponent;
 class ASVOPathFinderTest;
 class USVOPathFindingRenderingComponent;
 
+class FSVOPathFindingAlgorithmStepper;
+
 USTRUCT()
 struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
 {
@@ -21,10 +23,10 @@ struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
 
     FSVOPathRenderingDebugDrawOptions() :
         bDrawOnlyWhenSelected( false ),
+        bDrawNodes( true ),
+        bDrawCosts( false ),
         bDrawLastProcessedNode( true ),
-        bDrawLastProcessedNodeCost( false ),
         bDrawLastProcessedNeighbors( true ),
-        bDrawNeighborsCost( false ),
         bDrawBestPath( true )
     {}
 
@@ -32,16 +34,16 @@ struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
     uint8 bDrawOnlyWhenSelected : 1;
 
     UPROPERTY( EditAnywhere )
-    uint8 bDrawLastProcessedNode : 1;
+    uint8 bDrawNodes : 1;
 
-    UPROPERTY( EditAnywhere, meta = ( EditCondition = "bDrawLastProcessedNode" ) )
-    uint8 bDrawLastProcessedNodeCost : 1;
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawCosts : 1;
+
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawLastProcessedNode : 1;
 
     UPROPERTY( EditAnywhere )
     uint8 bDrawLastProcessedNeighbors : 1;
-
-    UPROPERTY( EditAnywhere, meta = ( EditCondition = "bDrawNeighborsCost" ) )
-    uint8 bDrawNeighborsCost : 1;
 
     UPROPERTY( EditAnywhere )
     uint8 bDrawBestPath : 1;
@@ -55,6 +57,7 @@ struct SVONAVIGATION_API FSVOPathFindingSceneProxyData final : public TSharedFro
     FVector EndLocation;
     FSVOPathFinderDebugInfos DebugInfos;
     TOptional< EGraphAStarResult > PathFindingResult;
+    TSharedPtr< const FSVOPathFindingAlgorithmStepper > Stepper;
 };
 
 class SVONAVIGATION_API FSVOPathFindingSceneProxy final : public FDebugRenderSceneProxy
@@ -66,7 +69,7 @@ public:
 
     SIZE_T GetTypeHash() const override;
     FPrimitiveViewRelevance GetViewRelevance( const FSceneView * view ) const override;
-    void GetDynamicMeshElements( const TArray<const FSceneView *> & views, const FSceneViewFamily & view_family, uint32 visibility_map, FMeshElementCollector & collector ) const override;
+    void GetDynamicMeshElements( const TArray< const FSceneView * > & views, const FSceneViewFamily & view_family, uint32 visibility_map, FMeshElementCollector & collector ) const override;
 
 private:
     bool SafeIsActorSelected() const;
@@ -148,6 +151,7 @@ public:
     FVector GetEndLocation() const;
     const FSVOPathFinderDebugInfos & GetPathFinderDebugInfos() const;
     const FSVOPathRenderingDebugDrawOptions & GetDebugDrawOptions() const;
+    const TSharedPtr< FSVOPathFindingAlgorithmStepper > & GetStepper() const;
     ESVOPathFindingAlgorithmStepperStatus GetStepperLastStatus() const;
     EGraphAStarResult GetPathFindingResult() const;
     void BeginDestroy() override;
@@ -236,6 +240,11 @@ FORCEINLINE const FSVOPathFinderDebugInfos & ASVOPathFinderTest::GetPathFinderDe
 FORCEINLINE const FSVOPathRenderingDebugDrawOptions & ASVOPathFinderTest::GetDebugDrawOptions() const
 {
     return DebugDrawOptions;
+}
+
+FORCEINLINE const TSharedPtr< FSVOPathFindingAlgorithmStepper > & ASVOPathFinderTest::GetStepper() const
+{
+    return Stepper;
 }
 
 FORCEINLINE ESVOPathFindingAlgorithmStepperStatus ASVOPathFinderTest::GetStepperLastStatus() const

@@ -59,7 +59,7 @@ struct SVONAVIGATION_API FSVOPathFinderDebugInfos
 
     void Reset();
 
-    FSVOPathFinderDebugNodeCost LastLastProcessedSingleNode;
+    FSVOPathFinderDebugNodeCost LastProcessedSingleNode;
     TArray< FSVOPathFinderDebugNodeCost > ProcessedNeighbors;
     FNavigationPath CurrentBestPath;
 

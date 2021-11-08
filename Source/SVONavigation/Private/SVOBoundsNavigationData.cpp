@@ -244,6 +244,16 @@ float FSVOBoundsNavigationData::GetLayerInverseRatio( const LayerIndex layer_ind
     return 1.0f - GetLayerRatio( layer_index );
 }
 
+float FSVOBoundsNavigationData::GetVoxelHalfExtentFromLink( FSVOOctreeLink link ) const
+{
+    if ( link.LayerIndex == 0 )
+    {
+        return SVOData.GetLeaves().GetLeafSubNodeHalfExtent();
+    }
+
+    return SVOData.GetLayer( link.LayerIndex ).GetVoxelHalfExtent();
+}
+
 void FSVOBoundsNavigationData::GenerateNavigationData( const FBox & volume_bounds, const FSVOBoundsNavigationDataGenerationSettings & generation_settings )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GenerateNavigationData );
@@ -346,7 +356,7 @@ void FSVOBoundsNavigationData::FirstPassRasterization()
         for ( MortonCode node_index = 0; node_index < layer_max_node_count; ++node_index )
         {
             const auto position = GetNodePosition( 1, node_index );
-            
+
             if ( IsPositionOccluded( position, layer_voxel_half_extent ) )
             {
                 layer_zero.AddBlockedNode( node_index );
@@ -396,7 +406,7 @@ void FSVOBoundsNavigationData::RasterizeInitialLayer()
     LeafIndex leaf_index = 0;
 
     const auto layer_one_blocked_node_count = SVOData.GetLayer( 1 ).GetBlockedNodesCount();
-    layer_zero_nodes.Reserve( layer_one_blocked_node_count  * 8 );
+    layer_zero_nodes.Reserve( layer_one_blocked_node_count * 8 );
 
     const auto layer_max_node_count = layer_zero.GetMaxNodeCount();
     const auto layer_voxel_half_size = layer_zero.GetVoxelHalfExtent();
