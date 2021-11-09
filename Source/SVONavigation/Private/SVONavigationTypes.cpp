@@ -55,7 +55,7 @@ FSVOLayer::FSVOLayer( const int max_node_count, const float voxel_extent ) :
 
 int FSVOLayer::GetAllocatedSize() const
 {
-    return Nodes.Num() * sizeof( FSVOOctreeNode );
+    return Nodes.Num() * sizeof( FSVONode );
 }
 
 void FSVOLayer::AddBlockedNode( const NodeIndex node_index )

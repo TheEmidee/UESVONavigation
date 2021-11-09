@@ -669,7 +669,7 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetLeafNeighbors );
 
     const MortonCode leaf_index = link.SubNodeIndex;
-    const FSVOOctreeNode & node = GetNodeFromLink( link );
+    const FSVONode & node = GetNodeFromLink( link );
     const FSVOLeaf & leaf = SVOData.GetLeaves().GetLeaf( node.FirstChild.NodeIndex );
 
     uint_fast32_t x = 0, y = 0, z = 0;
@@ -693,7 +693,7 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
         else // the neighbor is out of bounds, we need to find our neighbor
         {
             const FSVOOctreeLink & neighbor_link = node.Neighbors[ neighbor_direction ];
-            const FSVOOctreeNode & neighbor_node = GetNodeFromLink( neighbor_link );
+            const FSVONode & neighbor_node = GetNodeFromLink( neighbor_link );
 
             // If the neighbor layer 0 has no leaf nodes, just return it
             if ( !neighbor_node.FirstChild.IsValid() )

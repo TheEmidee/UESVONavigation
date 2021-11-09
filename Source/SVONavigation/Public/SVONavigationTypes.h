@@ -200,14 +200,14 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONodeAddress & data )
     return archive;
 }
 
-struct FSVOOctreeNode
+struct FSVONode
 {
     MortonCode MortonCode;
     FSVONodeAddress Parent;
     FSVONodeAddress FirstChild;
     FSVONodeAddress Neighbors[ 6 ];
 
-    FSVOOctreeNode() :
+    FSVONode() :
         MortonCode( 0 ),
         Parent( FSVONodeAddress::InvalidLink() ),
         FirstChild( FSVONodeAddress::InvalidLink() )
@@ -220,7 +220,7 @@ struct FSVOOctreeNode
     }
 };
 
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeNode & data )
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONode & data )
 {
     archive << data.MortonCode;
     archive << data.Parent;
@@ -314,9 +314,9 @@ public:
     FSVOLayer();
     FSVOLayer( int max_node_count, float voxel_extent );
 
-    const TArray< FSVOOctreeNode > & GetNodes() const;
+    const TArray< FSVONode > & GetNodes() const;
     int32 GetNodeCount() const;
-    const FSVOOctreeNode & GetNode( NodeIndex node_index ) const;
+    const FSVONode & GetNode( NodeIndex node_index ) const;
     float GetVoxelExtent() const;
     float GetVoxelHalfExtent() const;
     uint32 GetMaxNodeCount() const;
@@ -326,21 +326,21 @@ public:
     int GetAllocatedSize() const;
 
 private:
-    TArray< FSVOOctreeNode > & GetNodes();
+    TArray< FSVONode > & GetNodes();
     void AddBlockedNode( NodeIndex node_index );
 
-    TArray< FSVOOctreeNode > Nodes;
+    TArray< FSVONode > Nodes;
     TSet< MortonCode > BlockedNodes;
     int MaxNodeCount;
     float VoxelExtent;
 };
 
-FORCEINLINE const TArray< FSVOOctreeNode > & FSVOLayer::GetNodes() const
+FORCEINLINE const TArray< FSVONode > & FSVOLayer::GetNodes() const
 {
     return Nodes;
 }
 
-FORCEINLINE TArray< FSVOOctreeNode > & FSVOLayer::GetNodes()
+FORCEINLINE TArray< FSVONode > & FSVOLayer::GetNodes()
 {
     return Nodes;
 }
@@ -350,7 +350,7 @@ FORCEINLINE int32 FSVOLayer::GetNodeCount() const
     return Nodes.Num();
 }
 
-FORCEINLINE const FSVOOctreeNode & FSVOLayer::GetNode( const NodeIndex node_index ) const
+FORCEINLINE const FSVONode & FSVOLayer::GetNode( const NodeIndex node_index ) const
 {
     return Nodes[ node_index ];
 }
