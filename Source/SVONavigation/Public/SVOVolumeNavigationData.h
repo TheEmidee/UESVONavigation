@@ -28,10 +28,11 @@ public:
 
     const FSVOVolumeNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
-    const FSVOData & GetOctreeData() const;
+    const FSVOData & GetData() const;
+    const FSVONode & GetNodeFromAddress( const FSVONodeAddress & address ) const;
+
     FVector GetNodePosition( const LayerIndex layer_index, MortonCode morton_code ) const;
-    FVector GetLinkPosition( const FSVONodeAddress & link ) const;
-    const FSVONode & GetNodeFromLink( const FSVONodeAddress & link ) const;
+    FVector GetLinkPosition( const FSVONodeAddress & link ) const;    
     bool GetLinkFromPosition( FSVONodeAddress & link, const FVector & position ) const;
     void GetNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & link ) const;
     float GetLayerRatio( LayerIndex layer_index ) const;
@@ -70,15 +71,15 @@ FORCEINLINE const FBox & FSVOVolumeNavigationData::GetVolumeBounds() const
     return VolumeBounds;
 }
 
-FORCEINLINE const FSVOData & FSVOVolumeNavigationData::GetOctreeData() const
+FORCEINLINE const FSVOData & FSVOVolumeNavigationData::GetData() const
 {
     return SVOData;
 }
 
-FORCEINLINE const FSVONode & FSVOVolumeNavigationData::GetNodeFromLink( const FSVONodeAddress & link ) const
+FORCEINLINE const FSVONode & FSVOVolumeNavigationData::GetNodeFromAddress( const FSVONodeAddress & address ) const
 {
-    return link.LayerIndex < 15
-               ? SVOData.GetLayer( link.LayerIndex ).GetNode( link.NodeIndex )
+    return address.LayerIndex < 15
+               ? SVOData.GetLayer( address.LayerIndex ).GetNode( address.NodeIndex )
                : SVOData.GetLastLayer().GetNode( 0 );
 }
 

@@ -34,7 +34,7 @@ namespace
         for ( auto index = 0; index < link_path.Num() - 1; index++ )
         {
             const auto link = link_path[ index ];
-            path_points.Emplace( bounds_data.GetLinkPosition( link ) );
+            path_points.Emplace( bounds_data.GetNodePositionFromAddress( link ) );
         }
 
         if ( add_end_location )
@@ -63,7 +63,7 @@ FSVOLinkWithLocation::FSVOLinkWithLocation( const FSVONodeAddress & link, const 
 
 FSVOLinkWithLocation::FSVOLinkWithLocation( const FSVONodeAddress & link, const FSVOVolumeNavigationData & bounds_navigation_data ) :
     Link( link ),
-    Location( bounds_navigation_data.GetLinkPosition( link ) )
+    Location( bounds_navigation_data.GetNodePositionFromAddress( link ) )
 {}
 
 FSVOPathFinderDebugNodeCost::FSVOPathFinderDebugNodeCost( const FSVOLinkWithLocation & from, const FSVOLinkWithLocation & to, const float cost, const bool is_closed ) :
@@ -640,8 +640,8 @@ bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVONodeAd
         return false;
     }
 
-    const auto from_position = Parameters.BoundsNavigationData->GetLinkPosition( from );
-    const auto to_position = Parameters.BoundsNavigationData->GetLinkPosition( to );
+    const auto from_position = Parameters.BoundsNavigationData->GetNodePositionFromAddress( from );
+    const auto to_position = Parameters.BoundsNavigationData->GetNodePositionFromAddress( to );
 
     FHitResult hit_result;
 
