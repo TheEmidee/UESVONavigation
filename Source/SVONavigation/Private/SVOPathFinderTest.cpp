@@ -17,6 +17,7 @@ void FSVOPathFindingSceneProxyData::GatherData( const ASVOPathFinderTest & path_
     StartLocation = path_finder_test.GetStartLocation();
     EndLocation = path_finder_test.GetEndLocation();
     DebugInfos = path_finder_test.GetPathFinderDebugInfos();
+    Stepper = path_finder_test.GetStepper();
 
     if ( path_finder_test.GetStepperLastStatus() == ESVOPathFindingAlgorithmStepperStatus::IsStopped )
     {
@@ -45,31 +46,45 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
         texts->Emplace( FText3d( FString::SanitizeFloat( debug_node_cost.Cost ), FVector( 0.0f, 0.0f, 50.0f ) + ( debug_node_cost.From.Location + debug_node_cost.To.Location ) / 2.0f, FLinearColor::White ) );
     };
 
+    const auto visualize_debug_node_cost = [ this, add_text, proxy_data ]( const FSVOPathFinderDebugNodeCost & debug_node_cost, const FColor & color ) {
+        if ( !debug_node_cost.From.Link.IsValid() || !debug_node_cost.To.Link.IsValid()  )
+        {
+            return;
+        }
+
+        const auto * bounds_data = proxy_data.Stepper->GetParameters().BoundsNavigationData;
+
+        if ( DebugDrawOptions.bDrawNodes )
+        {
+            const auto from_voxel_half_extent = bounds_data->GetVoxelHalfExtentFromLink( debug_node_cost.From.Link );
+            Boxes.Emplace( FBox::BuildAABB( debug_node_cost.From.Location, FVector( from_voxel_half_extent ) ), color );
+
+            const auto to_voxel_half_extent = bounds_data->GetVoxelHalfExtentFromLink( debug_node_cost.To.Link );
+            Boxes.Emplace( FBox::BuildAABB( debug_node_cost.To.Location, FVector( to_voxel_half_extent ) ), color );
+        }
+
+        Lines.Emplace( FDebugLine( debug_node_cost.From.Location, debug_node_cost.To.Location, FColor::Blue, 2.0f ) );
+
+        if ( DebugDrawOptions.bDrawCosts )
+        {
+            add_text( proxy_data.DebugInfos.LastProcessedSingleNode );
+        }
+    };
+
     if ( DebugDrawOptions.bDrawLastProcessedNode )
     {
-        Lines.Emplace( FDebugLine( proxy_data.DebugInfos.LastLastProcessedSingleNode.From.Location, proxy_data.DebugInfos.LastLastProcessedSingleNode.To.Location, FColor::Blue, 2.0f ) );
-
-        if ( DebugDrawOptions.bDrawLastProcessedNodeCost )
-        {
-            add_text( proxy_data.DebugInfos.LastLastProcessedSingleNode );
-        }
+        visualize_debug_node_cost( proxy_data.DebugInfos.LastProcessedSingleNode, FColor::Blue );
     }
 
     if ( DebugDrawOptions.bDrawLastProcessedNeighbors )
     {
         for ( const auto & neighbor : proxy_data.DebugInfos.ProcessedNeighbors )
         {
-            Lines.Emplace( FDebugLine( neighbor.From.Location, neighbor.To.Location, neighbor.bIsClosed ? FColor::Orange : FColor::Green, 1.0f ) );
-
-            if ( DebugDrawOptions.bDrawNeighborsCost )
-            {
-                add_text( neighbor );
-            }
+            visualize_debug_node_cost( neighbor, neighbor.bIsClosed ? FColor::Orange : FColor::Green );
         }
     }
 
-    if ( proxy_data.PathFindingResult.Get( EGraphAStarResult::SearchFail ) == EGraphAStarResult::SearchSuccess 
-        || DebugDrawOptions.bDrawBestPath )
+    if ( proxy_data.PathFindingResult.Get( EGraphAStarResult::SearchFail ) == EGraphAStarResult::SearchSuccess || DebugDrawOptions.bDrawBestPath )
     {
         const auto & best_path_points = proxy_data.DebugInfos.CurrentBestPath.GetPathPoints();
 

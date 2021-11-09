@@ -81,7 +81,7 @@ void FSVOPathFinderDebugNodeCost::Reset()
 
 void FSVOPathFinderDebugInfos::Reset()
 {
-    LastLastProcessedSingleNode.Reset();
+    LastProcessedSingleNode.Reset();
     ProcessedNeighbors.Reset();
     Iterations = 0;
     VisitedNodes = 0;
@@ -143,15 +143,15 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
 {
     if ( node.ParentRef.IsValid() )
     {
-        DebugInfos.LastLastProcessedSingleNode.From = FSVOLinkWithLocation( node.ParentRef, *Stepper.GetParameters().BoundsNavigationData );
+        DebugInfos.LastProcessedSingleNode.From = FSVOLinkWithLocation( node.ParentRef, *Stepper.GetParameters().BoundsNavigationData );
     }
     else
     {
-        DebugInfos.LastLastProcessedSingleNode.From = FSVOLinkWithLocation( FSVOOctreeLink::InvalidLink(), Stepper.GetParameters().StartLocation );
+        DebugInfos.LastProcessedSingleNode.From = FSVOLinkWithLocation( FSVOOctreeLink::InvalidLink(), Stepper.GetParameters().StartLocation );
     }
 
-    DebugInfos.LastLastProcessedSingleNode.To = FSVOLinkWithLocation( node.NodeRef, *Stepper.GetParameters().BoundsNavigationData );
-    DebugInfos.LastLastProcessedSingleNode.Cost = node.TotalCost;
+    DebugInfos.LastProcessedSingleNode.To = FSVOLinkWithLocation( node.NodeRef, *Stepper.GetParameters().BoundsNavigationData );
+    DebugInfos.LastProcessedSingleNode.Cost = node.TotalCost;
 
     DebugInfos.ProcessedNeighbors.Reset();
 

@@ -168,9 +168,9 @@ struct FSVOOctreeLink
         return FSVOOctreeLink();
     }
 
-    uint8 LayerIndex        : 4;
+    uint8 LayerIndex : 4;
     uint_fast32_t NodeIndex : 22;
-    uint8 SubNodeIndex      : 6;
+    uint8 SubNodeIndex : 6;
 };
 
 FORCEINLINE bool FSVOOctreeLink::IsValid() const
@@ -232,27 +232,32 @@ class FSVOLeaves
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves );
+    friend class FSVOBoundsNavigationData;
+    friend class FSVOOctreeData;
 
-    FSVOOctreeLeaf GetLeaf( const LeafIndex leaf_index ) const;
+    const FSVOOctreeLeaf & GetLeaf( const LeafIndex leaf_index ) const;
     const TArray< FSVOOctreeLeaf > & GetLeaves() const;
     float GetLeafExtent() const;
     float GetLeafHalfExtent() const;
     float GetLeafSubNodeExtent() const;
     float GetLeafSubNodeHalfExtent() const;
 
+    int GetAllocatedSize() const;
+
+private:
+    FSVOOctreeLeaf GetLeaf( const LeafIndex leaf_index );
+
     void Initialize( float leaf_extent );
     void Reset();
-    int GetAllocatedSize() const;
     void AllocateLeaves( int leaf_count );
     void AddLeaf( LeafIndex leaf_index, SubNodeIndex subnode_index, bool is_occluded );
     void AddEmptyLeaf();
 
-private:
     float LeafExtent;
     TArray< FSVOOctreeLeaf > Leaves;
 };
 
-FORCEINLINE FSVOOctreeLeaf FSVOLeaves::GetLeaf( const LeafIndex leaf_index ) const
+FORCEINLINE const FSVOOctreeLeaf & FSVOLeaves::GetLeaf( const LeafIndex leaf_index ) const
 {
     return Leaves[ leaf_index ];
 }
@@ -282,6 +287,11 @@ FORCEINLINE float FSVOLeaves::GetLeafSubNodeHalfExtent() const
     return GetLeafSubNodeExtent() * 0.5f;
 }
 
+FORCEINLINE FSVOOctreeLeaf FSVOLeaves::GetLeaf( const LeafIndex leaf_index )
+{
+    return Leaves[ leaf_index ];
+}
+
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves )
 {
     archive << leaves.Leaves;
@@ -293,12 +303,12 @@ class FSVOLayer
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOLayer & layer );
+    friend class FSVOBoundsNavigationData;
 
     FSVOLayer();
     FSVOLayer( int max_node_count, float voxel_extent );
 
     const TArray< FSVOOctreeNode > & GetNodes() const;
-    TArray< FSVOOctreeNode > & GetNodes();
     int32 GetNodeCount() const;
     const FSVOOctreeNode & GetNode( NodeIndex node_index ) const;
     float GetVoxelExtent() const;
@@ -308,9 +318,11 @@ public:
     const TSet< MortonCode > & GetBlockedNodes() const;
 
     int GetAllocatedSize() const;
-    void AddBlockedNode( NodeIndex node_index );
 
 private:
+    TArray< FSVOOctreeNode > & GetNodes();
+    void AddBlockedNode( NodeIndex node_index );
+
     TArray< FSVOOctreeNode > Nodes;
     TSet< MortonCode > BlockedNodes;
     int MaxNodeCount;
@@ -373,22 +385,24 @@ class FSVOOctreeData
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOOctreeData & data );
+    friend class FSVOBoundsNavigationData;
 
     FSVOOctreeData() = default;
 
     int GetLayerCount() const;
-    FSVOLayer & GetLayer( LayerIndex layer_index );
     const FSVOLayer & GetLayer( LayerIndex layer_index ) const;
     const FSVOLayer & GetLastLayer() const;
     const FSVOLeaves & GetLeaves() const;
-    FSVOLeaves & GetLeaves();
     const FBox & GetNavigationBounds() const;
 
-    bool Initialize( float voxel_extent, const FBox & volume_bounds );
-    void Reset();
     int GetAllocatedSize() const;
 
 private:
+    FSVOLayer & GetLayer( LayerIndex layer_index );
+    FSVOLeaves & GetLeaves();
+    bool Initialize( float voxel_extent, const FBox & volume_bounds );
+    void Reset();
+
     TArray< FSVOLayer > Layers;
     FSVOLeaves Leaves;
     FBox NavigationBounds;

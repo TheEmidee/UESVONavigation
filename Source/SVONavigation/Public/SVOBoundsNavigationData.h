@@ -32,6 +32,7 @@ public:
     void GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
     float GetLayerRatio( LayerIndex layer_index ) const;
     float GetLayerInverseRatio( LayerIndex layer_index ) const;
+    float GetVoxelHalfExtentFromLink( FSVOOctreeLink link ) const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOBoundsNavigationDataGenerationSettings & generation_settings );
     void Serialize( FArchive & archive, const ESVOVersion version );
