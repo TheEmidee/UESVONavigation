@@ -1,12 +1,12 @@
 #pragma once
 
-#include "SVOHeuristicCalculator.generated.h"
+#include "SVOPathHeuristicCalculator.generated.h"
 
 class FSVOVolumeNavigationData;
 struct FSVOOctreeLink;
 
 UCLASS( abstract, NotBlueprintable, EditInlineNew )
-class SVONAVIGATION_API USVOHeuristicCalculator : public UObject
+class SVONAVIGATION_API USVOPathHeuristicCalculator : public UObject
 {
     GENERATED_BODY()
 
@@ -16,7 +16,7 @@ public:
 };
 
 UCLASS()
-class SVONAVIGATION_API USVOPathHeuristicCalculator_Manhattan final : public USVOHeuristicCalculator
+class SVONAVIGATION_API USVOPathHeuristicCalculator_Manhattan final : public USVOPathHeuristicCalculator
 {
     GENERATED_BODY()
 
@@ -26,7 +26,7 @@ public:
 };
 
 UCLASS()
-class SVONAVIGATION_API USVOPathHeuristicCalculator_Euclidean final : public USVOHeuristicCalculator
+class SVONAVIGATION_API USVOPathHeuristicCalculator_Euclidean final : public USVOPathHeuristicCalculator
 {
     GENERATED_BODY()
 

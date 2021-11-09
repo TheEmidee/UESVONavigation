@@ -3,7 +3,7 @@
 #include "SVONavigationTypes.generated.h"
 
 class USVOPathFindingAlgorithm;
-class USVOHeuristicCalculator;
+class USVOPathHeuristicCalculator;
 class USVOTraversalCostCalculator;
 
 typedef uint_fast64_t MortonCode;
@@ -489,7 +489,7 @@ struct SVONAVIGATION_API FSVONavigationQueryFilterSettings
     USVOTraversalCostCalculator * TraversalCostCalculator;
 
     UPROPERTY( EditAnywhere, Instanced )
-    USVOHeuristicCalculator * HeuristicCalculator;
+    USVOPathHeuristicCalculator * HeuristicCalculator;
 
     UPROPERTY( EditDefaultsOnly )
     float HeuristicScale;
