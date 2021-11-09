@@ -16,12 +16,12 @@ struct FSVOVolumeNavigationDataGenerationSettings
 class SVONAVIGATION_API FSVOVolumeNavigationData
 {
 public:
-    typedef FSVOOctreeLink FNodeRef;
+    typedef FSVONodeAddress FNodeRef;
 
     FSVOVolumeNavigationData() = default;
 
     // Used by FGraphAStar
-    bool IsValidRef( const FSVOOctreeLink ref ) const
+    bool IsValidRef( const FSVONodeAddress ref ) const
     {
         return ref.IsValid();
     }
@@ -30,13 +30,13 @@ public:
     const FBox & GetVolumeBounds() const;
     const FSVOOctreeData & GetOctreeData() const;
     FVector GetNodePosition( const LayerIndex layer_index, MortonCode morton_code ) const;
-    FVector GetLinkPosition( const FSVOOctreeLink & link ) const;
-    const FSVOOctreeNode & GetNodeFromLink( const FSVOOctreeLink & link ) const;
-    bool GetLinkFromPosition( FSVOOctreeLink & link, const FVector & position ) const;
-    void GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
+    FVector GetLinkPosition( const FSVONodeAddress & link ) const;
+    const FSVOOctreeNode & GetNodeFromLink( const FSVONodeAddress & link ) const;
+    bool GetLinkFromPosition( FSVONodeAddress & link, const FVector & position ) const;
+    void GetNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & link ) const;
     float GetLayerRatio( LayerIndex layer_index ) const;
     float GetLayerInverseRatio( LayerIndex layer_index ) const;
-    float GetVoxelHalfExtentFromLink( FSVOOctreeLink link ) const;
+    float GetVoxelHalfExtentFromLink( FSVONodeAddress link ) const;
     TOptional< FNavLocation > GetRandomPoint() const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings );
@@ -51,9 +51,9 @@ private:
     void RasterizeLayer( LayerIndex layer_index );
     TOptional< NodeIndex > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
     void BuildNeighborLinks( LayerIndex layer_index );
-    bool FindNeighborInDirection( FSVOOctreeLink & link, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
-    void GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
-    void GetFreeNodesFromLink( FSVOOctreeLink link, TArray< FSVOOctreeLink > & free_nodes ) const;
+    bool FindNeighborInDirection( FSVONodeAddress & link, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
+    void GetLeafNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & link ) const;
+    void GetFreeNodesFromLink( FSVONodeAddress link, TArray< FSVONodeAddress > & free_nodes ) const;
 
     FSVOVolumeNavigationDataGenerationSettings Settings;
     FBox VolumeBounds;
@@ -75,7 +75,7 @@ FORCEINLINE const FSVOOctreeData & FSVOVolumeNavigationData::GetOctreeData() con
     return SVOData;
 }
 
-FORCEINLINE const FSVOOctreeNode & FSVOVolumeNavigationData::GetNodeFromLink( const FSVOOctreeLink & link ) const
+FORCEINLINE const FSVOOctreeNode & FSVOVolumeNavigationData::GetNodeFromLink( const FSVONodeAddress & link ) const
 {
     return link.LayerIndex < 15
                ? SVOData.GetLayer( link.LayerIndex ).GetNode( link.NodeIndex )

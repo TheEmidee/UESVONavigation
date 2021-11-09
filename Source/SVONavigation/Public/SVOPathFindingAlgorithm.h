@@ -17,8 +17,8 @@ class ASVONavigationData;
 struct FSVOLinkWithLocation
 {
     FSVOLinkWithLocation() = default;
-    FSVOLinkWithLocation( const FSVOOctreeLink & link, const FVector & location );
-    FSVOLinkWithLocation( const FSVOOctreeLink & link, const FSVOVolumeNavigationData & bounds_navigation_data );
+    FSVOLinkWithLocation( const FSVONodeAddress & link, const FVector & location );
+    FSVOLinkWithLocation( const FSVONodeAddress & link, const FSVOVolumeNavigationData & bounds_navigation_data );
 
     bool operator==( const FSVOLinkWithLocation & other ) const
     {
@@ -30,7 +30,7 @@ struct FSVOLinkWithLocation
         return !operator==( other );
     }
 
-    FSVOOctreeLink Link;
+    FSVONodeAddress Link;
     FVector Location;
 };
 
@@ -91,8 +91,8 @@ struct FSVOPathFindingParameters
     const USVOPathHeuristicCalculator * HeuristicCalculator;
     const USVOPathTraversalCostCalculator * CostCalculator;
     const FSVOVolumeNavigationData * BoundsNavigationData;
-    FSVOOctreeLink StartLink;
-    FSVOOctreeLink EndLink;
+    FSVONodeAddress StartLink;
+    FSVONodeAddress EndLink;
     float VerticalOffset;
 };
 
@@ -125,7 +125,7 @@ public:
     {}
     virtual void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor )
     {}
-    virtual void OnSearchSuccess( const TArray< FSVOOctreeLink > & link_path )
+    virtual void OnSearchSuccess( const TArray< FSVONodeAddress > & link_path )
     {}
 
 protected:
@@ -137,7 +137,7 @@ class FSVOPathFindingAStarObserver_BuildPath final : public FSVOPathFindingAlgor
 public:
     FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper );
 
-    void OnSearchSuccess( const TArray< FSVOOctreeLink > & ) override;
+    void OnSearchSuccess( const TArray< FSVONodeAddress > & ) override;
 
 private:
     FNavigationPath & NavigationPath;
@@ -151,10 +151,10 @@ public:
     void OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & node ) override;
     void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & parent, const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor, const float cost ) override;
     void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor ) override;
-    void OnSearchSuccess( const TArray< FSVOOctreeLink > & ) override;
+    void OnSearchSuccess( const TArray< FSVONodeAddress > & ) override;
 
 private:
-    void FillCurrentBestPath( const TArray< FSVOOctreeLink > & link_path, bool add_end_location ) const;
+    void FillCurrentBestPath( const TArray< FSVONodeAddress > & link_path, bool add_end_location ) const;
     FSVOPathFinderDebugInfos & DebugInfos;
 };
 
@@ -179,7 +179,7 @@ public:
     const FSVOGraphAStar & GetGraph() const;
 
     ESVOPathFindingAlgorithmStepperStatus Step( EGraphAStarResult & result );
-    virtual bool FillLinkPath( TArray< FSVOOctreeLink > & link_path ) const;
+    virtual bool FillLinkPath( TArray< FSVONodeAddress > & link_path ) const;
 
 protected:
     virtual ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) = 0;
@@ -188,8 +188,8 @@ protected:
     virtual ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) = 0;
 
     void SetState( ESVOPathFindingAlgorithmState new_state );
-    float GetHeuristicCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
-    float GetTraversalCost( const FSVOOctreeLink & from, const FSVOOctreeLink & to ) const;
+    float GetHeuristicCost( const FSVONodeAddress & from, const FSVONodeAddress & to ) const;
+    float GetTraversalCost( const FSVONodeAddress & from, const FSVONodeAddress & to ) const;
 
     FSVOGraphAStar Graph;
     ESVOPathFindingAlgorithmState State;
@@ -217,7 +217,7 @@ class FSVOPathFindingAlgorithmStepper_AStar : public FSVOPathFindingAlgorithmSte
 public:
     explicit FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & parameters );
 
-    bool FillLinkPath( TArray< FSVOOctreeLink > & link_path ) const override;
+    bool FillLinkPath( TArray< FSVONodeAddress > & link_path ) const override;
 
 protected:
     ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;
@@ -225,15 +225,15 @@ protected:
     ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
     ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) override;
 
-    void FillLinkNeighbors( const FSVOOctreeLink & link );
-    float AdjustTotalCostWithNodeSizeCompensation( float total_cost, FSVOOctreeLink neighbor_link ) const;
+    void FillLinkNeighbors( const FSVONodeAddress & link );
+    float AdjustTotalCostWithNodeSizeCompensation( float total_cost, FSVONodeAddress neighbor_link ) const;
 
     struct NeighborIndexIncrement
     {
-        NeighborIndexIncrement( TArray< FSVOOctreeLink > & neighbors, int & neighbor_index, ESVOPathFindingAlgorithmState & state );
+        NeighborIndexIncrement( TArray< FSVONodeAddress > & neighbors, int & neighbor_index, ESVOPathFindingAlgorithmState & state );
         ~NeighborIndexIncrement();
 
-        TArray< FSVOOctreeLink > & Neighbors;
+        TArray< FSVONodeAddress > & Neighbors;
         int & NeighborIndex;
         ESVOPathFindingAlgorithmState & State;
     };
@@ -242,7 +242,7 @@ protected:
     int32 BestNodeIndex;
     float BestNodeCost;
     int NeighborIndex;
-    TArray< FSVOOctreeLink > Neighbors;
+    TArray< FSVONodeAddress > Neighbors;
 };
 
 USTRUCT()
@@ -278,7 +278,7 @@ protected:
     ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;
     ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
     ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) override;
-    bool HasLineOfSight( FSVOOctreeLink from, FSVOOctreeLink to );
+    bool HasLineOfSight( FSVONodeAddress from, FSVONodeAddress to );
 
     const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & ThetaStarParameters;
 

@@ -127,23 +127,23 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeaf & data )
     return archive;
 }
 
-struct FSVOOctreeLink
+struct FSVONodeAddress
 {
-    FSVOOctreeLink() :
+    FSVONodeAddress() :
         LayerIndex( 15 ),
         NodeIndex( 0 ),
         SubNodeIndex( 0 )
     {
     }
 
-    explicit FSVOOctreeLink( const int32 index ) :
+    explicit FSVONodeAddress( const int32 index ) :
         LayerIndex( index << 28 ),
         NodeIndex( index << 6 ),
         SubNodeIndex( index )
     {
     }
 
-    FSVOOctreeLink( const LayerIndex layer_index, const MortonCode node_index, const SubNodeIndex sub_node_index ) :
+    FSVONodeAddress( const LayerIndex layer_index, const MortonCode node_index, const SubNodeIndex sub_node_index ) :
         LayerIndex( layer_index ),
         NodeIndex( node_index ),
         SubNodeIndex( sub_node_index )
@@ -153,12 +153,12 @@ struct FSVOOctreeLink
     bool IsValid() const;
     void Invalidate();
 
-    bool operator==( const FSVOOctreeLink & other ) const
+    bool operator==( const FSVONodeAddress & other ) const
     {
         return LayerIndex == other.LayerIndex && NodeIndex == other.NodeIndex && SubNodeIndex == other.SubNodeIndex;
     }
 
-    bool operator!=( const FSVOOctreeLink & other ) const
+    bool operator!=( const FSVONodeAddress & other ) const
     {
         return !operator==( other );
     }
@@ -169,9 +169,9 @@ struct FSVOOctreeLink
         return static_cast< NavNodeRef >( link );
     }
 
-    static FSVOOctreeLink InvalidLink()
+    static FSVONodeAddress InvalidLink()
     {
-        return FSVOOctreeLink();
+        return FSVONodeAddress();
     }
 
     uint8 LayerIndex : 4;
@@ -179,38 +179,38 @@ struct FSVOOctreeLink
     uint8 SubNodeIndex : 6;
 };
 
-FORCEINLINE bool FSVOOctreeLink::IsValid() const
+FORCEINLINE bool FSVONodeAddress::IsValid() const
 {
     return LayerIndex != 15;
 }
 
-FORCEINLINE void FSVOOctreeLink::Invalidate()
+FORCEINLINE void FSVONodeAddress::Invalidate()
 {
     LayerIndex = 15;
 }
 
-FORCEINLINE uint32 GetTypeHash( const FSVOOctreeLink & link )
+FORCEINLINE uint32 GetTypeHash( const FSVONodeAddress & link )
 {
     return HashCombine( HashCombine( GetTypeHash( link.LayerIndex ), GetTypeHash( link.NodeIndex ) ), GetTypeHash( link.SubNodeIndex ) );
 }
 
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeLink & data )
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONodeAddress & data )
 {
-    archive.Serialize( &data, sizeof( FSVOOctreeLink ) );
+    archive.Serialize( &data, sizeof( FSVONodeAddress ) );
     return archive;
 }
 
 struct FSVOOctreeNode
 {
     MortonCode MortonCode;
-    FSVOOctreeLink Parent;
-    FSVOOctreeLink FirstChild;
-    FSVOOctreeLink Neighbors[ 6 ];
+    FSVONodeAddress Parent;
+    FSVONodeAddress FirstChild;
+    FSVONodeAddress Neighbors[ 6 ];
 
     FSVOOctreeNode() :
         MortonCode( 0 ),
-        Parent( FSVOOctreeLink::InvalidLink() ),
-        FirstChild( FSVOOctreeLink::InvalidLink() )
+        Parent( FSVONodeAddress::InvalidLink() ),
+        FirstChild( FSVONodeAddress::InvalidLink() )
     {
     }
 
