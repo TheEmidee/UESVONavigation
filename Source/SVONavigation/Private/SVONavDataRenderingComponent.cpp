@@ -11,8 +11,8 @@
 #endif
 
 #if WITH_EDITOR
-#include "Editor.h"
-#include "EditorViewportClient.h"
+#include <Editor.h>
+#include <EditorViewportClient.h>
 #endif
 
 static const FColor OccludedVoxelColor = FColor::Orange;
@@ -50,8 +50,7 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             Boxes.Emplace( navigation_bounds_data.GetOctreeData().GetNavigationBounds(), FColor::White );
         }
 
-        const auto try_add_voxel_to_boxes = [ this, debug_infos ]( const FVector & voxel_location, const float voxel_half_extent, const bool is_occluded )
-        {
+        const auto try_add_voxel_to_boxes = [ this, debug_infos ]( const FVector & voxel_location, const float voxel_half_extent, const bool is_occluded ) {
             if ( debug_infos.DebugDrawFreeVoxels && !is_occluded )
             {
                 Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( voxel_half_extent ) ), FreeVoxelColor );
