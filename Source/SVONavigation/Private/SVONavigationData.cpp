@@ -1,5 +1,6 @@
 #include "SVONavigationData.h"
 
+#include "Chaos/AABB.h"
 #include "NavMesh/NavMeshPath.h"
 #include "SVONavDataRenderingComponent.h"
 #include "SVONavigationDataGenerator.h"
@@ -40,8 +41,6 @@ ASVONavigationData::ASVONavigationData() :
         //SupportedAreas.Add( FSupportedAreaData( UNavArea_LowHeight::StaticClass(), RECAST_LOW_AREA ) );
         //SupportedAreas.Add( FSupportedAreaData( UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA ) );
     }
-
-    SVODataPtr = MakeUnique< FSVOData >();
 }
 
 void ASVONavigationData::PostInitProperties()
@@ -100,7 +99,18 @@ void ASVONavigationData::Serialize( FArchive & archive )
         }
     }
 
-    SVODataPtr->Serialize( archive, Version );
+    auto volume_count = VolumeNavigationData.Num();
+    archive << volume_count;
+    if ( archive.IsLoading() )
+    {
+        VolumeNavigationData.Reset( volume_count );
+        VolumeNavigationData.SetNum( volume_count );
+    }
+
+    for ( auto index = 0; index < volume_count; index++ )
+    {
+        VolumeNavigationData[ index ].Serialize( archive, Version );
+    }
 
     if ( archive.IsSaving() )
     {
@@ -120,6 +130,20 @@ void ASVONavigationData::CleanUp()
     ResetGenerator();
 }
 
+bool ASVONavigationData::NeedsRebuild() const
+{
+    const auto needs_rebuild = VolumeNavigationData.FindByPredicate( []( const FSVOVolumeNavigationData & data ) {
+        return !data.GetOctreeData().IsValid();
+    } ) != nullptr;
+
+    if ( NavDataGenerator.IsValid() )
+    {
+        return needs_rebuild || NavDataGenerator->GetNumRemaningBuildTasks() > 0;
+    }
+
+    return needs_rebuild;
+}
+
 void ASVONavigationData::EnsureBuildCompletion()
 {
     Super::EnsureBuildCompletion();
@@ -130,11 +154,58 @@ void ASVONavigationData::EnsureBuildCompletion()
     RecreateDefaultFilter();
 }
 
-FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const
+bool ASVONavigationData::SupportsRuntimeGeneration() const
 {
     // :TODO:
-    ensure( false );
-    return FNavLocation();
+    return false;
+}
+
+bool ASVONavigationData::SupportsStreaming() const
+{
+    // :TODO:
+    return false;
+}
+
+FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter /*filter*/, const UObject * /*querier*/ ) const
+{
+    FNavLocation result;
+
+    const auto navigation_bounds_num = VolumeNavigationData.Num();
+
+    if ( navigation_bounds_num == 0 )
+    {
+        return result;
+    }
+
+    TArray< int > navigation_bounds_indices;
+    navigation_bounds_indices.Reserve( VolumeNavigationData.Num() );
+
+    for ( auto index = 0; index < navigation_bounds_num; index++ )
+    {
+        navigation_bounds_indices.Add( index );
+    }
+
+    // Shuffle the array
+    for ( int index = navigation_bounds_indices.Num() - 1; index > 0; --index )
+    {
+        const auto new_index = FMath::RandRange( 0, index );
+        Swap( navigation_bounds_indices[ index ], navigation_bounds_indices[ new_index ] );
+    }
+
+    do
+    {
+        const auto index = navigation_bounds_indices.Pop( false );
+        const auto & volume_navigation_data = VolumeNavigationData[ index ];
+
+        const auto random_point = volume_navigation_data.GetRandomPoint();
+        if ( random_point.IsSet() )
+        {
+            result = random_point.GetValue();
+            break;
+        }
+    } while ( navigation_bounds_indices.Num() > 0 );
+
+    return result;
 }
 
 bool ASVONavigationData::GetRandomReachablePointInRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter, const UObject * querier ) const
@@ -246,6 +317,11 @@ int32 ASVONavigationData::GetMaxSupportedAreas() const
     return 32;
 }
 
+bool ASVONavigationData::IsNodeRefValid( const NavNodeRef node_ref ) const
+{
+    return FSVOOctreeLink( node_ref ).IsValid();
+}
+
 #if WITH_EDITOR
 void ASVONavigationData::PostEditChangeProperty( FPropertyChangedEvent & property_changed_event )
 {
@@ -290,7 +366,13 @@ uint32 ASVONavigationData::LogMemUsed() const
 {
     const auto super_mem_used = Super::LogMemUsed();
 
-    const auto mem_used = super_mem_used + SVODataPtr->GetAllocatedSize();
+    auto navigation_mem_size = 0;
+    for ( const auto & nav_bounds_data : VolumeNavigationData )
+    {
+        const auto octree_data_mem_size = nav_bounds_data.GetOctreeData().GetAllocatedSize();
+        navigation_mem_size += octree_data_mem_size;
+    }
+    const auto mem_used = super_mem_used + navigation_mem_size;
 
     UE_LOG( LogNavigation, Warning, TEXT( "%s: ASVONavigationData: %u\n    self: %d" ), *GetName(), mem_used, sizeof( ASVONavigationData ) );
 
@@ -344,12 +426,51 @@ void ASVONavigationData::RequestDrawingUpdate( bool force )
 #endif // !UE_BUILD_SHIPPING
 }
 
-void ASVONavigationData::RecreateDefaultFilter()
+FBox ASVONavigationData::GetBoundingBox() const
+{
+    FBox bounding_box( ForceInit );
+
+    for ( const auto & bounds : VolumeNavigationData )
+    {
+        bounding_box += bounds.GetOctreeData().GetNavigationBounds();
+    }
+
+    return bounding_box;
+}
+
+void ASVONavigationData::RemoveDataInBounds( const FBox & bounds )
+{
+    VolumeNavigationData.RemoveAll( [ &bounds ]( const FSVOVolumeNavigationData & data ) {
+        return data.GetVolumeBounds() == bounds;
+    } );
+}
+
+void ASVONavigationData::AddVolumeNavigationData( FSVOVolumeNavigationData data )
+{
+    VolumeNavigationData.Emplace( MoveTemp( data ) );
+}
+
+const FSVOVolumeNavigationData * ASVONavigationData::GetVolumeNavigationDataContainingPoints( const TArray< FVector > & points ) const
+{
+    return VolumeNavigationData.FindByPredicate( [ this, &points ]( const FSVOVolumeNavigationData & data ) {
+        const auto & bounds = data.GetOctreeData().GetNavigationBounds();
+        for ( const auto & point : points )
+        {
+            if ( !bounds.IsInside( point ) )
+            {
+                return false;
+            }
+        }
+        return true;
+    } );
+}
+
+void ASVONavigationData::RecreateDefaultFilter() const
 {
     DefaultQueryFilter->SetFilterType< FSVONavigationQueryFilterImpl >();
 }
 
-void ASVONavigationData::UpdateDrawing()
+void ASVONavigationData::UpdateDrawing() const
 {
 #if !UE_BUILD_SHIPPING
     if ( USVONavDataRenderingComponent * rendering_component = Cast< USVONavDataRenderingComponent >( RenderingComp ) )
@@ -375,20 +496,77 @@ void ASVONavigationData::ResetGenerator( const bool cancel_build )
     }
 }
 
-void ASVONavigationData::OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_boxes )
+void ASVONavigationData::OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_bounds )
 {
-    //InvalidateAffectedPaths(ChangedTiles);
+    InvalidateAffectedPaths( updated_bounds );
 }
 
 void ASVONavigationData::ClearNavigationData()
 {
-    SVODataPtr->ClearData();
+    VolumeNavigationData.Reset();
     RequestDrawingUpdate();
 }
 
 void ASVONavigationData::BuildNavigationData()
 {
     RebuildAll();
+}
+
+void ASVONavigationData::InvalidateAffectedPaths( const TArray< FBox > & updated_bounds )
+{
+    const int32 paths_count = ActivePaths.Num();
+    const int32 updated_bounds_count = updated_bounds.Num();
+
+    if ( updated_bounds_count == 0 || paths_count == 0 )
+    {
+        return;
+    }
+
+    // Paths can be registered from async pathfinding thread.
+    // Theoretically paths are invalidated synchronously by the navigation system
+    // before starting async queries task but protecting ActivePaths will make
+    // the system safer in case of future timing changes.
+    {
+        FScopeLock path_lock( &ActivePathsLock );
+
+        FNavPathWeakPtr * weak_path_ptr = ( ActivePaths.GetData() + paths_count - 1 );
+
+        for ( int32 path_index = paths_count - 1; path_index >= 0; --path_index, --weak_path_ptr )
+        {
+            FNavPathSharedPtr shared_path = weak_path_ptr->Pin();
+            if ( !weak_path_ptr->IsValid() )
+            {
+                ActivePaths.RemoveAtSwap( path_index, 1, /*bAllowShrinking=*/false );
+            }
+            else
+            {
+                const FNavigationPath * path = shared_path.Get();
+                if ( !path->IsReady() || path->GetIgnoreInvalidation() )
+                {
+                    // path not filled yet or doesn't care about invalidation
+                    continue;
+                }
+
+                for ( const auto & path_point : path->GetPathPoints() )
+                {
+                    if ( updated_bounds.FindByPredicate( [ &path_point ]( const FBox & bounds ) {
+                             return bounds.IsInside( path_point.Location );
+                         } ) != nullptr )
+                    {
+                        shared_path->Invalidate();
+                        ActivePaths.RemoveAtSwap( path_index, 1, /*bAllowShrinking=*/false );
+
+                        break;
+                    }
+                }
+
+                if ( !shared_path->IsValid() )
+                {
+                    break;
+                }
+            }
+        }
+    }
 }
 
 FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query )

@@ -61,7 +61,7 @@ FSVOLinkWithLocation::FSVOLinkWithLocation( const FSVOOctreeLink & link, const F
     Location( location )
 {}
 
-FSVOLinkWithLocation::FSVOLinkWithLocation( const FSVOOctreeLink & link, const FSVOBoundsNavigationData & bounds_navigation_data ) :
+FSVOLinkWithLocation::FSVOLinkWithLocation( const FSVOOctreeLink & link, const FSVOVolumeNavigationData & bounds_navigation_data ) :
     Link( link ),
     Location( bounds_navigation_data.GetLinkPosition( link ) )
 {}
@@ -98,7 +98,7 @@ FSVOPathFindingParameters::FSVOPathFindingParameters( const FNavAgentProperties 
     QueryFilterSettings( QueryFilterImplementation->QueryFilterSettings ),
     HeuristicCalculator( QueryFilterSettings.HeuristicCalculator ),
     CostCalculator( QueryFilterSettings.TraversalCostCalculator ),
-    BoundsNavigationData( navigation_data.GetSVOData().GetBoundsNavigationDataContainingPoints( { start_location, end_location } ) ),
+    BoundsNavigationData( navigation_data.GetVolumeNavigationDataContainingPoints( { start_location, end_location } ) ),
     VerticalOffset( QueryFilterSettings.bOffsetPathVerticallyByAgentRadius ? -path_finding_query.NavAgentProperties.AgentRadius : 0.0f )
 {
     if ( BoundsNavigationData != nullptr )
@@ -139,7 +139,7 @@ FSVOPathFindingAStarObserver_GenerateDebugInfos::FSVOPathFindingAStarObserver_Ge
 {
 }
 
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & node )
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & node )
 {
     if ( node.ParentRef.IsValid() )
     {
@@ -164,13 +164,13 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
     FillCurrentBestPath( link_path, false );
 }
 
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & parent, const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor, const float cost )
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & parent, const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor, const float cost )
 {
     DebugInfos.ProcessedNeighbors.Emplace( FSVOLinkWithLocation( parent.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), FSVOLinkWithLocation( neighbor.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), cost, true );
     DebugInfos.VisitedNodes++;
 }
 
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOBoundsNavigationData > & neighbor )
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor )
 {
     DebugInfos.ProcessedNeighbors.Emplace( FSVOLinkWithLocation( neighbor.ParentRef, *Stepper.GetParameters().BoundsNavigationData ), FSVOLinkWithLocation( neighbor.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), neighbor.TotalCost, false );
     DebugInfos.VisitedNodes++;
@@ -210,8 +210,8 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::FillCurrentBestPath( const
     DebugInfos.CurrentBestPath.MarkReady();
 }
 
-FSVOGraphAStar::FSVOGraphAStar( const FSVOBoundsNavigationData & graph ) :
-    FGraphAStar< FSVOBoundsNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOBoundsNavigationData > >( graph )
+FSVOGraphAStar::FSVOGraphAStar( const FSVOVolumeNavigationData & graph ) :
+    FGraphAStar< FSVOVolumeNavigationData, FGraphAStarDefaultPolicy, FGraphAStarDefaultNode< FSVOVolumeNavigationData > >( graph )
 {
 }
 

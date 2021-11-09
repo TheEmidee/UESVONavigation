@@ -1,12 +1,11 @@
 #include "SVONavigationDataGenerator.h"
 
-#include "SVOData.h"
 #include "SVONavigationData.h"
 
 #include <GameFramework/PlayerController.h>
 #include <NavigationSystem.h>
 
-FSVOBoundsNavigationDataGenerator::FSVOBoundsNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds ) :
+FSVOVolumeNavigationDataGenerator::FSVOVolumeNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds ) :
     ParentGenerator( navigation_data_generator ),
     BoundsNavigationData(),
     VolumeBounds( volume_bounds )
@@ -14,9 +13,9 @@ FSVOBoundsNavigationDataGenerator::FSVOBoundsNavigationDataGenerator( FSVONaviga
     NavDataConfig = navigation_data_generator.GetOwner()->GetConfig();
 }
 
-bool FSVOBoundsNavigationDataGenerator::DoWork()
+bool FSVOVolumeNavigationDataGenerator::DoWork()
 {
-    FSVOBoundsNavigationDataGenerationSettings generation_settings;
+    FSVOVolumeNavigationDataGenerationSettings generation_settings;
     generation_settings.GenerationSettings = ParentGenerator.GetGenerationSettings();
     generation_settings.World = ParentGenerator.GetWorld();
     generation_settings.VoxelExtent = NavDataConfig.AgentRadius * 2.0f;
@@ -172,7 +171,7 @@ void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDi
 
                 PendingBoundsDataGenerationElements.Emplace( pending_box_element );
 
-                NavigationData.SVODataPtr->RemoveDataInBounds( matching_bounds_element );
+                NavigationData.RemoveDataInBounds( matching_bounds_element );
             }
         }
     }
@@ -263,7 +262,8 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
                 }
 
                 // Remove the existing navigation bounds which don't match the new navigation bounds
-                auto existing_navigation_bounds = NavigationData.SVODataPtr->GetNavigationBoundsData();
+                // :TODO: Avoid copying data
+                auto existing_navigation_bounds = NavigationData.GetVolumeNavigationData();
 
                 for ( const auto & existing_bounds : existing_navigation_bounds )
                 {
@@ -271,7 +271,7 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
                              return registered_bounds == existing_bounds.GetVolumeBounds();
                          } ) == nullptr )
                     {
-                        NavigationData.SVODataPtr->RemoveDataInBounds( existing_bounds.GetVolumeBounds() );
+                        NavigationData.RemoveDataInBounds( existing_bounds.GetVolumeBounds() );
                     }
                 }
             }
@@ -345,7 +345,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
         auto & box_generator = *element.AsyncTask->GetTask().BoxNavigationDataGenerator;
 
-        NavigationData.SVODataPtr->AddNavigationBoundsData( box_generator.GetBoundsNavigationData() );
+        NavigationData.AddVolumeNavigationData( box_generator.GetBoundsNavigationData() );
 
         finished_boxes.Emplace( MoveTemp( element.VolumeBounds ) );
 
@@ -357,10 +357,10 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
     return finished_boxes;
 }
 
-TSharedRef< FSVOBoundsNavigationDataGenerator > FSVONavigationDataGenerator::CreateBoxNavigationGenerator( const FBox & box )
+TSharedRef< FSVOVolumeNavigationDataGenerator > FSVONavigationDataGenerator::CreateBoxNavigationGenerator( const FBox & box )
 {
     //SCOPE_CYCLE_COUNTER(STAT_SVONavigation_CreateBoxNavigationGenerator);
 
-    TSharedRef< FSVOBoundsNavigationDataGenerator > box_navigation_data_generator = MakeShareable( new FSVOBoundsNavigationDataGenerator( *this, box ) );
+    TSharedRef< FSVOVolumeNavigationDataGenerator > box_navigation_data_generator = MakeShareable( new FSVOVolumeNavigationDataGenerator( *this, box ) );
     return box_navigation_data_generator;
 }

@@ -2,9 +2,6 @@
 
 #include "SVONavigationData.h"
 #include "SVONavigationTypes.h"
-#include "Chaos/AABB.h"
-#include "Chaos/AABB.h"
-
 
 #include <AI/NavDataGenerator.h>
 
@@ -12,33 +9,33 @@ class ASVONavigationData;
 
 class FSVONavigationDataGenerator;
 
-struct FSVOBoundsNavigationDataGenerator final : public FNoncopyable
+struct FSVOVolumeNavigationDataGenerator final : public FNoncopyable
 {
 public:
-    FSVOBoundsNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds );
+    FSVOVolumeNavigationDataGenerator( FSVONavigationDataGenerator & navigation_data_generator, const FBox & volume_bounds );
 
-    FSVOBoundsNavigationData GetBoundsNavigationData() const;
+    FSVOVolumeNavigationData GetBoundsNavigationData() const;
 
     bool DoWork();
 
 private:
     FSVONavigationDataGenerator & ParentGenerator;
-    FSVOBoundsNavigationData BoundsNavigationData;
+    FSVOVolumeNavigationData BoundsNavigationData;
     FBox VolumeBounds;
     TWeakObjectPtr< UWorld > World;
     FNavDataConfig NavDataConfig;
 };
 
-FORCEINLINE FSVOBoundsNavigationData FSVOBoundsNavigationDataGenerator::GetBoundsNavigationData() const
+FORCEINLINE FSVOVolumeNavigationData FSVOVolumeNavigationDataGenerator::GetBoundsNavigationData() const
 {
     return BoundsNavigationData;
 }
 
 struct SVONAVIGATION_API FSVOBoxGeneratorWrapper : public FNonAbandonableTask
 {
-    TSharedRef< FSVOBoundsNavigationDataGenerator > BoxNavigationDataGenerator;
+    TSharedRef< FSVOVolumeNavigationDataGenerator > BoxNavigationDataGenerator;
 
-    FSVOBoxGeneratorWrapper( const TSharedRef< FSVOBoundsNavigationDataGenerator > box_navigation_generator ) :
+    FSVOBoxGeneratorWrapper( const TSharedRef< FSVOVolumeNavigationDataGenerator > box_navigation_generator ) :
         BoxNavigationDataGenerator( box_navigation_generator )
     {
     }
@@ -141,7 +138,7 @@ private:
     void SortPendingBounds();
     void UpdateNavigationBounds();
     TArray< FBox > ProcessAsyncTasks( int32 task_to_process_count );
-    TSharedRef< FSVOBoundsNavigationDataGenerator > CreateBoxNavigationGenerator( const FBox & box );
+    TSharedRef< FSVOVolumeNavigationDataGenerator > CreateBoxNavigationGenerator( const FBox & box );
 
     ASVONavigationData & NavigationData;
     FSVODataGenerationSettings GenerationSettings;

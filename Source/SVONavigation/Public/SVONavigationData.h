@@ -1,43 +1,14 @@
 #pragma once
 
-#include "SVOBoundsNavigationData.h"
+#include "SVOVolumeNavigationData.h"
 
 #include <CoreMinimal.h>
-
-#include "SVOData.h"
-
 #include <NavigationData.h>
 
 #include "SVONavigationData.generated.h"
 
 class USVONavDataRenderingComponent;
 struct FSVONavigationBounds;
-
-struct FSVONavigationDataBoundsKey
-{
-    FSVONavigationDataBoundsKey() = default;
-    FSVONavigationDataBoundsKey( const FBox & volume_bounds ) :
-        VolumeBounds( volume_bounds )
-    {}
-
-    FBox VolumeBounds;
-
-    friend uint32 GetTypeHash( const FSVONavigationDataBoundsKey & element )
-    {
-        return HashCombine( GetTypeHash( element.VolumeBounds.GetCenter() ), GetTypeHash( element.VolumeBounds.GetExtent() ) );
-    }
-
-    bool operator==( const FSVONavigationDataBoundsKey & other ) const
-    {
-        return VolumeBounds == other.VolumeBounds;
-    }
-};
-
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationDataBoundsKey & data )
-{
-    archive << data.VolumeBounds;
-    return archive;
-}
 
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
 class SVONAVIGATION_API ASVONavigationData final : public ANavigationData
@@ -50,14 +21,16 @@ public:
     friend class FSVONavigationDataGenerator;
 
     const FSVONavigationBoundsDataDebugInfos & GetDebugInfos() const;
-    const FSVOData & GetSVOData() const;
+    const TArray< FSVOVolumeNavigationData > & GetVolumeNavigationData() const;
 
     void PostInitProperties() override;
     void PostLoad() override;
     void Serialize( FArchive & archive ) override;
     void CleanUp() override;
-
+    bool NeedsRebuild() const override;
     void EnsureBuildCompletion() override;
+    bool SupportsRuntimeGeneration() const override;
+    bool SupportsStreaming() const override;
     FNavLocation GetRandomPoint( FSharedConstNavQueryFilter filter, const UObject * querier ) const override;
     bool GetRandomReachablePointInRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
     bool GetRandomPointInNavigableRadius( const FVector & origin, float radius, FNavLocation & out_result, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
@@ -77,6 +50,7 @@ public:
     void OnNavAreaAdded( const UClass * nav_area_class, int32 agent_index ) override;
     int32 GetNewAreaID( const UClass * nav_area_class ) const override;
     int32 GetMaxSupportedAreas() const override;
+    bool IsNodeRefValid( NavNodeRef node_ref ) const override;
 
 #if WITH_EDITOR
     void PostEditChangeProperty( FPropertyChangedEvent & property_changed_event ) override;
@@ -90,12 +64,16 @@ public:
     void ConditionalConstructGenerator() override;
 
     void RequestDrawingUpdate( bool force = false );
+    FBox GetBoundingBox() const;
+    void RemoveDataInBounds( const FBox & bounds );
+    void AddVolumeNavigationData( FSVOVolumeNavigationData data );
+    const FSVOVolumeNavigationData * GetVolumeNavigationDataContainingPoints( const TArray< FVector > & points ) const;
 
 private:
-    void RecreateDefaultFilter();
-    void UpdateDrawing();
+    void RecreateDefaultFilter() const;
+    void UpdateDrawing() const;
     void ResetGenerator( bool cancel_build = true );
-    void OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_boxes );
+    void OnNavigationDataUpdatedInBounds( const TArray< FBox > & updated_bounds );
 
     UFUNCTION( CallInEditor )
     void ClearNavigationData();
@@ -103,9 +81,9 @@ private:
     UFUNCTION( CallInEditor )
     void BuildNavigationData();
 
-    static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
+    void InvalidateAffectedPaths( const TArray< FBox > & updated_bounds );
 
-    FUniqueSVODataPtr SVODataPtr;
+    static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
 
     UPROPERTY( EditAnywhere, config, Category = "Display" )
     FSVONavigationBoundsDataDebugInfos DebugInfos;
@@ -116,15 +94,16 @@ private:
     UPROPERTY( EditAnywhere, Category = "Generation", config, meta = ( ClampMin = "0", UIMin = "0" ), AdvancedDisplay )
     int32 MaxSimultaneousBoxGenerationJobsCount;
 
+    TArray< FSVOVolumeNavigationData > VolumeNavigationData;
     ESVOVersion Version;
 };
+
+FORCEINLINE const TArray< FSVOVolumeNavigationData > & ASVONavigationData::GetVolumeNavigationData() const
+{
+    return VolumeNavigationData;
+}
 
 FORCEINLINE const FSVONavigationBoundsDataDebugInfos & ASVONavigationData::GetDebugInfos() const
 {
     return DebugInfos;
-}
-
-FORCEINLINE const FSVOData & ASVONavigationData::GetSVOData() const
-{
-    return *SVODataPtr.Get();
 }

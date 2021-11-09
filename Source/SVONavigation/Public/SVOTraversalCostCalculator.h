@@ -3,7 +3,7 @@
 #include "SVOTraversalCostCalculator.generated.h"
 
 struct FSVOOctreeLink;
-class FSVOBoundsNavigationData;
+class FSVOVolumeNavigationData;
 
 UCLASS( abstract, NotBlueprintable, EditInlineNew )
 class SVONAVIGATION_API USVOTraversalCostCalculator : public UObject
@@ -11,7 +11,7 @@ class SVONAVIGATION_API USVOTraversalCostCalculator : public UObject
     GENERATED_BODY()
 
 public:
-    virtual float GetTraversalCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const PURE_VIRTUAL( USVOPathCostCalculator::GetCost, return 0.0f; );
+    virtual float GetTraversalCost( const FSVOVolumeNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const PURE_VIRTUAL( USVOPathCostCalculator::GetCost, return 0.0f; );
 };
 
 UCLASS()
@@ -21,7 +21,7 @@ class SVONAVIGATION_API USVOPathCostCalculator_Distance final : public USVOTrave
 
 public:
 
-    float GetTraversalCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const override;
+    float GetTraversalCost( const FSVOVolumeNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const override;
 };
 
 /*
@@ -38,7 +38,7 @@ public:
 
     USVOPathCostCalculator_Fixed();
 
-    float GetTraversalCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const override;
+    float GetTraversalCost( const FSVOVolumeNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const override;
 
 private:
 

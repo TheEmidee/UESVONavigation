@@ -163,6 +163,12 @@ struct FSVOOctreeLink
         return !operator==( other );
     }
 
+    NavNodeRef GetNavNodeRef() const
+    {
+        const int32 link = LayerIndex << 28 | NodeIndex << 6 | SubNodeIndex;
+        return static_cast< NavNodeRef >( link );
+    }
+
     static FSVOOctreeLink InvalidLink()
     {
         return FSVOOctreeLink();
@@ -232,7 +238,7 @@ class FSVOLeaves
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves );
-    friend class FSVOBoundsNavigationData;
+    friend class FSVOVolumeNavigationData;
     friend class FSVOOctreeData;
 
     const FSVOOctreeLeaf & GetLeaf( const LeafIndex leaf_index ) const;
@@ -303,7 +309,7 @@ class FSVOLayer
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOLayer & layer );
-    friend class FSVOBoundsNavigationData;
+    friend class FSVOVolumeNavigationData;
 
     FSVOLayer();
     FSVOLayer( int max_node_count, float voxel_extent );
@@ -385,15 +391,16 @@ class FSVOOctreeData
 {
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOOctreeData & data );
-    friend class FSVOBoundsNavigationData;
+    friend class FSVOVolumeNavigationData;
 
-    FSVOOctreeData() = default;
+    FSVOOctreeData();
 
     int GetLayerCount() const;
     const FSVOLayer & GetLayer( LayerIndex layer_index ) const;
     const FSVOLayer & GetLastLayer() const;
     const FSVOLeaves & GetLeaves() const;
     const FBox & GetNavigationBounds() const;
+    bool IsValid() const;
 
     int GetAllocatedSize() const;
 
@@ -406,6 +413,7 @@ private:
     TArray< FSVOLayer > Layers;
     FSVOLeaves Leaves;
     FBox NavigationBounds;
+    uint8 bIsValid : 1;
 };
 
 FORCEINLINE int FSVOOctreeData::GetLayerCount() const
@@ -443,11 +451,26 @@ FORCEINLINE const FBox & FSVOOctreeData::GetNavigationBounds() const
     return NavigationBounds;
 }
 
+FORCEINLINE bool FSVOOctreeData::IsValid() const
+{
+    return bIsValid && GetLayerCount() > 0;
+}
+
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeData & data )
 {
     archive << data.Layers;
     archive << data.Leaves;
     archive << data.NavigationBounds;
+
+    if ( archive.IsLoading() )
+    {
+        data.bIsValid = ( data.Layers.Num() > 0 && data.NavigationBounds.IsValid );
+
+        if ( !data.bIsValid )
+        {
+            data.Reset();
+        }
+    }
 
     return archive;
 }

@@ -75,6 +75,7 @@ bool FSVOOctreeData::Initialize( const float voxel_extent, const FBox & volume_b
 
     if ( layer_count < 2 )
     {
+        bIsValid = false;
         return false;
     }
 
@@ -101,6 +102,12 @@ void FSVOOctreeData::Reset()
 {
     Layers.Reset();
     Leaves.Reset();
+}
+
+FSVOOctreeData::FSVOOctreeData() :
+    Leaves(),
+    bIsValid( false )
+{
 }
 
 int FSVOOctreeData::GetAllocatedSize() const

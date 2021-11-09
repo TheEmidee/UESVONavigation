@@ -2,7 +2,7 @@
 
 #include "SVOHeuristicCalculator.generated.h"
 
-class FSVOBoundsNavigationData;
+class FSVOVolumeNavigationData;
 struct FSVOOctreeLink;
 
 UCLASS( abstract, NotBlueprintable, EditInlineNew )
@@ -12,7 +12,7 @@ class SVONAVIGATION_API USVOHeuristicCalculator : public UObject
 
 public:
 
-    virtual float GetHeuristicCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const PURE_VIRTUAL( USVOPathHeuristicCalculator::GetHeuristicCost, return 0.0f; );
+    virtual float GetHeuristicCost( const FSVOVolumeNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const PURE_VIRTUAL( USVOPathHeuristicCalculator::GetHeuristicCost, return 0.0f; );
 };
 
 UCLASS()
@@ -22,7 +22,7 @@ class SVONAVIGATION_API USVOPathHeuristicCalculator_Manhattan final : public USV
 
 public:
 
-    float GetHeuristicCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const override;
+    float GetHeuristicCost( const FSVOVolumeNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const override;
 };
 
 UCLASS()
@@ -32,5 +32,5 @@ class SVONAVIGATION_API USVOPathHeuristicCalculator_Euclidean final : public USV
 
 public:
 
-    float GetHeuristicCost( const FSVOBoundsNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const override;
+    float GetHeuristicCost( const FSVOVolumeNavigationData & bounds_data, const FSVOOctreeLink & start, const FSVOOctreeLink & end ) const override;
 };
