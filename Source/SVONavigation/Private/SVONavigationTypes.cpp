@@ -3,8 +3,6 @@
 #include "SVOPathFindingAlgorithm.h"
 #include "SVOTraversalCostCalculator.h"
 
-#include <libmorton/morton.h>
-
 void FSVOLeaves::Initialize( const float leaf_extent )
 {
     LeafExtent = leaf_extent;
@@ -45,15 +43,13 @@ void FSVOLeaves::AddEmptyLeaf()
 
 FSVOLayer::FSVOLayer() :
     MaxNodeCount( -1 ),
-    VoxelExtent( 0.0f ),
-    VoxelHalfExtent( 0.0f )
+    VoxelExtent( 0.0f )
 {
 }
 
 FSVOLayer::FSVOLayer( const int max_node_count, const float voxel_extent ) :
     MaxNodeCount( max_node_count ),
-    VoxelExtent( voxel_extent ),
-    VoxelHalfExtent( voxel_extent * 0.5f )
+    VoxelExtent( voxel_extent )
 {
 }
 

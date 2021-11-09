@@ -42,14 +42,13 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
         bDebugDrawsBounds( false ),
         bDebugDrawsLayers( false ),
         LayerIndexToDraw( 1 ),
-        bDebugDrawsLeaves( false ),
-        bDebugDrawsOccludedLeaves( false ),
+        bDebugDrawFreeSubNodes( false ),
+        bDebugDrawsOccludedSubNodes( false ),
         bDebugDrawsLinks( false ),
         LinksLayerIndexToDraw( false ),
         bDebugDrawsNeighborLinks( false ),
         bDebugDrawsParentLinks( false ),
         bDebugDrawsFirstChildLinks( false ),
-        DebugLineThickness( 5.0f ),
         bDebugDrawsMortonCodes( false ),
         MortonCodeLayerIndexToDraw( 0 )
     {
@@ -63,14 +62,14 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
     UPROPERTY( EditInstanceOnly )
     bool bDebugDrawsLayers;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLayers", ClampMin = "1", UIMin = "1" ) )
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLayers", ClampMin = "0", UIMin = "0" ) )
     uint8 LayerIndexToDraw;
 
     UPROPERTY( EditInstanceOnly )
-    bool bDebugDrawsLeaves;
+    bool bDebugDrawFreeSubNodes;
 
     UPROPERTY( EditInstanceOnly )
-    bool bDebugDrawsOccludedLeaves;
+    bool bDebugDrawsOccludedSubNodes;
 
     UPROPERTY( EditInstanceOnly )
     bool bDebugDrawsLinks;
@@ -87,9 +86,6 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
     UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLinks" ) )
     bool bDebugDrawsFirstChildLinks;
 
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "ItHasDebugDrawingEnabled", ClampMin = "1", UIMin = "1" ) )
-    float DebugLineThickness;
-
     UPROPERTY( EditInstanceOnly )
     bool bDebugDrawsMortonCodes;
 
@@ -102,13 +98,12 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataD
     archive << data.bDebugDrawsBounds;
     archive << data.bDebugDrawsLayers;
     archive << data.LayerIndexToDraw;
-    archive << data.bDebugDrawsLeaves;
-    archive << data.bDebugDrawsOccludedLeaves;
+    archive << data.bDebugDrawFreeSubNodes;
+    archive << data.bDebugDrawsOccludedSubNodes;
     archive << data.bDebugDrawsLinks;
     archive << data.LinksLayerIndexToDraw;
     archive << data.bDebugDrawsNeighborLinks;
     archive << data.bDebugDrawsParentLinks;
-    archive << data.DebugLineThickness;
     archive << data.bDebugDrawsMortonCodes;
     archive << data.MortonCodeLayerIndexToDraw;
 
@@ -333,6 +328,7 @@ FORCEINLINE float FSVOLeaves::GetLeafSubNodeHalfExtent() const
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves )
 {
     archive << leaves.Leaves;
+    archive << leaves.LeafExtent;
     return archive;
 }
 
@@ -362,7 +358,6 @@ private:
     TSet< MortonCode > BlockedNodes;
     int MaxNodeCount;
     float VoxelExtent;
-    float VoxelHalfExtent;
 };
 
 FORCEINLINE const TArray< FSVOOctreeNode > & FSVOLayer::GetNodes() const
@@ -392,7 +387,7 @@ FORCEINLINE float FSVOLayer::GetVoxelExtent() const
 
 FORCEINLINE float FSVOLayer::GetVoxelHalfExtent() const
 {
-    return VoxelHalfExtent;
+    return GetVoxelExtent() * 0.5f;
 }
 
 FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
@@ -413,10 +408,7 @@ FORCEINLINE uint32 FSVOLayer::GetBlockedNodesCount() const
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
 {
     archive << layer.Nodes;
-    archive << layer.MaxNodeCount;
     archive << layer.VoxelExtent;
-    archive << layer.VoxelHalfExtent;
-
     return archive;
 }
 
