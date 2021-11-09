@@ -91,7 +91,7 @@ struct FSVODataGenerationSettings
     FCollisionQueryParams CollisionQueryParameters;
 };
 
-struct FSVOOctreeLeaf
+struct FSVOLeaf
 {
     void MarkSubNodeAsOccluded( const SubNodeIndex index );
     bool IsSubNodeOccluded( const MortonCode morton_code ) const;
@@ -101,27 +101,27 @@ struct FSVOOctreeLeaf
     uint_fast64_t SubNodes = 0;
 };
 
-FORCEINLINE void FSVOOctreeLeaf::MarkSubNodeAsOccluded( const SubNodeIndex index )
+FORCEINLINE void FSVOLeaf::MarkSubNodeAsOccluded( const SubNodeIndex index )
 {
     SubNodes |= 1ULL << index;
 }
 
-FORCEINLINE bool FSVOOctreeLeaf::IsSubNodeOccluded( const MortonCode morton_code ) const
+FORCEINLINE bool FSVOLeaf::IsSubNodeOccluded( const MortonCode morton_code ) const
 {
     return ( SubNodes & 1ULL << morton_code ) != 0;
 }
 
-FORCEINLINE bool FSVOOctreeLeaf::IsCompletelyOccluded() const
+FORCEINLINE bool FSVOLeaf::IsCompletelyOccluded() const
 {
     return SubNodes == -1;
 }
 
-FORCEINLINE bool FSVOOctreeLeaf::IsCompletelyFree() const
+FORCEINLINE bool FSVOLeaf::IsCompletelyFree() const
 {
     return SubNodes == 0;
 }
 
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeLeaf & data )
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeaf & data )
 {
     archive << data.SubNodes;
     return archive;
@@ -241,8 +241,8 @@ public:
     friend class FSVOVolumeNavigationData;
     friend class FSVOOctreeData;
 
-    const FSVOOctreeLeaf & GetLeaf( const LeafIndex leaf_index ) const;
-    const TArray< FSVOOctreeLeaf > & GetLeaves() const;
+    const FSVOLeaf & GetLeaf( const LeafIndex leaf_index ) const;
+    const TArray< FSVOLeaf > & GetLeaves() const;
     float GetLeafExtent() const;
     float GetLeafHalfExtent() const;
     float GetLeafSubNodeExtent() const;
@@ -251,7 +251,7 @@ public:
     int GetAllocatedSize() const;
 
 private:
-    FSVOOctreeLeaf GetLeaf( const LeafIndex leaf_index );
+    FSVOLeaf GetLeaf( const LeafIndex leaf_index );
 
     void Initialize( float leaf_extent );
     void Reset();
@@ -260,15 +260,15 @@ private:
     void AddEmptyLeaf();
 
     float LeafExtent;
-    TArray< FSVOOctreeLeaf > Leaves;
+    TArray< FSVOLeaf > Leaves;
 };
 
-FORCEINLINE const FSVOOctreeLeaf & FSVOLeaves::GetLeaf( const LeafIndex leaf_index ) const
+FORCEINLINE const FSVOLeaf & FSVOLeaves::GetLeaf( const LeafIndex leaf_index ) const
 {
     return Leaves[ leaf_index ];
 }
 
-FORCEINLINE const TArray< FSVOOctreeLeaf > & FSVOLeaves::GetLeaves() const
+FORCEINLINE const TArray< FSVOLeaf > & FSVOLeaves::GetLeaves() const
 {
     return Leaves;
 }
@@ -293,7 +293,7 @@ FORCEINLINE float FSVOLeaves::GetLeafSubNodeHalfExtent() const
     return GetLeafSubNodeExtent() * 0.5f;
 }
 
-FORCEINLINE FSVOOctreeLeaf FSVOLeaves::GetLeaf( const LeafIndex leaf_index )
+FORCEINLINE FSVOLeaf FSVOLeaves::GetLeaf( const LeafIndex leaf_index )
 {
     return Leaves[ leaf_index ];
 }

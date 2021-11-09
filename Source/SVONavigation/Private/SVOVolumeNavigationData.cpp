@@ -670,7 +670,7 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
 
     const MortonCode leaf_index = link.SubNodeIndex;
     const FSVOOctreeNode & node = GetNodeFromLink( link );
-    const FSVOOctreeLeaf & leaf = SVOData.GetLeaves().GetLeaf( node.FirstChild.NodeIndex );
+    const FSVOLeaf & leaf = SVOData.GetLeaves().GetLeaf( node.FirstChild.NodeIndex );
 
     uint_fast32_t x = 0, y = 0, z = 0;
     morton3D_64_decode( leaf_index, x, y, z );
@@ -702,7 +702,7 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVOOctreeLink > & neig
                 continue;
             }
 
-            const FSVOOctreeLeaf & leaf_node = SVOData.GetLeaves().GetLeaf( neighbor_node.FirstChild.NodeIndex );
+            const FSVOLeaf & leaf_node = SVOData.GetLeaves().GetLeaf( neighbor_node.FirstChild.NodeIndex );
 
             // leaf not occluded. Find the correct subnode
             if ( !leaf_node.IsCompletelyOccluded() )

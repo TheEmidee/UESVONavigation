@@ -15,7 +15,7 @@ void FSVOLeaves::Reset()
 
 int FSVOLeaves::GetAllocatedSize() const
 {
-    return Leaves.Num() * sizeof( FSVOOctreeLeaf );
+    return Leaves.Num() * sizeof( FSVOLeaf );
 }
 
 void FSVOLeaves::AllocateLeaves( const int leaf_count )
