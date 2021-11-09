@@ -47,7 +47,7 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
     };
 
     const auto visualize_debug_node_cost = [ this, add_text, proxy_data ]( const FSVOPathFinderDebugNodeCost & debug_node_cost, const FColor & color ) {
-        if ( !debug_node_cost.From.Link.IsValid() || !debug_node_cost.To.Link.IsValid()  )
+        if ( !debug_node_cost.From.NodeAddress.IsValid() || !debug_node_cost.To.NodeAddress.IsValid()  )
         {
             return;
         }
@@ -56,10 +56,10 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
 
         if ( DebugDrawOptions.bDrawNodes )
         {
-            const auto from_voxel_half_extent = bounds_data->GetVoxelHalfExtentFromLink( debug_node_cost.From.Link );
+            const auto from_voxel_half_extent = bounds_data->GetVoxelHalfExtentFromNodeAddress( debug_node_cost.From.NodeAddress );
             Boxes.Emplace( FBox::BuildAABB( debug_node_cost.From.Location, FVector( from_voxel_half_extent ) ), color );
 
-            const auto to_voxel_half_extent = bounds_data->GetVoxelHalfExtentFromLink( debug_node_cost.To.Link );
+            const auto to_voxel_half_extent = bounds_data->GetVoxelHalfExtentFromNodeAddress( debug_node_cost.To.NodeAddress );
             Boxes.Emplace( FBox::BuildAABB( debug_node_cost.To.Location, FVector( to_voxel_half_extent ) ), color );
         }
 

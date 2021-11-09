@@ -32,12 +32,12 @@ public:
     const FSVONode & GetNodeFromAddress( const FSVONodeAddress & address ) const;
 
     FVector GetNodePosition( const LayerIndex layer_index, MortonCode morton_code ) const;
-    FVector GetLinkPosition( const FSVONodeAddress & link ) const;    
-    bool GetLinkFromPosition( FSVONodeAddress & link, const FVector & position ) const;
-    void GetNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & link ) const;
+    FVector GetNodePositionFromAddress( const FSVONodeAddress & address ) const;    
+    bool GetNodeAddressFromPosition( FSVONodeAddress & node_address, const FVector & position ) const;
+    void GetNodeNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & node_address ) const;
     float GetLayerRatio( LayerIndex layer_index ) const;
     float GetLayerInverseRatio( LayerIndex layer_index ) const;
-    float GetVoxelHalfExtentFromLink( FSVONodeAddress link ) const;
+    float GetVoxelHalfExtentFromNodeAddress( FSVONodeAddress node_address ) const;
     TOptional< FNavLocation > GetRandomPoint() const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings );
@@ -52,9 +52,9 @@ private:
     void RasterizeLayer( LayerIndex layer_index );
     TOptional< NodeIndex > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
     void BuildNeighborLinks( LayerIndex layer_index );
-    bool FindNeighborInDirection( FSVONodeAddress & link, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
-    void GetLeafNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & link ) const;
-    void GetFreeNodesFromLink( FSVONodeAddress link, TArray< FSVONodeAddress > & free_nodes ) const;
+    bool FindNeighborInDirection( FSVONodeAddress & node_address, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
+    void GetLeafNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & leaf_address ) const;
+    void GetFreeNodesFromNodeAddress( FSVONodeAddress node_address, TArray< FSVONodeAddress > & free_nodes ) const;
 
     FSVOVolumeNavigationDataGenerationSettings Settings;
     FBox VolumeBounds;

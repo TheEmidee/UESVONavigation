@@ -165,18 +165,15 @@ struct FSVONodeAddress
 
     NavNodeRef GetNavNodeRef() const
     {
-        const int32 link = LayerIndex << 28 | NodeIndex << 6 | SubNodeIndex;
-        return static_cast< NavNodeRef >( link );
+        const int32 address = LayerIndex << 28 | NodeIndex << 6 | SubNodeIndex;
+        return static_cast< NavNodeRef >( address );
     }
 
-    static FSVONodeAddress InvalidLink()
-    {
-        return FSVONodeAddress();
-    }
+    static const FSVONodeAddress InvalidAddress;
 
-    uint8 LayerIndex : 4;
+    uint8 LayerIndex        : 4;
     uint_fast32_t NodeIndex : 22;
-    uint8 SubNodeIndex : 6;
+    uint8 SubNodeIndex      : 6;
 };
 
 FORCEINLINE bool FSVONodeAddress::IsValid() const
@@ -189,9 +186,9 @@ FORCEINLINE void FSVONodeAddress::Invalidate()
     LayerIndex = 15;
 }
 
-FORCEINLINE uint32 GetTypeHash( const FSVONodeAddress & link )
+FORCEINLINE uint32 GetTypeHash( const FSVONodeAddress & address )
 {
-    return HashCombine( HashCombine( GetTypeHash( link.LayerIndex ), GetTypeHash( link.NodeIndex ) ), GetTypeHash( link.SubNodeIndex ) );
+    return HashCombine( HashCombine( GetTypeHash( address.LayerIndex ), GetTypeHash( address.NodeIndex ) ), GetTypeHash( address.SubNodeIndex ) );
 }
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONodeAddress & data )
@@ -209,8 +206,8 @@ struct FSVONode
 
     FSVONode() :
         MortonCode( 0 ),
-        Parent( FSVONodeAddress::InvalidLink() ),
-        FirstChild( FSVONodeAddress::InvalidLink() )
+        Parent( FSVONodeAddress::InvalidAddress ),
+        FirstChild( FSVONodeAddress::InvalidAddress )
     {
     }
 

@@ -1,53 +1,56 @@
 #pragma once
 
 #include "SVONavigationTypes.h"
+#include "Chaos/AABB.h"
+#include "Chaos/AABB.h"
+#include "Chaos/AABB.h"
+#include "Chaos/AABB.h"
 
 #include <GraphAStar.h>
 #include <NavigationData.h>
 
 #include "SVOPathFindingAlgorithm.generated.h"
 
-struct FSVOLinkWithCost;
 class FSVOVolumeNavigationData;
 class USVOPathTraversalCostCalculator;
 class USVOPathHeuristicCalculator;
 class FSVONavigationQueryFilterImpl;
 class ASVONavigationData;
 
-struct FSVOLinkWithLocation
+struct FSVONodeAddressWithLocation
 {
-    FSVOLinkWithLocation() = default;
-    FSVOLinkWithLocation( const FSVONodeAddress & link, const FVector & location );
-    FSVOLinkWithLocation( const FSVONodeAddress & link, const FSVOVolumeNavigationData & bounds_navigation_data );
+    FSVONodeAddressWithLocation() = default;
+    FSVONodeAddressWithLocation( const FSVONodeAddress & node_address, const FVector & location );
+    FSVONodeAddressWithLocation( const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & bounds_navigation_data );
 
-    bool operator==( const FSVOLinkWithLocation & other ) const
+    bool operator==( const FSVONodeAddressWithLocation & other ) const
     {
-        return Link == other.Link;
+        return NodeAddress == other.NodeAddress;
     }
 
-    bool operator!=( const FSVOLinkWithLocation & other ) const
+    bool operator!=( const FSVONodeAddressWithLocation & other ) const
     {
         return !operator==( other );
     }
 
-    FSVONodeAddress Link;
+    FSVONodeAddress NodeAddress;
     FVector Location;
 };
 
-FORCEINLINE uint32 GetTypeHash( const FSVOLinkWithLocation & link_with_location )
+FORCEINLINE uint32 GetTypeHash( const FSVONodeAddressWithLocation & node_address_with_location )
 {
-    return GetTypeHash( link_with_location.Link );
+    return GetTypeHash( node_address_with_location.NodeAddress );
 }
 
 struct FSVOPathFinderDebugNodeCost
 {
     FSVOPathFinderDebugNodeCost() = default;
-    FSVOPathFinderDebugNodeCost( const FSVOLinkWithLocation & from, const FSVOLinkWithLocation & to, const float cost, const bool is_closed );
+    FSVOPathFinderDebugNodeCost( const FSVONodeAddressWithLocation & from, const FSVONodeAddressWithLocation & to, const float cost, const bool is_closed );
 
     void Reset();
 
-    FSVOLinkWithLocation From;
-    FSVOLinkWithLocation To;
+    FSVONodeAddressWithLocation From;
+    FSVONodeAddressWithLocation To;
     float Cost;
     uint8 bIsClosed : 1;
 };
@@ -91,8 +94,8 @@ struct FSVOPathFindingParameters
     const USVOPathHeuristicCalculator * HeuristicCalculator;
     const USVOPathTraversalCostCalculator * CostCalculator;
     const FSVOVolumeNavigationData * BoundsNavigationData;
-    FSVONodeAddress StartLink;
-    FSVONodeAddress EndLink;
+    FSVONodeAddress StartNodeAddress;
+    FSVONodeAddress EndNodeAddress;
     float VerticalOffset;
 };
 
@@ -125,7 +128,7 @@ public:
     {}
     virtual void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor )
     {}
-    virtual void OnSearchSuccess( const TArray< FSVONodeAddress > & link_path )
+    virtual void OnSearchSuccess( const TArray< FSVONodeAddress > & node_addresses )
     {}
 
 protected:
@@ -154,7 +157,7 @@ public:
     void OnSearchSuccess( const TArray< FSVONodeAddress > & ) override;
 
 private:
-    void FillCurrentBestPath( const TArray< FSVONodeAddress > & link_path, bool add_end_location ) const;
+    void FillCurrentBestPath( const TArray< FSVONodeAddress > & node_addresses, bool add_end_location ) const;
     FSVOPathFinderDebugInfos & DebugInfos;
 };
 
@@ -179,7 +182,7 @@ public:
     const FSVOGraphAStar & GetGraph() const;
 
     ESVOPathFindingAlgorithmStepperStatus Step( EGraphAStarResult & result );
-    virtual bool FillLinkPath( TArray< FSVONodeAddress > & link_path ) const;
+    virtual bool FillNodeAddresses( TArray< FSVONodeAddress > & node_addresses ) const;
 
 protected:
     virtual ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) = 0;
@@ -217,7 +220,7 @@ class FSVOPathFindingAlgorithmStepper_AStar : public FSVOPathFindingAlgorithmSte
 public:
     explicit FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & parameters );
 
-    bool FillLinkPath( TArray< FSVONodeAddress > & link_path ) const override;
+    bool FillNodeAddresses( TArray< FSVONodeAddress > &   ) const override;
 
 protected:
     ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;
@@ -225,8 +228,8 @@ protected:
     ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
     ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) override;
 
-    void FillLinkNeighbors( const FSVONodeAddress & link );
-    float AdjustTotalCostWithNodeSizeCompensation( float total_cost, FSVONodeAddress neighbor_link ) const;
+    void FillNodeAddressNeighbors( const FSVONodeAddress & node_address );
+    float AdjustTotalCostWithNodeSizeCompensation( float total_cost, FSVONodeAddress neighbor_node_address ) const;
 
     struct NeighborIndexIncrement
     {

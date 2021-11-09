@@ -1,7 +1,8 @@
 #include "SVONavigationTypes.h"
 
 #include "SVOPathFindingAlgorithm.h"
-#include "SVOTraversalCostCalculator.h"
+
+const FSVONodeAddress FSVONodeAddress::InvalidAddress;
 
 void FSVOLeaves::Initialize( const float leaf_extent )
 {
@@ -104,7 +105,7 @@ void FSVOData::Reset()
     Leaves.Reset();
 }
 
-FSVOData::FSVOOctreeData() :
+FSVOData::FSVOData() :
     Leaves(),
     bIsValid( false )
 {
