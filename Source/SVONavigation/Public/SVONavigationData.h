@@ -50,6 +50,7 @@ public:
     void OnNavAreaAdded( const UClass * nav_area_class, int32 agent_index ) override;
     int32 GetNewAreaID( const UClass * nav_area_class ) const override;
     int32 GetMaxSupportedAreas() const override;
+    bool IsNodeRefValid( NavNodeRef node_ref ) const override;
 
 #if WITH_EDITOR
     void PostEditChangeProperty( FPropertyChangedEvent & property_changed_event ) override;

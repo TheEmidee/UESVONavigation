@@ -273,8 +273,7 @@ TOptional< FNavLocation > FSVOVolumeNavigationData::GetRandomPoint() const
 
     const auto node_bounds = FBox::BuildAABB( random_node_location, FVector( random_node_half_extent ) );
     const auto random_point_in_node = FMath::RandPointInBox( node_bounds );
-
-    return FNavLocation( random_point_in_node );
+    return FNavLocation( random_point_in_node, random_node.GetNavNodeRef() );
 }
 
 void FSVOVolumeNavigationData::GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings )

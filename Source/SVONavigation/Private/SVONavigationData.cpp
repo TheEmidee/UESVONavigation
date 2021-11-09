@@ -317,6 +317,11 @@ int32 ASVONavigationData::GetMaxSupportedAreas() const
     return 32;
 }
 
+bool ASVONavigationData::IsNodeRefValid( const NavNodeRef node_ref ) const
+{
+    return FSVOOctreeLink( node_ref ).IsValid();
+}
+
 #if WITH_EDITOR
 void ASVONavigationData::PostEditChangeProperty( FPropertyChangedEvent & property_changed_event )
 {

@@ -163,6 +163,12 @@ struct FSVOOctreeLink
         return !operator==( other );
     }
 
+    NavNodeRef GetNavNodeRef() const
+    {
+        const int32 link = LayerIndex << 28 | NodeIndex << 6 | SubNodeIndex;
+        return static_cast< NavNodeRef >( link );
+    }
+
     static FSVOOctreeLink InvalidLink()
     {
         return FSVOOctreeLink();
