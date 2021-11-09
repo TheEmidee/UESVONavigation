@@ -37,7 +37,7 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
 
     for ( const auto & navigation_bounds_data : all_navigation_bounds_data )
     {
-        const auto & octree_data = navigation_bounds_data.GetOctreeData();
+        const auto & octree_data = navigation_bounds_data.GetData();
         const auto layer_count = octree_data.GetLayerCount();
 
         if ( layer_count == 0 )
@@ -47,7 +47,7 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
 
         if ( debug_infos.bDebugDrawBounds )
         {
-            Boxes.Emplace( navigation_bounds_data.GetOctreeData().GetNavigationBounds(), FColor::White );
+            Boxes.Emplace( navigation_bounds_data.GetData().GetNavigationBounds(), FColor::White );
         }
 
         const auto try_add_voxel_to_boxes = [ this, debug_infos ]( const FVector & voxel_location, const float voxel_half_extent, const bool is_occluded ) {
@@ -64,7 +64,7 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
         if ( debug_infos.bDebugDrawLayers )
         {
             const auto corrected_layer_index = FMath::Clamp( static_cast< int >( debug_infos.LayerIndexToDraw ), 0, layer_count - 1 );
-            const auto half_voxel_size = navigation_bounds_data.GetOctreeData().GetLayer( corrected_layer_index ).GetVoxelHalfExtent();
+            const auto half_voxel_size = navigation_bounds_data.GetData().GetLayer( corrected_layer_index ).GetVoxelHalfExtent();
 
             for ( const auto & node : octree_data.GetLayer( corrected_layer_index ).GetNodes() )
             {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SVOVolumeNavigationData.h"
+#include "SVONavigationTypes.h"
 
 #include <CoreMinimal.h>
 #include <NavigationData.h>
@@ -20,7 +21,7 @@ public:
 
     friend class FSVONavigationDataGenerator;
 
-    const FSVONavigationBoundsDataDebugInfos & GetDebugInfos() const;
+    const FSVOVolumeNavigationDataDebugInfos & GetDebugInfos() const;
     const TArray< FSVOVolumeNavigationData > & GetVolumeNavigationData() const;
 
     void PostInitProperties() override;
@@ -86,7 +87,7 @@ private:
     static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
 
     UPROPERTY( EditAnywhere, config, Category = "Display" )
-    FSVONavigationBoundsDataDebugInfos DebugInfos;
+    FSVOVolumeNavigationDataDebugInfos DebugInfos;
 
     UPROPERTY( EditAnywhere, config, Category = "Generation" )
     FSVODataGenerationSettings GenerationSettings;
@@ -103,7 +104,7 @@ FORCEINLINE const TArray< FSVOVolumeNavigationData > & ASVONavigationData::GetVo
     return VolumeNavigationData;
 }
 
-FORCEINLINE const FSVONavigationBoundsDataDebugInfos & ASVONavigationData::GetDebugInfos() const
+FORCEINLINE const FSVOVolumeNavigationDataDebugInfos & ASVONavigationData::GetDebugInfos() const
 {
     return DebugInfos;
 }

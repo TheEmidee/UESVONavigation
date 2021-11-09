@@ -16,27 +16,28 @@ struct FSVOVolumeNavigationDataGenerationSettings
 class SVONAVIGATION_API FSVOVolumeNavigationData
 {
 public:
-    typedef FSVOOctreeLink FNodeRef;
+    typedef FSVONodeAddress FNodeRef;
 
     FSVOVolumeNavigationData() = default;
 
     // Used by FGraphAStar
-    bool IsValidRef( const FSVOOctreeLink ref ) const
+    bool IsValidRef( const FSVONodeAddress ref ) const
     {
         return ref.IsValid();
     }
 
     const FSVOVolumeNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
-    const FSVOOctreeData & GetOctreeData() const;
+    const FSVOData & GetData() const;
+    const FSVONode & GetNodeFromAddress( const FSVONodeAddress & address ) const;
+
     FVector GetNodePosition( const LayerIndex layer_index, MortonCode morton_code ) const;
-    FVector GetLinkPosition( const FSVOOctreeLink & link ) const;
-    const FSVOOctreeNode & GetNodeFromLink( const FSVOOctreeLink & link ) const;
-    bool GetLinkFromPosition( FSVOOctreeLink & link, const FVector & position ) const;
-    void GetNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
+    FVector GetNodePositionFromAddress( const FSVONodeAddress & address ) const;    
+    bool GetNodeAddressFromPosition( FSVONodeAddress & node_address, const FVector & position ) const;
+    void GetNodeNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & node_address ) const;
     float GetLayerRatio( LayerIndex layer_index ) const;
     float GetLayerInverseRatio( LayerIndex layer_index ) const;
-    float GetVoxelHalfExtentFromLink( FSVOOctreeLink link ) const;
+    float GetVoxelHalfExtentFromNodeAddress( FSVONodeAddress node_address ) const;
     TOptional< FNavLocation > GetRandomPoint() const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings );
@@ -51,13 +52,13 @@ private:
     void RasterizeLayer( LayerIndex layer_index );
     TOptional< NodeIndex > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
     void BuildNeighborLinks( LayerIndex layer_index );
-    bool FindNeighborInDirection( FSVOOctreeLink & link, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
-    void GetLeafNeighbors( TArray< FSVOOctreeLink > & neighbors, const FSVOOctreeLink & link ) const;
-    void GetFreeNodesFromLink( FSVOOctreeLink link, TArray< FSVOOctreeLink > & free_nodes ) const;
+    bool FindNeighborInDirection( FSVONodeAddress & node_address, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
+    void GetLeafNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & leaf_address ) const;
+    void GetFreeNodesFromNodeAddress( FSVONodeAddress node_address, TArray< FSVONodeAddress > & free_nodes ) const;
 
     FSVOVolumeNavigationDataGenerationSettings Settings;
     FBox VolumeBounds;
-    FSVOOctreeData SVOData;
+    FSVOData SVOData;
 };
 
 FORCEINLINE const FSVOVolumeNavigationDataGenerationSettings & FSVOVolumeNavigationData::GetDataGenerationSettings() const
@@ -70,15 +71,15 @@ FORCEINLINE const FBox & FSVOVolumeNavigationData::GetVolumeBounds() const
     return VolumeBounds;
 }
 
-FORCEINLINE const FSVOOctreeData & FSVOVolumeNavigationData::GetOctreeData() const
+FORCEINLINE const FSVOData & FSVOVolumeNavigationData::GetData() const
 {
     return SVOData;
 }
 
-FORCEINLINE const FSVOOctreeNode & FSVOVolumeNavigationData::GetNodeFromLink( const FSVOOctreeLink & link ) const
+FORCEINLINE const FSVONode & FSVOVolumeNavigationData::GetNodeFromAddress( const FSVONodeAddress & address ) const
 {
-    return link.LayerIndex < 15
-               ? SVOData.GetLayer( link.LayerIndex ).GetNode( link.NodeIndex )
+    return address.LayerIndex < 15
+               ? SVOData.GetLayer( address.LayerIndex ).GetNode( address.NodeIndex )
                : SVOData.GetLastLayer().GetNode( 0 );
 }
 

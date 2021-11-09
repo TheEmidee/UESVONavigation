@@ -1,7 +1,8 @@
 #include "SVONavigationTypes.h"
 
 #include "SVOPathFindingAlgorithm.h"
-#include "SVOTraversalCostCalculator.h"
+
+const FSVONodeAddress FSVONodeAddress::InvalidAddress;
 
 void FSVOLeaves::Initialize( const float leaf_extent )
 {
@@ -15,7 +16,7 @@ void FSVOLeaves::Reset()
 
 int FSVOLeaves::GetAllocatedSize() const
 {
-    return Leaves.Num() * sizeof( FSVOOctreeLeaf );
+    return Leaves.Num() * sizeof( FSVOLeaf );
 }
 
 void FSVOLeaves::AllocateLeaves( const int leaf_count )
@@ -55,7 +56,7 @@ FSVOLayer::FSVOLayer( const int max_node_count, const float voxel_extent ) :
 
 int FSVOLayer::GetAllocatedSize() const
 {
-    return Nodes.Num() * sizeof( FSVOOctreeNode );
+    return Nodes.Num() * sizeof( FSVONode );
 }
 
 void FSVOLayer::AddBlockedNode( const NodeIndex node_index )
@@ -63,7 +64,7 @@ void FSVOLayer::AddBlockedNode( const NodeIndex node_index )
     BlockedNodes.Add( node_index );
 }
 
-bool FSVOOctreeData::Initialize( const float voxel_extent, const FBox & volume_bounds )
+bool FSVOData::Initialize( const float voxel_extent, const FBox & volume_bounds )
 {
     Reset();
 
@@ -98,19 +99,19 @@ bool FSVOOctreeData::Initialize( const float voxel_extent, const FBox & volume_b
     return true;
 }
 
-void FSVOOctreeData::Reset()
+void FSVOData::Reset()
 {
     Layers.Reset();
     Leaves.Reset();
 }
 
-FSVOOctreeData::FSVOOctreeData() :
+FSVOData::FSVOData() :
     Leaves(),
     bIsValid( false )
 {
 }
 
-int FSVOOctreeData::GetAllocatedSize() const
+int FSVOData::GetAllocatedSize() const
 {
     int size = Leaves.GetAllocatedSize();
 

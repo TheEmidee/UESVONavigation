@@ -133,7 +133,7 @@ void ASVONavigationData::CleanUp()
 bool ASVONavigationData::NeedsRebuild() const
 {
     const auto needs_rebuild = VolumeNavigationData.FindByPredicate( []( const FSVOVolumeNavigationData & data ) {
-        return !data.GetOctreeData().IsValid();
+        return !data.GetData().IsValid();
     } ) != nullptr;
 
     if ( NavDataGenerator.IsValid() )
@@ -319,7 +319,7 @@ int32 ASVONavigationData::GetMaxSupportedAreas() const
 
 bool ASVONavigationData::IsNodeRefValid( const NavNodeRef node_ref ) const
 {
-    return FSVOOctreeLink( node_ref ).IsValid();
+    return FSVONodeAddress( node_ref ).IsValid();
 }
 
 #if WITH_EDITOR
@@ -369,7 +369,7 @@ uint32 ASVONavigationData::LogMemUsed() const
     auto navigation_mem_size = 0;
     for ( const auto & nav_bounds_data : VolumeNavigationData )
     {
-        const auto octree_data_mem_size = nav_bounds_data.GetOctreeData().GetAllocatedSize();
+        const auto octree_data_mem_size = nav_bounds_data.GetData().GetAllocatedSize();
         navigation_mem_size += octree_data_mem_size;
     }
     const auto mem_used = super_mem_used + navigation_mem_size;
@@ -432,7 +432,7 @@ FBox ASVONavigationData::GetBoundingBox() const
 
     for ( const auto & bounds : VolumeNavigationData )
     {
-        bounding_box += bounds.GetOctreeData().GetNavigationBounds();
+        bounding_box += bounds.GetData().GetNavigationBounds();
     }
 
     return bounding_box;
@@ -453,7 +453,7 @@ void ASVONavigationData::AddVolumeNavigationData( FSVOVolumeNavigationData data 
 const FSVOVolumeNavigationData * ASVONavigationData::GetVolumeNavigationDataContainingPoints( const TArray< FVector > & points ) const
 {
     return VolumeNavigationData.FindByPredicate( [ this, &points ]( const FSVOVolumeNavigationData & data ) {
-        const auto & bounds = data.GetOctreeData().GetNavigationBounds();
+        const auto & bounds = data.GetData().GetNavigationBounds();
         for ( const auto & point : points )
         {
             if ( !bounds.IsInside( point ) )

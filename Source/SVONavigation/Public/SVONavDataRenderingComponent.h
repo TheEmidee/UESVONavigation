@@ -1,7 +1,5 @@
 #pragma once
 
-#include "SVONavigationTypes.h"
-
 #include <Components/PrimitiveComponent.h>
 #include <CoreMinimal.h>
 #include <DebugRenderSceneProxy.h>
