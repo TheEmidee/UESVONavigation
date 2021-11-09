@@ -45,12 +45,24 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             continue;
         }
 
-        if ( debug_infos.bDebugDrawsBounds )
+        if ( debug_infos.bDebugDrawBounds )
         {
             Boxes.Emplace( navigation_bounds_data.GetOctreeData().GetNavigationBounds(), FColor::White );
         }
 
-        if ( debug_infos.bDebugDrawsLayers )
+        const auto try_add_voxel_to_boxes = [ this, debug_infos ]( const FVector & voxel_location, const float voxel_half_extent, const bool is_occluded )
+        {
+            if ( debug_infos.DebugDrawFreeVoxels && !is_occluded )
+            {
+                Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( voxel_half_extent ) ), FreeVoxelColor );
+            }
+            else if ( debug_infos.DebugDrawOccludedVoxels && is_occluded )
+            {
+                Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( voxel_half_extent ) ), OccludedVoxelColor );
+            }
+        };
+
+        if ( debug_infos.bDebugDrawLayers )
         {
             const auto corrected_layer_index = FMath::Clamp( static_cast< int >( debug_infos.LayerIndexToDraw ), 0, layer_count - 1 );
             const auto half_voxel_size = navigation_bounds_data.GetOctreeData().GetLayer( corrected_layer_index ).GetVoxelHalfExtent();
@@ -59,12 +71,12 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             {
                 const auto code = node.MortonCode;
                 const auto node_position = navigation_bounds_data.GetNodePosition( corrected_layer_index, code );
-                const auto color = node.HasChildren() ? OccludedVoxelColor : FreeVoxelColor;
-                Boxes.Emplace( FBox::BuildAABB( node_position, FVector( half_voxel_size ) ), color );
+
+                try_add_voxel_to_boxes( node_position, half_voxel_size, node.HasChildren() );
             }
         }
 
-        if ( debug_infos.bDebugDrawFreeSubNodes || debug_infos.bDebugDrawsOccludedSubNodes )
+        if ( debug_infos.bDebugDrawSubNodes )
         {
             const auto & leaf_layer = octree_data.GetLayer( 0 );
             const auto leaf_subnode_half_extent = octree_data.GetLeaves().GetLeafSubNodeHalfExtent();
@@ -83,16 +95,9 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
                     {
                         const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( subnode_index );
                         const auto voxel_location = leaf_position - leaf_voxel_half_extent + morton_coords * leaf_subnode_extent + leaf_subnode_half_extent;
-                        const bool is_leaf_occluded = leaf.IsSubNodeOccluded( subnode_index );
+                        const bool is_subnode_occluded = leaf.IsSubNodeOccluded( subnode_index );
 
-                        if ( debug_infos.bDebugDrawFreeSubNodes && !is_leaf_occluded )
-                        {
-                            Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( leaf_subnode_half_extent ) ), FreeVoxelColor );
-                        }
-                        else if ( debug_infos.bDebugDrawsOccludedSubNodes && is_leaf_occluded )
-                        {
-                            Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( leaf_subnode_half_extent ) ), OccludedVoxelColor );
-                        }
+                        try_add_voxel_to_boxes( voxel_location, leaf_subnode_half_extent, is_subnode_occluded );
                     }
                 }
             }

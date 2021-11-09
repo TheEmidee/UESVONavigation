@@ -39,76 +39,33 @@ struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
     GENERATED_USTRUCT_BODY()
 
     FSVONavigationBoundsDataDebugInfos() :
-        bDebugDrawsBounds( false ),
-        bDebugDrawsLayers( false ),
+        bDebugDrawBounds( false ),
+        bDebugDrawLayers( false ),
         LayerIndexToDraw( 1 ),
-        bDebugDrawFreeSubNodes( false ),
-        bDebugDrawsOccludedSubNodes( false ),
-        bDebugDrawsLinks( false ),
-        LinksLayerIndexToDraw( false ),
-        bDebugDrawsNeighborLinks( false ),
-        bDebugDrawsParentLinks( false ),
-        bDebugDrawsFirstChildLinks( false ),
-        bDebugDrawsMortonCodes( false ),
-        MortonCodeLayerIndexToDraw( 0 )
+        bDebugDrawSubNodes( false ),
+        DebugDrawOccludedVoxels( true ),
+        DebugDrawFreeVoxels( false )
     {
     }
 
-    friend FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataDebugInfos & data );
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawBounds : 1;
 
     UPROPERTY( EditInstanceOnly )
-    bool bDebugDrawsBounds;
+    uint8 bDebugDrawLayers : 1;
 
-    UPROPERTY( EditInstanceOnly )
-    bool bDebugDrawsLayers;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLayers", ClampMin = "0", UIMin = "0" ) )
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawLayers", ClampMin = "0", UIMin = "0" ) )
     uint8 LayerIndexToDraw;
 
     UPROPERTY( EditInstanceOnly )
-    bool bDebugDrawFreeSubNodes;
+    uint8 bDebugDrawSubNodes : 1;
 
     UPROPERTY( EditInstanceOnly )
-    bool bDebugDrawsOccludedSubNodes;
+    uint8 DebugDrawOccludedVoxels : 1;
 
     UPROPERTY( EditInstanceOnly )
-    bool bDebugDrawsLinks;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLinks", ClampMin = "1", UIMin = "1" ) )
-    uint8 LinksLayerIndexToDraw;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLinks" ) )
-    bool bDebugDrawsNeighborLinks;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLinks" ) )
-    bool bDebugDrawsParentLinks;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsLinks" ) )
-    bool bDebugDrawsFirstChildLinks;
-
-    UPROPERTY( EditInstanceOnly )
-    bool bDebugDrawsMortonCodes;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawsMortonCodes" ) )
-    uint8 MortonCodeLayerIndexToDraw;
+    uint8 DebugDrawFreeVoxels : 1;
 };
-
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONavigationBoundsDataDebugInfos & data )
-{
-    archive << data.bDebugDrawsBounds;
-    archive << data.bDebugDrawsLayers;
-    archive << data.LayerIndexToDraw;
-    archive << data.bDebugDrawFreeSubNodes;
-    archive << data.bDebugDrawsOccludedSubNodes;
-    archive << data.bDebugDrawsLinks;
-    archive << data.LinksLayerIndexToDraw;
-    archive << data.bDebugDrawsNeighborLinks;
-    archive << data.bDebugDrawsParentLinks;
-    archive << data.bDebugDrawsMortonCodes;
-    archive << data.MortonCodeLayerIndexToDraw;
-
-    return archive;
-}
 
 USTRUCT()
 struct FSVODataGenerationSettings
