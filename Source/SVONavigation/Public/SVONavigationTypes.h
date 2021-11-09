@@ -143,7 +143,7 @@ struct FSVONodeAddress
     {
     }
 
-    FSVONodeAddress( const LayerIndex layer_index, const MortonCode node_index, const SubNodeIndex sub_node_index ) :
+    FSVONodeAddress( const LayerIndex layer_index, const MortonCode node_index, const SubNodeIndex sub_node_index = 0 ) :
         LayerIndex( layer_index ),
         NodeIndex( node_index ),
         SubNodeIndex( sub_node_index )
