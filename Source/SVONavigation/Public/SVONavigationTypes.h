@@ -34,11 +34,11 @@ FORCEINLINE bool FSVOPathFindingResult::IsSuccessful() const
 }
 
 USTRUCT()
-struct SVONAVIGATION_API FSVONavigationBoundsDataDebugInfos
+struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
 {
     GENERATED_USTRUCT_BODY()
 
-    FSVONavigationBoundsDataDebugInfos() :
+    FSVOVolumeNavigationDataDebugInfos() :
         bDebugDrawBounds( false ),
         bDebugDrawLayers( false ),
         LayerIndexToDraw( 1 ),
