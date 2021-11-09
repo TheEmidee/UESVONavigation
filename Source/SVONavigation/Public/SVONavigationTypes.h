@@ -4,7 +4,7 @@
 
 class USVOPathFindingAlgorithm;
 class USVOPathHeuristicCalculator;
-class USVOTraversalCostCalculator;
+class USVOPathTraversalCostCalculator;
 
 typedef uint_fast64_t MortonCode;
 typedef uint8 LayerIndex;
@@ -486,7 +486,7 @@ struct SVONAVIGATION_API FSVONavigationQueryFilterSettings
     USVOPathFindingAlgorithm * PathFinder;
 
     UPROPERTY( EditAnywhere, Instanced )
-    USVOTraversalCostCalculator * TraversalCostCalculator;
+    USVOPathTraversalCostCalculator * TraversalCostCalculator;
 
     UPROPERTY( EditAnywhere, Instanced )
     USVOPathHeuristicCalculator * HeuristicCalculator;

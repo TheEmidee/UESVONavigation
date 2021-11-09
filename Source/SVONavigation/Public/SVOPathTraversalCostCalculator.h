@@ -1,12 +1,12 @@
 #pragma once
 
-#include "SVOTraversalCostCalculator.generated.h"
+#include "SVOPathTraversalCostCalculator.generated.h"
 
 struct FSVOOctreeLink;
 class FSVOVolumeNavigationData;
 
 UCLASS( abstract, NotBlueprintable, EditInlineNew )
-class SVONAVIGATION_API USVOTraversalCostCalculator : public UObject
+class SVONAVIGATION_API USVOPathTraversalCostCalculator : public UObject
 {
     GENERATED_BODY()
 
@@ -15,7 +15,7 @@ public:
 };
 
 UCLASS()
-class SVONAVIGATION_API USVOPathCostCalculator_Distance final : public USVOTraversalCostCalculator
+class SVONAVIGATION_API USVOPathCostCalculator_Distance final : public USVOPathTraversalCostCalculator
 {
     GENERATED_BODY()
 
@@ -30,7 +30,7 @@ public:
  * This effectively biases the search even more toward exploring through large nodes.
  */
 UCLASS()
-class SVONAVIGATION_API USVOPathCostCalculator_Fixed final : public USVOTraversalCostCalculator
+class SVONAVIGATION_API USVOPathCostCalculator_Fixed final : public USVOPathTraversalCostCalculator
 {
     GENERATED_BODY()
 

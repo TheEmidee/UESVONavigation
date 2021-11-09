@@ -4,7 +4,7 @@
 #include "SVONavigationData.h"
 #include "SVONavigationQueryFilterImpl.h"
 #include "SVONavigationTypes.h"
-#include "SVOTraversalCostCalculator.h"
+#include "SVOPathTraversalCostCalculator.h"
 
 #include <Kismet/GameplayStatics.h>
 
