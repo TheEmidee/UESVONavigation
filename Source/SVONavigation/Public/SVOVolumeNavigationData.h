@@ -28,7 +28,7 @@ public:
 
     const FSVOVolumeNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
-    const FSVOOctreeData & GetOctreeData() const;
+    const FSVOData & GetOctreeData() const;
     FVector GetNodePosition( const LayerIndex layer_index, MortonCode morton_code ) const;
     FVector GetLinkPosition( const FSVONodeAddress & link ) const;
     const FSVONode & GetNodeFromLink( const FSVONodeAddress & link ) const;
@@ -57,7 +57,7 @@ private:
 
     FSVOVolumeNavigationDataGenerationSettings Settings;
     FBox VolumeBounds;
-    FSVOOctreeData SVOData;
+    FSVOData SVOData;
 };
 
 FORCEINLINE const FSVOVolumeNavigationDataGenerationSettings & FSVOVolumeNavigationData::GetDataGenerationSettings() const
@@ -70,7 +70,7 @@ FORCEINLINE const FBox & FSVOVolumeNavigationData::GetVolumeBounds() const
     return VolumeBounds;
 }
 
-FORCEINLINE const FSVOOctreeData & FSVOVolumeNavigationData::GetOctreeData() const
+FORCEINLINE const FSVOData & FSVOVolumeNavigationData::GetOctreeData() const
 {
     return SVOData;
 }

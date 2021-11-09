@@ -239,7 +239,7 @@ class FSVOLeaves
 public:
     friend FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves );
     friend class FSVOVolumeNavigationData;
-    friend class FSVOOctreeData;
+    friend class FSVOData;
 
     const FSVOLeaf & GetLeaf( const LeafIndex leaf_index ) const;
     const TArray< FSVOLeaf > & GetLeaves() const;
@@ -387,13 +387,13 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
     return archive;
 }
 
-class FSVOOctreeData
+class FSVOData
 {
 public:
-    friend FArchive & operator<<( FArchive & archive, FSVOOctreeData & data );
+    friend FArchive & operator<<( FArchive & archive, FSVOData & data );
     friend class FSVOVolumeNavigationData;
 
-    FSVOOctreeData();
+    FSVOData();
 
     int GetLayerCount() const;
     const FSVOLayer & GetLayer( LayerIndex layer_index ) const;
@@ -416,47 +416,47 @@ private:
     uint8 bIsValid : 1;
 };
 
-FORCEINLINE int FSVOOctreeData::GetLayerCount() const
+FORCEINLINE int FSVOData::GetLayerCount() const
 {
     return Layers.Num();
 }
 
-FORCEINLINE FSVOLayer & FSVOOctreeData::GetLayer( const LayerIndex layer_index )
+FORCEINLINE FSVOLayer & FSVOData::GetLayer( const LayerIndex layer_index )
 {
     return Layers[ layer_index ];
 }
 
-FORCEINLINE const FSVOLayer & FSVOOctreeData::GetLayer( const LayerIndex layer_index ) const
+FORCEINLINE const FSVOLayer & FSVOData::GetLayer( const LayerIndex layer_index ) const
 {
     return Layers[ layer_index ];
 }
 
-FORCEINLINE const FSVOLayer & FSVOOctreeData::GetLastLayer() const
+FORCEINLINE const FSVOLayer & FSVOData::GetLastLayer() const
 {
     return Layers.Last();
 }
 
-FORCEINLINE const FSVOLeaves & FSVOOctreeData::GetLeaves() const
+FORCEINLINE const FSVOLeaves & FSVOData::GetLeaves() const
 {
     return Leaves;
 }
 
-FORCEINLINE FSVOLeaves & FSVOOctreeData::GetLeaves()
+FORCEINLINE FSVOLeaves & FSVOData::GetLeaves()
 {
     return Leaves;
 }
 
-FORCEINLINE const FBox & FSVOOctreeData::GetNavigationBounds() const
+FORCEINLINE const FBox & FSVOData::GetNavigationBounds() const
 {
     return NavigationBounds;
 }
 
-FORCEINLINE bool FSVOOctreeData::IsValid() const
+FORCEINLINE bool FSVOData::IsValid() const
 {
     return bIsValid && GetLayerCount() > 0;
 }
 
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOOctreeData & data )
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOData & data )
 {
     archive << data.Layers;
     archive << data.Leaves;

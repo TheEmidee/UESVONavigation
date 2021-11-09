@@ -63,7 +63,7 @@ void FSVOLayer::AddBlockedNode( const NodeIndex node_index )
     BlockedNodes.Add( node_index );
 }
 
-bool FSVOOctreeData::Initialize( const float voxel_extent, const FBox & volume_bounds )
+bool FSVOData::Initialize( const float voxel_extent, const FBox & volume_bounds )
 {
     Reset();
 
@@ -98,19 +98,19 @@ bool FSVOOctreeData::Initialize( const float voxel_extent, const FBox & volume_b
     return true;
 }
 
-void FSVOOctreeData::Reset()
+void FSVOData::Reset()
 {
     Layers.Reset();
     Leaves.Reset();
 }
 
-FSVOOctreeData::FSVOOctreeData() :
+FSVOData::FSVOOctreeData() :
     Leaves(),
     bIsValid( false )
 {
 }
 
-int FSVOOctreeData::GetAllocatedSize() const
+int FSVOData::GetAllocatedSize() const
 {
     int size = Leaves.GetAllocatedSize();
 
