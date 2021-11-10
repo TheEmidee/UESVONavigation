@@ -52,7 +52,7 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
             return;
         }
 
-        const auto * bounds_data = proxy_data.Stepper->GetParameters().BoundsNavigationData;
+        const auto * bounds_data = proxy_data.Stepper->GetParameters().VolumeNavigationData;
 
         if ( DebugDrawOptions.bDrawNodes )
         {

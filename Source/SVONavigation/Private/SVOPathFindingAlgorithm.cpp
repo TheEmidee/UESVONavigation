@@ -30,7 +30,7 @@ namespace
 
         path_points.Emplace( params.StartLocation );
 
-        const auto & bounds_data = *params.BoundsNavigationData;
+        const auto & bounds_data = *params.VolumeNavigationData;
 
         for ( auto index = 0; index < node_addresses.Num() - 1; index++ )
         {
@@ -99,13 +99,13 @@ FSVOPathFindingParameters::FSVOPathFindingParameters( const FNavAgentProperties 
     QueryFilterSettings( QueryFilterImplementation->QueryFilterSettings ),
     HeuristicCalculator( QueryFilterSettings.HeuristicCalculator ),
     CostCalculator( QueryFilterSettings.TraversalCostCalculator ),
-    BoundsNavigationData( navigation_data.GetVolumeNavigationDataContainingPoints( { start_location, end_location } ) ),
+    VolumeNavigationData( navigation_data.GetVolumeNavigationDataContainingPoints( { start_location, end_location } ) ),
     VerticalOffset( QueryFilterSettings.bOffsetPathVerticallyByAgentRadius ? -path_finding_query.NavAgentProperties.AgentRadius : 0.0f )
 {
-    if ( BoundsNavigationData != nullptr )
+    if ( VolumeNavigationData != nullptr )
     {
-        BoundsNavigationData->GetNodeAddressFromPosition( StartNodeAddress, StartLocation );
-        BoundsNavigationData->GetNodeAddressFromPosition( EndNodeAddress, EndLocation );
+        VolumeNavigationData->GetNodeAddressFromPosition( StartNodeAddress, StartLocation );
+        VolumeNavigationData->GetNodeAddressFromPosition( EndNodeAddress, EndLocation );
     }
 }
 
@@ -144,14 +144,14 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
 {
     if ( node.ParentRef.IsValid() )
     {
-        DebugInfos.LastProcessedSingleNode.From = FSVONodeAddressWithLocation( node.ParentRef, *Stepper.GetParameters().BoundsNavigationData );
+        DebugInfos.LastProcessedSingleNode.From = FSVONodeAddressWithLocation( node.ParentRef, *Stepper.GetParameters().VolumeNavigationData );
     }
     else
     {
         DebugInfos.LastProcessedSingleNode.From = FSVONodeAddressWithLocation( FSVONodeAddress::InvalidAddress, Stepper.GetParameters().StartLocation );
     }
 
-    DebugInfos.LastProcessedSingleNode.To = FSVONodeAddressWithLocation( node.NodeRef, *Stepper.GetParameters().BoundsNavigationData );
+    DebugInfos.LastProcessedSingleNode.To = FSVONodeAddressWithLocation( node.NodeRef, *Stepper.GetParameters().VolumeNavigationData );
     DebugInfos.LastProcessedSingleNode.Cost = node.TotalCost;
 
     DebugInfos.ProcessedNeighbors.Reset();
@@ -167,13 +167,13 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
 
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & parent, const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor, const float cost )
 {
-    DebugInfos.ProcessedNeighbors.Emplace( FSVONodeAddressWithLocation( parent.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), FSVONodeAddressWithLocation( neighbor.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), cost, true );
+    DebugInfos.ProcessedNeighbors.Emplace( FSVONodeAddressWithLocation( parent.NodeRef, *Stepper.GetParameters().VolumeNavigationData ), FSVONodeAddressWithLocation( neighbor.NodeRef, *Stepper.GetParameters().VolumeNavigationData ), cost, true );
     DebugInfos.VisitedNodes++;
 }
 
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor )
 {
-    DebugInfos.ProcessedNeighbors.Emplace( FSVONodeAddressWithLocation( neighbor.ParentRef, *Stepper.GetParameters().BoundsNavigationData ), FSVONodeAddressWithLocation( neighbor.NodeRef, *Stepper.GetParameters().BoundsNavigationData ), neighbor.TotalCost, false );
+    DebugInfos.ProcessedNeighbors.Emplace( FSVONodeAddressWithLocation( neighbor.ParentRef, *Stepper.GetParameters().VolumeNavigationData ), FSVONodeAddressWithLocation( neighbor.NodeRef, *Stepper.GetParameters().VolumeNavigationData ), neighbor.TotalCost, false );
     DebugInfos.VisitedNodes++;
 }
 
@@ -217,7 +217,7 @@ FSVOGraphAStar::FSVOGraphAStar( const FSVOVolumeNavigationData & graph ) :
 }
 
 FSVOPathFindingAlgorithmStepper::FSVOPathFindingAlgorithmStepper( const FSVOPathFindingParameters & parameters ) :
-    Graph( *parameters.BoundsNavigationData ),
+    Graph( *parameters.VolumeNavigationData ),
     State( ESVOPathFindingAlgorithmState::Init ),
     Parameters( parameters )
 {
@@ -269,12 +269,12 @@ void FSVOPathFindingAlgorithmStepper::SetState( const ESVOPathFindingAlgorithmSt
 
 float FSVOPathFindingAlgorithmStepper::GetHeuristicCost( const FSVONodeAddress & from, const FSVONodeAddress & to ) const
 {
-    return Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.BoundsNavigationData, from, to ) * Parameters.NavigationQueryFilter.GetHeuristicScale();
+    return Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.VolumeNavigationData, from, to ) * Parameters.NavigationQueryFilter.GetHeuristicScale();
 }
 
 float FSVOPathFindingAlgorithmStepper::GetTraversalCost( const FSVONodeAddress & from, const FSVONodeAddress & to ) const
 {
-    return Parameters.CostCalculator->GetTraversalCost( *Parameters.BoundsNavigationData, from, to );
+    return Parameters.CostCalculator->GetTraversalCost( *Parameters.VolumeNavigationData, from, to );
 }
 
 FSVOPathFindingAlgorithmStepper_AStar::FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & parameters ) :
@@ -379,7 +379,7 @@ float FSVOPathFindingAlgorithmStepper_AStar::AdjustTotalCostWithNodeSizeCompensa
         return total_cost;
     }
 
-    return total_cost * Parameters.BoundsNavigationData->GetLayerInverseRatio( neighbor_node_address.LayerIndex );
+    return total_cost * Parameters.VolumeNavigationData->GetLayerInverseRatio( neighbor_node_address.LayerIndex );
 }
 
 ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::ProcessSingleNode( EGraphAStarResult & result )
@@ -639,7 +639,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
 
 bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVONodeAddress from, const FSVONodeAddress to ) const
 {
-    return ThetaStarParameters.RayCaster->HasLineOfSight( Parameters.NavigationData.GetWorld(), *Parameters.BoundsNavigationData, from, to, Parameters.AgentProperties );
+    return ThetaStarParameters.RayCaster->HasLineOfSight( Parameters.NavigationData.GetWorld(), *Parameters.VolumeNavigationData, from, to, Parameters.AgentProperties );
 }
 
 FSVOPathFindingAlgorithmStepper_LazyThetaStar::FSVOPathFindingAlgorithmStepper_LazyThetaStar( const FSVOPathFindingParameters & parameters, const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & theta_star_parameters ) :

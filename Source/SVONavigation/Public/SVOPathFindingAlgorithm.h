@@ -90,7 +90,7 @@ struct FSVOPathFindingParameters
     const FSVONavigationQueryFilterSettings & QueryFilterSettings;
     const USVOPathHeuristicCalculator * HeuristicCalculator;
     const USVOPathTraversalCostCalculator * CostCalculator;
-    const FSVOVolumeNavigationData * BoundsNavigationData;
+    const FSVOVolumeNavigationData * VolumeNavigationData;
     FSVONodeAddress StartNodeAddress;
     FSVONodeAddress EndNodeAddress;
     float VerticalOffset;
@@ -252,7 +252,7 @@ struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
 
     FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters();
 
-    UPROPERTY( Instanced )
+    UPROPERTY( Instanced, EditAnywhere )
     USVORaycaster * RayCaster;
 };
 
