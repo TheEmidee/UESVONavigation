@@ -31,7 +31,6 @@ public:
     const FSVOData & GetData() const;
     const FSVONode & GetNodeFromAddress( const FSVONodeAddress & address ) const;
 
-    FVector GetNodePosition( const LayerIndex layer_index, MortonCode morton_code ) const;
     FVector GetNodePositionFromAddress( const FSVONodeAddress & address ) const;    
     bool GetNodeAddressFromPosition( FSVONodeAddress & node_address, const FVector & position ) const;
     void GetNodeNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & node_address ) const;

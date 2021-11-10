@@ -1,7 +1,5 @@
 #include "SVONavigationData.h"
 
-#include "Chaos/AABB.h"
-#include "NavMesh/NavMeshPath.h"
 #include "SVONavDataRenderingComponent.h"
 #include "SVONavigationDataGenerator.h"
 #include "SVONavigationPath.h"
@@ -12,6 +10,7 @@
 #include "SVOVersion.h"
 
 #include <AI/NavDataGenerator.h>
+#include <NavMesh/NavMeshPath.h>
 #include <NavigationSystem.h>
 
 #if WITH_EDITOR

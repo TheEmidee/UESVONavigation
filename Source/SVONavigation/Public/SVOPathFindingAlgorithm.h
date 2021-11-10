@@ -1,10 +1,6 @@
 #pragma once
 
 #include "SVONavigationTypes.h"
-#include "Chaos/AABB.h"
-#include "Chaos/AABB.h"
-#include "Chaos/AABB.h"
-#include "Chaos/AABB.h"
 
 #include <GraphAStar.h>
 #include <NavigationData.h>
@@ -220,7 +216,7 @@ class FSVOPathFindingAlgorithmStepper_AStar : public FSVOPathFindingAlgorithmSte
 public:
     explicit FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & parameters );
 
-    bool FillNodeAddresses( TArray< FSVONodeAddress > &   ) const override;
+    bool FillNodeAddresses( TArray< FSVONodeAddress > & ) const override;
 
 protected:
     ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;
