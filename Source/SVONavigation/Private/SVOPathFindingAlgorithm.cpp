@@ -5,6 +5,7 @@
 #include "SVONavigationTypes.h"
 #include "SVOPathHeuristicCalculator.h"
 #include "SVOPathTraversalCostCalculator.h"
+#include "SVORaycaster.h"
 
 #include <Kismet/GameplayStatics.h>
 
@@ -517,6 +518,11 @@ FSVOPathFindingAlgorithmStepper_AStar::NeighborIndexIncrement::~NeighborIndexInc
     }
 }
 
+FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters::FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters() :
+    RayCaster( NewObject< USVORayCaster_OctreeTraversal >() )
+{
+}
+
 FSVOPathFindingAlgorithmStepper_ThetaStar::FSVOPathFindingAlgorithmStepper_ThetaStar( const FSVOPathFindingParameters & parameters, const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & theta_star_parameters ) :
     FSVOPathFindingAlgorithmStepper_AStar( parameters ),
     ThetaStarParameters( theta_star_parameters ),
@@ -631,37 +637,9 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
     return FSVOPathFindingAlgorithmStepper_AStar::Ended( result );
 }
 
-bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVONodeAddress from, const FSVONodeAddress to )
+bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVONodeAddress from, const FSVONodeAddress to ) const
 {
-    auto * world = Parameters.NavigationData.GetWorld();
-
-    if ( !ensure( world != nullptr ) )
-    {
-        return false;
-    }
-
-    const auto from_position = Parameters.BoundsNavigationData->GetNodePositionFromAddress( from );
-    const auto to_position = Parameters.BoundsNavigationData->GetNodePositionFromAddress( to );
-
-    FHitResult hit_result;
-
-    LOSCheckCount++;
-
-    return !UKismetSystemLibrary::SphereTraceSingle(
-        world,
-        from_position,
-        to_position,
-        Parameters.AgentProperties.AgentRadius * ThetaStarParameters.AgentRadiusMultiplier,
-        //UEngineTypes::ConvertToTraceType( Params.BoundsNavigationData->GetDataGenerationSettings().GenerationSettings.CollisionChannel ),
-        ThetaStarParameters.TraceType,
-        false,
-        TArray< AActor * >(),
-        ThetaStarParameters.bShowLineOfSightTraces ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None,
-        hit_result,
-        false,
-        FLinearColor::Red,
-        FLinearColor::Green,
-        0.1f );
+    return ThetaStarParameters.RayCaster->HasLineOfSight( Parameters.NavigationData.GetWorld(), *Parameters.BoundsNavigationData, from, to, Parameters.AgentProperties );
 }
 
 FSVOPathFindingAlgorithmStepper_LazyThetaStar::FSVOPathFindingAlgorithmStepper_LazyThetaStar( const FSVOPathFindingParameters & parameters, const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & theta_star_parameters ) :
