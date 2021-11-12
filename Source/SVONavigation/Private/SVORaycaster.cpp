@@ -196,7 +196,7 @@ uint8 USVORayCaster_OctreeTraversal::GetFirstNode( const FOctreeRay & ray )
             }
             if ( ray.tz1 < ray.tx0 )
             {
-                answer |= 1;
+                answer |= 4;
             }
             return answer;
         }
@@ -207,11 +207,11 @@ uint8 USVORayCaster_OctreeTraversal::GetFirstNode( const FOctreeRay & ray )
         {
             if ( ray.tx1 < ray.ty0 )
             {
-                answer |= 4;
+                answer |= 1;
             }
             if ( ray.tz1 < ray.ty0 )
             {
-                answer |= 1;
+                answer |= 4;
             }
             return answer;
         }
@@ -220,7 +220,7 @@ uint8 USVORayCaster_OctreeTraversal::GetFirstNode( const FOctreeRay & ray )
     // ty0 is the maximum, the entry plane is XY
     if ( ray.tx1 < ray.tz0 )
     {
-        answer |= 4;
+        answer |= 1;
     }
     if ( ray.ty1 < ray.tz0 )
     {
