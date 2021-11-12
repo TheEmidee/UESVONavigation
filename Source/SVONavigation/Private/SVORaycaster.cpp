@@ -286,7 +286,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.txm, 4, ray.tym, 2, ray.tzm, 1 );
+                child_index = GetNewNode( ray.txm, 1, ray.tym, 2, ray.tzm, 4 );
             }
             break;
             case 1:
@@ -295,7 +295,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.txm, 5, ray.tym, 3, ray.tz1, 8 );
+                child_index = GetNewNode( ray.txm, 8, ray.tym, 3, ray.tz1, 5 );
             }
             break;
             case 2:
@@ -304,7 +304,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.txm, 6, ray.ty1, 8, ray.tzm, 3 );
+                child_index = GetNewNode( ray.txm, 3, ray.ty1, 8, ray.tzm, 6 );
             }
             break;
             case 3:
@@ -313,7 +313,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.txm, 7, ray.ty1, 8, ray.tz1, 8 );
+                child_index = GetNewNode( ray.txm, 8, ray.ty1, 8, ray.tz1, 7 );
             }
             break;
             case 4:
@@ -322,7 +322,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.tx1, 8, ray.tym, 6, ray.tzm, 5 );
+                child_index = GetNewNode( ray.tx1, 5, ray.tym, 6, ray.tzm, 8 );
             }
             break;
             case 5:
@@ -340,7 +340,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.tx1, 8, ray.ty1, 8, ray.tzm, 7 );
+                child_index = GetNewNode( ray.tx1, 7, ray.ty1, 8, ray.tzm, 8 );
             }
             break;
             case 7:
