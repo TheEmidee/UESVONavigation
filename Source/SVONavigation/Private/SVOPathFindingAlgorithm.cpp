@@ -434,7 +434,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::Pro
                                         : 0.f;
     const auto new_total_cost = AdjustTotalCostWithNodeSizeCompensation( new_traversal_cost + new_heuristic_cost, neighbor_address );
 
-    auto & considered_node_unsafe = Graph.NodePool[ ConsideredNodeIndex ];
+    const auto & considered_node_unsafe = Graph.NodePool[ ConsideredNodeIndex ];
 
     if ( new_total_cost >= neighbor_node.TotalCost )
     {
@@ -593,7 +593,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
 
     const auto new_total_cost = AdjustTotalCostWithNodeSizeCompensation( new_traversal_cost + new_heuristic_cost, neighbor_node_address );
 
-    auto & considered_node_unsafe = Graph.NodePool[ ConsideredNodeIndex ];
+    const auto & considered_node_unsafe = Graph.NodePool[ ConsideredNodeIndex ];
 
     if ( new_total_cost >= neighbor_node.TotalCost )
     {
