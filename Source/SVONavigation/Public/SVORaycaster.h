@@ -101,7 +101,8 @@ private:
     bool DoesRayIntersectNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
     bool DoesRayIntersectNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
 
-    uint8 a = 0;
+    mutable uint8 a = 0;
+    mutable UWorld * World;
 
     UPROPERTY( EditAnywhere )
     uint8 bDrawDebug : 1;

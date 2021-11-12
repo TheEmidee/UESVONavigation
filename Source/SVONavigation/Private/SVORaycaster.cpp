@@ -115,6 +115,8 @@ bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, con
 
     FRay ray( from, ( to - from ) );
 
+    a = 0;
+
     if ( ray.Direction.X < 0.0f )
     {
         ray.Origin.X = volume_center.X * 2 - ray.Origin.X;
