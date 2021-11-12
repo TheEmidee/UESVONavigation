@@ -190,14 +190,13 @@ uint8 USVORayCaster_OctreeTraversal::GetFirstNode( const FOctreeRay & ray )
     {
         if ( ray.tx0 > ray.tz0 )
         {
-            // tx0 is the maximum, the entry plane is YZ
-            if ( ray.tym < ray.tx0 )
+            if ( ray.ty1 < ray.tx0 )
             {
-                answer |= 2; // set bit at position 1
+                answer |= 2;
             }
-            if ( ray.tzm < ray.tx0 )
+            if ( ray.tz1 < ray.tx0 )
             {
-                answer |= 1; // set bit at position 0
+                answer |= 1;
             }
             return answer;
         }
@@ -206,26 +205,26 @@ uint8 USVORayCaster_OctreeTraversal::GetFirstNode( const FOctreeRay & ray )
     {
         if ( ray.ty0 > ray.tz0 )
         {
-            // ty0 is the maximum, the entry plane is XZ
-            if ( ray.txm < ray.ty0 )
+            if ( ray.tx1 < ray.ty0 )
             {
-                answer |= 4; // set bit at position 2
+                answer |= 4;
             }
-            if ( ray.tzm < ray.ty0 )
+            if ( ray.tz1 < ray.ty0 )
             {
-                answer |= 1; // set bit at position 0
+                answer |= 1;
             }
             return answer;
         }
     }
+
     // ty0 is the maximum, the entry plane is XY
-    if ( ray.txm < ray.tz0 )
+    if ( ray.tx1 < ray.tz0 )
     {
-        answer |= 4; // set bit at position 2
+        answer |= 4;
     }
-    if ( ray.tym < ray.tz0 )
+    if ( ray.ty1 < ray.tz0 )
     {
-        answer |= 2; // set bit at position 1
+        answer |= 2;
     }
     return answer;
 }
