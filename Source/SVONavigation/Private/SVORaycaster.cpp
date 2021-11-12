@@ -150,7 +150,10 @@ bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, con
         ( volume_bounds.Min.Z - ray.Origin.Z ) * div_z,
         ( volume_bounds.Max.Z - ray.Origin.Z ) * div_z );
 
-    DrawDebugLine( world_context->GetWorld(), from, to, FColor::Magenta, false, 0.5f, 0, 5.0f );
+    World = world_context->GetWorld();
+
+    FlushPersistentDebugLines( World );
+    DrawDebugLine( World, from, to, FColor::Magenta, true, 0.5f, 0, 5.0f );
 
     if ( !octree_ray.Intersects() )
     {
@@ -369,11 +372,21 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNode( const FOctreeRay & ray
     }
 
     const auto layer_index = node_address.LayerIndex;
+    bool result = false;
+
+    const auto node_position = data.GetNodePositionFromAddress( node_address );
+    const auto node_half_extent = data.GetData().GetLayer( node_address.LayerIndex ).GetVoxelHalfExtent();
 
     if ( layer_index == 0 )
     {
-        return DoesRayIntersectLeaf( ray, node_address, data );
+        result = DoesRayIntersectLeaf( ray, node_address, data );
+    }
+    else
+    {
+        result = DoesRayIntersectNormalNode( ray, node_address, data );
     }
 
-    return DoesRayIntersectNormalNode( ray, node_address, data );
+    DrawDebugBox( World, node_position, FVector( node_half_extent ), result ? FColor::Orange : FColor::Green, false, 0.5f, 0, 5.0f );
+
+    return result;
 }
