@@ -1,21 +1,42 @@
 #include "SVORaycaster.h"
 
+#include "SVONavigationData.h"
 #include "SVOVolumeNavigationData.h"
 
-#include <Kismet/KismetSystemLibrary.h>
 #include <DrawDebugHelpers.h>
+#include <Kismet/KismetSystemLibrary.h>
+#include <NavigationSystem.h>
 
-bool USVORaycaster::HasLineOfSight( UObject * /*world_context*/, const FSVOVolumeNavigationData & /*volume_navigation_data*/, const FSVONodeAddress /*from*/, const FSVONodeAddress /*to*/, const FNavAgentProperties & /*nav_agent_properties*/ )
+bool USVORaycaster::HasLineOfSight( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+{
+    if ( UNavigationSystemV1 * navigation_system = UNavigationSystemV1::GetCurrent( world_context->GetWorld() ) )
+    {
+        if ( auto * navigation_data = navigation_system->GetNavDataForProps( nav_agent_properties ) )
+        {
+            if ( const auto * svo_navigation_data = Cast< ASVONavigationData >( navigation_data ) )
+            {
+                if ( const auto * volume_navigation_data = svo_navigation_data->GetVolumeNavigationDataContainingPoints( { from, to } ) )
+                {
+                    return HasLineOfSight( world_context, *volume_navigation_data, from, to, nav_agent_properties );
+                }
+            }
+        }
+    }
+
+    return false;
+}
+
+bool USVORaycaster::HasLineOfSight( UObject * /*world_context*/, const FSVOVolumeNavigationData & /*volume_navigation_data*/, const FSVONodeAddress /*from*/, const FSVONodeAddress /*to*/, const FNavAgentProperties & /*nav_agent_properties*/ ) const
 {
     return false;
 }
 
-bool USVORaycaster::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties )
+bool USVORaycaster::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     return false;
 }
 
-bool USVORayCaster_PhysicsBase::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties )
+bool USVORayCaster_PhysicsBase::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
 {
     const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from );
     const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to );
@@ -23,7 +44,7 @@ bool USVORayCaster_PhysicsBase::HasLineOfSight( UObject * world_context, const F
     return HasLineOfSightInternal( world_context, from_position, to_position, nav_agent_properties );
 }
 
-bool USVORayCaster_PhysicsBase::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties )
+bool USVORayCaster_PhysicsBase::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     return HasLineOfSightInternal( world_context, from, to, nav_agent_properties );
 }
@@ -77,7 +98,7 @@ USVORayCaster_OctreeTraversal::USVORayCaster_OctreeTraversal() :
 {
 }
 
-bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties )
+bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
 {
     const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from );
     const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to );
@@ -85,7 +106,7 @@ bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, con
     return HasLineOfSight( world_context, volume_navigation_data, from_position, to_position, nav_agent_properties );
 }
 
-bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties )
+bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     const auto & volume_bounds = volume_navigation_data.GetVolumeBounds();
     FVector volume_center;
@@ -134,9 +155,7 @@ bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, con
         return true;
     }
 
-    const auto & svo_data = volume_navigation_data.GetData();
-
-    return !DoesRayIntersectNode( octree_ray, FSVONodeAddress( svo_data.GetLayerCount() - 1, 0 ), svo_data );
+    return !DoesRayIntersectNode( octree_ray, FSVONodeAddress( volume_navigation_data.GetData().GetLayerCount() - 1, 0 ), volume_navigation_data );
 }
 
 USVORayCaster_OctreeTraversal::FOctreeRay::FOctreeRay( const float tx0, const float tx1, const float ty0, const float ty1, const float tz0, const float tz1 ) :
@@ -226,10 +245,10 @@ uint8 USVORayCaster_OctreeTraversal::GetNewNode( const float txm, const int32 x,
     return z;
 }
 
-bool USVORayCaster_OctreeTraversal::DoesRayIntersectLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOData & data ) const
+bool USVORayCaster_OctreeTraversal::DoesRayIntersectLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
 {
     const auto node_index = node_address.NodeIndex;
-    const FSVOLeaf & leaf_node = data.GetLeaves().GetLeaf( node_index );
+    const FSVOLeaf & leaf_node = data.GetData().GetLeaves().GetLeaf( node_index );
 
     if ( leaf_node.IsCompletelyFree() )
     {
@@ -239,9 +258,9 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectLeaf( const FOctreeRay & ray
     return true;
 }
 
-bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOData & data ) const
+bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
 {
-    const auto & node = data.GetLayer( node_address.LayerIndex ).GetNode( node_address.NodeIndex );
+    const auto & node = data.GetData().GetLayer( node_address.LayerIndex ).GetNode( node_address.NodeIndex );
 
     if ( !node.HasChildren() )
     {
@@ -340,7 +359,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
     return false;
 }
 
-bool USVORayCaster_OctreeTraversal::DoesRayIntersectNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOData & data ) const
+bool USVORayCaster_OctreeTraversal::DoesRayIntersectNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
 {
     if ( ray.tx1 < 0.0f || ray.ty1 < 0.0f || ray.tz1 < 0.0f )
     {
