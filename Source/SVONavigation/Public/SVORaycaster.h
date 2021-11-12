@@ -14,6 +14,7 @@ class SVONAVIGATION_API USVORaycaster : public UObject
 public:
 
     virtual bool HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties );
+    virtual bool HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties );
 };
 
 UCLASS( Abstract )
@@ -24,6 +25,7 @@ class SVONAVIGATION_API USVORayCaster_PhysicsBase : public USVORaycaster
 public:
 
     bool HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) override;
+    bool HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) override;
 
 protected:
 

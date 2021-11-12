@@ -233,7 +233,7 @@ void FSVOPathFindingRenderingDebugDrawDelegateHelper::DrawDebugLabels( UCanvas *
 ASVOPathFinderTest::ASVOPathFinderTest()
 {
     PrimaryActorTick.bCanEverTick = false;
-    PrimaryActorTick.bStartWithTickEnabled = true;
+    PrimaryActorTick.bStartWithTickEnabled = false;
 
     SphereComponent = CreateDefaultSubobject< USphereComponent >( TEXT( "SphereComponent" ) );
     RootComponent = SphereComponent;
