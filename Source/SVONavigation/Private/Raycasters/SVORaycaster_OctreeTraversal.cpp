@@ -325,7 +325,6 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNode( const FOctreeR
     if ( bDrawDebug )
     {
         UE_LOG( LogTemp, Warning, TEXT( "Node Address : %i - %i - %i" ), node_address.LayerIndex, node_address.NodeIndex, node_address.SubNodeIndex );
-        DrawDebugBox( World, node_position, FVector( node_half_extent ), result ? FColor::Orange : FColor::Green, false, 0.5f, 0, 5.0f );
     }
 
     if ( layer_index == 0 )
@@ -335,6 +334,11 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNode( const FOctreeR
     else
     {
         result = DoesRayIntersectOccludedNormalNode( ray, node_address, data );
+    }
+
+    if ( bDrawDebug )
+    {
+        DrawDebugBox( World, node_position, FVector( node_half_extent ), result ? FColor::Orange : FColor::Green, false, 0.5f, 0, 5.0f );
     }
 
     return result;
