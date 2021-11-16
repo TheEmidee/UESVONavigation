@@ -5,7 +5,7 @@
 #include "SVONavigationTypes.h"
 #include "SVOPathHeuristicCalculator.h"
 #include "SVOPathTraversalCostCalculator.h"
-#include "SVORaycaster.h"
+#include "Raycasters/SVORaycaster.h"
 
 #include <Kismet/GameplayStatics.h>
 

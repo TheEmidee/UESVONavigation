@@ -1,7 +1,8 @@
-#include "SVORaycasterTest.h"
+#include "Raycasters/SVORaycasterTest.h"
 
+#include "NavigationSystem.h"
 #include "SVONavigationData.h"
-#include "SVORaycaster.h"
+#include "Raycasters/SVORaycaster_OctreeTraversal.h"
 
 #include <Components/SphereComponent.h>
 
