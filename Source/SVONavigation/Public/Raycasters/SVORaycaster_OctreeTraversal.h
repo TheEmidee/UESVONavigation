@@ -38,9 +38,9 @@ private:
     static uint8 GetFirstNodeIndex( const FOctreeRay & ray );
     static uint8 GetNextNodeIndex( float txm, int32 x, float tym, int32 y, float tzm, int32 z );
 
-    bool DoesRayIntersectLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
-    bool DoesRayIntersectNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
-    bool DoesRayIntersectNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
+    bool DoesRayIntersectOccludedLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
+    bool DoesRayIntersectOccludedNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
+    bool DoesRayIntersectOccludedNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
 
     mutable uint8 a = 0;
     mutable UWorld * World;
