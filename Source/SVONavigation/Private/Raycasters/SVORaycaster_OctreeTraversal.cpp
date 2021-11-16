@@ -4,6 +4,39 @@
 
 #include <DrawDebugHelpers.h>
 
+/* This is an implementation of An Efficient Parametric Algorithm for Octree Traversal : http://wscg.zcu.cz/wscg2000/Papers_2000/X31.pdf
+Some code examples :
+https://github.com/kwstanths/Ray-traversal/blob/master/TrianglesOctree.hpp
+https://newbedev.com/ray-octree-intersection-algorithms
+
+But because we use morton codes to store the node coordinates, the original algorithm needs to be updated because the order is different
+
+Node order in the paper
+Y
+^
+|
+|
+|          3 - 7
+|        /   / |
+|  Z    2 - 6  5
+| /     |   | /
+|/      0 - 4
++-------------------> X
+
+Node order with morton codes
+Y
+^
+|
+|
+|          6 - 7
+|        /   / |
+|  Z    2 - 3  5
+| /     |   | /
+|/      0 - 1
++-------------------> X
+
+*/
+
 USVORayCaster_OctreeTraversal::USVORayCaster_OctreeTraversal() :
     bDrawDebug( false )
 {

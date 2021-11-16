@@ -6,10 +6,6 @@
 
 #include "SVORaycaster_OctreeTraversal.generated.h"
 
-// This is an implementation of An Efficient Parametric Algorithm for Octree Traversal : http://wscg.zcu.cz/wscg2000/Papers_2000/X31.pdf
-// Some code examples :
-// https://github.com/kwstanths/Ray-traversal/blob/master/TrianglesOctree.hpp
-// https://newbedev.com/ray-octree-intersection-algorithms
 UCLASS()
 class SVONAVIGATION_API USVORayCaster_OctreeTraversal final : public USVORaycaster
 {
