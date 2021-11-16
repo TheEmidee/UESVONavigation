@@ -96,6 +96,8 @@ bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, con
 
     World = world_context->GetWorld();
 
+    UE_LOG( LogTemp, Warning, TEXT( "USVORayCaster_OctreeTraversal" ) );
+
     FlushPersistentDebugLines( World );
     DrawDebugLine( World, from, to, FColor::Magenta, true, 0.5f, 0, 5.0f );
 
@@ -320,7 +322,11 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNode( const FOctreeRay & ray
     const auto node_position = data.GetNodePositionFromAddress( node_address );
     const auto node_half_extent = data.GetData().GetLayer( node_address.LayerIndex ).GetVoxelHalfExtent();
 
-    DrawDebugBox( World, node_position, FVector( node_half_extent ), result ? FColor::Orange : FColor::Green, false, 0.5f, 0, 5.0f );
+    if ( bDrawDebug )
+    {
+        UE_LOG( LogTemp, Warning, TEXT( "Node Address : %i - %i - %i" ), node_address.LayerIndex, node_address.NodeIndex, node_address.SubNodeIndex );
+        DrawDebugBox( World, node_position, FVector( node_half_extent ), result ? FColor::Orange : FColor::Green, false, 0.5f, 0, 5.0f );
+    }
 
     if ( layer_index == 0 )
     {
