@@ -127,11 +127,12 @@ bool USVORayCaster_OctreeTraversal::FOctreeRay::Intersects() const
     return FMath::Max3( tx0, ty0, tz0 ) < FMath::Min3( tx1, ty1, tz1 );
 }
 
-uint8 USVORayCaster_OctreeTraversal::GetFirstNode( const FOctreeRay & ray )
+uint8 USVORayCaster_OctreeTraversal::GetFirstNodeIndex( const FOctreeRay & ray )
 {
     uint8 answer = 0;
 
     // select the entry plane and set bits ( cf Table 1 and 2 of the paper)
+    // Updated to match morton coords ordering
     if ( ray.tx0 > ray.ty0 )
     {
         if ( ray.tx0 > ray.tz0 )
@@ -163,7 +164,6 @@ uint8 USVORayCaster_OctreeTraversal::GetFirstNode( const FOctreeRay & ray )
         }
     }
 
-    // ty0 is the maximum, the entry plane is XY
     if ( ray.tx1 < ray.tz0 )
     {
         answer |= 1;
@@ -218,7 +218,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
     }
 
     const auto & first_child_address = node.FirstChild;
-    auto child_index = GetFirstNode( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tz0, ray.tzm ) );
+    auto child_index = GetFirstNodeIndex( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tz0, ray.tzm ) );
 
     do
     {

@@ -35,7 +35,7 @@ private:
         float tzm;
     };
 
-    static uint8 GetFirstNode( const FOctreeRay & ray );
+    static uint8 GetFirstNodeIndex( const FOctreeRay & ray );
     static uint8 GetNextNodeIndex( float txm, int32 x, float tym, int32 y, float tzm, int32 z );
 
     bool DoesRayIntersectLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
