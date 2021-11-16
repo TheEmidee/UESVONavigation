@@ -40,6 +40,7 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
 
     FSVOVolumeNavigationDataDebugInfos() :
         bDebugDrawBounds( false ),
+        bDebugDrawMortonCoords( false ),
         bDebugDrawLayers( false ),
         LayerIndexToDraw( 1 ),
         bDebugDrawSubNodes( false ),
@@ -50,6 +51,9 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawBounds : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawMortonCoords : 1;
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawLayers : 1;

@@ -17,7 +17,7 @@ struct FDebugText
 
     FDebugText()
     {}
-    FDebugText( const FVector & InLocation, const FString & InText ) :
+    FDebugText( const FString & InText, const FVector & InLocation ) :
         Location( InLocation ),
         Text( InText )
     {}
@@ -30,11 +30,17 @@ public:
     virtual ~FSVONavigationMeshSceneProxy() override;
 
     SIZE_T GetTypeHash() const override;
-
+    const TArray< FDebugText > & GetMortonTexts() const;
 protected:
     FPrimitiveViewRelevance GetViewRelevance( const FSceneView * view ) const override;
     TWeakObjectPtr< USVONavDataRenderingComponent > RenderingComponent;
+    TArray< FDebugText > MortonTexts;
 };
+
+FORCEINLINE const TArray< FDebugText > & FSVONavigationMeshSceneProxy::GetMortonTexts() const
+{
+    return MortonTexts;
+}
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 class FSVODebugDrawDelegateHelper final : public FDebugDrawDelegateHelper
@@ -54,7 +60,7 @@ public:
         Super::InitDelegateHelper( scene_proxy );
 
         DebugLabels.Reset();
-        //DebugLabels.Append( scene_proxy->GetDebugTexts() );
+        DebugLabels.Append( scene_proxy->GetMortonTexts() );
     }
 
     SVONAVIGATION_API void RegisterDebugDrawDelgate() override;
