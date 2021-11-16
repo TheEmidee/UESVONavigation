@@ -234,12 +234,11 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
             break;
             case 1:
             {
-                //does not work
-                if ( DoesRayIntersectNode( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tzm, ray.tz1 ), new_child_address, data ) )
+                if ( DoesRayIntersectNode( FOctreeRay( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tz0, ray.tzm ), new_child_address, data ) )
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.txm, 8, ray.tym, 3, ray.tz1, 5 );
+                child_index = GetNewNode( ray.tx1, 8, ray.tym, 3, ray.tzm, 5 );
             }
             break;
             case 2:
@@ -253,20 +252,20 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
             break;
             case 3:
             {
-                if ( DoesRayIntersectNode( FOctreeRay( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tzm, ray.tz1 ), new_child_address, data ) )
+                if ( DoesRayIntersectNode( FOctreeRay( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tz0, ray.tzm ), new_child_address, data ) )
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.txm, 8, ray.ty1, 8, ray.tz1, 7 );
+                child_index = GetNewNode( ray.tx1, 8, ray.ty1, 8, ray.tzm, 7 );
             }
             break;
             case 4:
             {
-                if ( DoesRayIntersectNode( FOctreeRay( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tz0, ray.tzm ), new_child_address, data ) )
+                if ( DoesRayIntersectNode( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tzm, ray.tz1 ), new_child_address, data ) )
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.tx1, 5, ray.tym, 6, ray.tzm, 8 );
+                child_index = GetNewNode( ray.txm, 5, ray.tym, 6, ray.tz1, 8 );
             }
             break;
             case 5:
@@ -280,16 +279,16 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
             break;
             case 6:
             {
-                if ( DoesRayIntersectNode( FOctreeRay( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tz0, ray.tzm ), new_child_address, data ) )
+                if ( DoesRayIntersectNode( FOctreeRay( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tzm, ray.tz1 ), new_child_address, data ) )
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.tx1, 7, ray.ty1, 8, ray.tzm, 8 );
+                child_index = GetNewNode( ray.txm, 7, ray.ty1, 8, ray.tz1, 8 );
             }
             break;
             case 7:
             {
-                if ( DoesRayIntersectNode( FOctreeRay( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tz1, ray.tz1 ), new_child_address, data ) )
+                if ( DoesRayIntersectNode( FOctreeRay( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tzm, ray.tz1 ), new_child_address, data ) )
                 {
                     return true;
                 }
@@ -321,6 +320,8 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNode( const FOctreeRay & ray
     const auto node_position = data.GetNodePositionFromAddress( node_address );
     const auto node_half_extent = data.GetData().GetLayer( node_address.LayerIndex ).GetVoxelHalfExtent();
 
+    DrawDebugBox( World, node_position, FVector( node_half_extent ), result ? FColor::Orange : FColor::Green, false, 0.5f, 0, 5.0f );
+
     if ( layer_index == 0 )
     {
         result = DoesRayIntersectLeaf( ray, node_address, data );
@@ -329,8 +330,6 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNode( const FOctreeRay & ray
     {
         result = DoesRayIntersectNormalNode( ray, node_address, data );
     }
-
-    DrawDebugBox( World, node_position, FVector( node_half_extent ), result ? FColor::Orange : FColor::Green, false, 0.5f, 0, 5.0f );
 
     return result;
 }
