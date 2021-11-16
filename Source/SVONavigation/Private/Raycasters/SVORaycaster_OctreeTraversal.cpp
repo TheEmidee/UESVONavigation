@@ -175,7 +175,7 @@ uint8 USVORayCaster_OctreeTraversal::GetFirstNode( const FOctreeRay & ray )
     return answer;
 }
 
-uint8 USVORayCaster_OctreeTraversal::GetNewNode( const float txm, const int32 x, const float tym, const int32 y, const float tzm, const int32 z )
+uint8 USVORayCaster_OctreeTraversal::GetNextNodeIndex( const float txm, const int32 x, const float tym, const int32 y, const float tzm, const int32 z )
 {
     if ( txm < tym )
     {
@@ -231,7 +231,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.txm, 1, ray.tym, 2, ray.tzm, 4 );
+                child_index = GetNextNodeIndex( ray.txm, 1, ray.tym, 2, ray.tzm, 4 );
             }
             break;
             case 1:
@@ -240,7 +240,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.tx1, 8, ray.tym, 3, ray.tzm, 5 );
+                child_index = GetNextNodeIndex( ray.tx1, 8, ray.tym, 3, ray.tzm, 5 );
             }
             break;
             case 2:
@@ -249,7 +249,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.txm, 3, ray.ty1, 8, ray.tzm, 6 );
+                child_index = GetNextNodeIndex( ray.txm, 3, ray.ty1, 8, ray.tzm, 6 );
             }
             break;
             case 3:
@@ -258,7 +258,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.tx1, 8, ray.ty1, 8, ray.tzm, 7 );
+                child_index = GetNextNodeIndex( ray.tx1, 8, ray.ty1, 8, ray.tzm, 7 );
             }
             break;
             case 4:
@@ -267,7 +267,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.txm, 5, ray.tym, 6, ray.tz1, 8 );
+                child_index = GetNextNodeIndex( ray.txm, 5, ray.tym, 6, ray.tz1, 8 );
             }
             break;
             case 5:
@@ -276,7 +276,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.tx1, 8, ray.tym, 7, ray.tz1, 8 );
+                child_index = GetNextNodeIndex( ray.tx1, 8, ray.tym, 7, ray.tz1, 8 );
             }
             break;
             case 6:
@@ -285,7 +285,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectNormalNode( const FOctreeRay
                 {
                     return true;
                 }
-                child_index = GetNewNode( ray.txm, 7, ray.ty1, 8, ray.tz1, 8 );
+                child_index = GetNextNodeIndex( ray.txm, 7, ray.ty1, 8, ray.tz1, 8 );
             }
             break;
             case 7:
