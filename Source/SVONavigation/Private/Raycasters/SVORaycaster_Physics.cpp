@@ -4,25 +4,25 @@
 
 #include <Kismet/KismetSystemLibrary.h>
 
-bool USVORayCaster_PhysicsBase::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_PhysicsBase::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
 {
     const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from );
     const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to );
 
-    return HasLineOfSightInternal( world_context, from_position, to_position, nav_agent_properties );
+    return HasLineOfSightPhysicsInternal( world_context, from_position, to_position, nav_agent_properties );
 }
 
-bool USVORayCaster_PhysicsBase::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_PhysicsBase::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
-    return HasLineOfSightInternal( world_context, from, to, nav_agent_properties );
+    return HasLineOfSightPhysicsInternal( world_context, from, to, nav_agent_properties );
 }
 
-bool USVORayCaster_PhysicsBase::HasLineOfSightInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_PhysicsBase::HasLineOfSightPhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     return false;
 }
 
-bool USVORayCaster_Ray::HasLineOfSightInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_Ray::HasLineOfSightPhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     FHitResult hit_result;
 
@@ -41,7 +41,7 @@ bool USVORayCaster_Ray::HasLineOfSightInternal( UObject * world_context, const F
         0.1f );
 }
 
-bool USVORayCaster_Sphere::HasLineOfSightInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_Sphere::HasLineOfSightPhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     FHitResult hit_result;
 

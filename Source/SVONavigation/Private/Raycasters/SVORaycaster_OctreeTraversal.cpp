@@ -42,15 +42,15 @@ USVORayCaster_OctreeTraversal::USVORayCaster_OctreeTraversal() :
 {
 }
 
-bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_OctreeTraversal::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
 {
     const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from );
     const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to );
 
-    return HasLineOfSight( world_context, volume_navigation_data, from_position, to_position, nav_agent_properties );
+    return HasLineOfSightInternal( world_context, volume_navigation_data, from_position, to_position, nav_agent_properties );
 }
 
-bool USVORayCaster_OctreeTraversal::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_OctreeTraversal::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     const auto & volume_bounds = volume_navigation_data.GetVolumeBounds();
     FVector volume_center;

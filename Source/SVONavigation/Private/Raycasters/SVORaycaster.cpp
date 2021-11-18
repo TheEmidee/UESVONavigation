@@ -24,12 +24,22 @@ bool USVORaycaster::HasLineOfSight( UObject * world_context, const FVector & fro
     return false;
 }
 
-bool USVORaycaster::HasLineOfSight( UObject * /*world_context*/, const FSVOVolumeNavigationData & /*volume_navigation_data*/, const FSVONodeAddress /*from*/, const FSVONodeAddress /*to*/, const FNavAgentProperties & /*nav_agent_properties*/ ) const
+bool USVORaycaster::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
+{
+    return HasLineOfSightInternal( world_context, volume_navigation_data, from, to, nav_agent_properties );
+}
+
+bool USVORaycaster::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+{
+    return HasLineOfSightInternal( world_context, volume_navigation_data, from, to, nav_agent_properties );
+}
+
+bool USVORaycaster::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
 {
     return false;
 }
 
-bool USVORaycaster::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORaycaster::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     return false;
 }
