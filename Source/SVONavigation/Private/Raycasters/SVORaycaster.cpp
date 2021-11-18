@@ -26,11 +26,13 @@ bool USVORaycaster::HasLineOfSight( UObject * world_context, const FVector & fro
 
 bool USVORaycaster::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
 {
+    TraversedNodes.Reset();
     return HasLineOfSightInternal( world_context, volume_navigation_data, from, to, nav_agent_properties );
 }
 
 bool USVORaycaster::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
+    TraversedNodes.Reset();
     return HasLineOfSightInternal( world_context, volume_navigation_data, from, to, nav_agent_properties );
 }
 
