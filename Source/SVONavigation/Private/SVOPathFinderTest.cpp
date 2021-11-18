@@ -160,30 +160,10 @@ FPrimitiveSceneProxy * USVOPathFindingRenderingComponent::CreateSceneProxy()
 
     if ( FSVOPathFindingSceneProxy * new_scene_proxy = new FSVOPathFindingSceneProxy( *this, proxy_data ) )
     {
-        if ( IsInGameThread() )
-        {
-            RenderingDebugDrawDelegateHelper.InitDelegateHelper( *new_scene_proxy );
-            RenderingDebugDrawDelegateHelper.ReregisterDebugDrawDelgate();
-        }
-
         return new_scene_proxy;
     }
 
     return nullptr;
-}
-
-void USVOPathFindingRenderingComponent::CreateRenderState_Concurrent( FRegisterComponentContext * Context )
-{
-    Super::CreateRenderState_Concurrent( Context );
-
-    RenderingDebugDrawDelegateHelper.RegisterDebugDrawDelgate();
-}
-
-void USVOPathFindingRenderingComponent::DestroyRenderState_Concurrent()
-{
-    RenderingDebugDrawDelegateHelper.UnregisterDebugDrawDelgate();
-
-    Super::DestroyRenderState_Concurrent();
 }
 
 FBoxSphereBounds USVOPathFindingRenderingComponent::CalcBounds( const FTransform & local_to_world ) const
@@ -203,31 +183,6 @@ FBoxSphereBounds USVOPathFindingRenderingComponent::CalcBounds( const FTransform
 void USVOPathFindingRenderingComponent::GatherData( FSVOPathFindingSceneProxyData & proxy_data, const ASVOPathFinderTest & path_finder_test )
 {
     proxy_data.GatherData( path_finder_test );
-}
-
-void FSVOPathFindingRenderingDebugDrawDelegateHelper::InitDelegateHelper( const FSVOPathFindingSceneProxy & InSceneProxy )
-{
-    Super::InitDelegateHelper( &InSceneProxy );
-
-    ActorOwner = InSceneProxy.ActorOwner;
-    //QueryDataSource = InSceneProxy->QueryDataSource;
-    DebugDrawOptions = InSceneProxy.DebugDrawOptions;
-}
-
-void FSVOPathFindingRenderingDebugDrawDelegateHelper::DrawDebugLabels( UCanvas * Canvas, APlayerController * PC )
-{
-    if ( !ActorOwner || ( ActorOwner->IsSelected() == false && DebugDrawOptions.bDrawOnlyWhenSelected == true ) )
-    {
-        return;
-    }
-
-    // little hacky test but it's the only way to remove text rendering from bad worlds, when using UDebugDrawService for it
-    if ( Canvas && Canvas->SceneView && Canvas->SceneView->Family && Canvas->SceneView->Family->Scene && Canvas->SceneView->Family->Scene->GetWorld() != ActorOwner->GetWorld() )
-    {
-        return;
-    }
-
-    FDebugDrawDelegateHelper::DrawDebugLabels( Canvas, PC );
 }
 
 ASVOPathFinderTest::ASVOPathFinderTest()
