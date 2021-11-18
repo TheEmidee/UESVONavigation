@@ -537,14 +537,14 @@ void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
     }
 }
 
-TOptional< NodeIndex > FSVOVolumeNavigationData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
+TOptional< int32 > FSVOVolumeNavigationData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodeIndexFromMortonCode );
 
     const auto & layer_nodes = SVOData.GetLayer( layer_index ).GetNodes();
     auto start = 0;
     auto end = layer_nodes.Num() - 1;
-    auto mean = ( start + end ) * 0.5f;
+    auto mean = static_cast< int32 >( ( start + end ) * 0.5f );
 
     // Binary search by Morton code
     while ( start <= end )
@@ -565,7 +565,7 @@ TOptional< NodeIndex > FSVOVolumeNavigationData::GetNodeIndexFromMortonCode( con
         mean = ( start + end ) * 0.5f;
     }
 
-    return TOptional< NodeIndex >();
+    return TOptional< int32 >();
 }
 
 void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index )
