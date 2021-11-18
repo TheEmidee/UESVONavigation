@@ -1,19 +1,18 @@
 #pragma once
 
-#include "SVORaycaster.h"
+#include "SVORayCaster.h"
 
 #include <CoreMinimal.h>
 
 #include "SVORaycaster_Physics.generated.h"
 
 UCLASS( Abstract )
-class SVONAVIGATION_API USVORayCaster_PhysicsBase : public USVORaycaster
+class SVONAVIGATION_API USVORayCaster_PhysicsBase : public USVORayCaster
 {
     GENERATED_BODY()
 
 protected:
 
-    bool HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const override;
     bool HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
 
     virtual bool HasLineOfSightPhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties) const;

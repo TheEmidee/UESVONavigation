@@ -4,14 +4,6 @@
 
 #include <Kismet/KismetSystemLibrary.h>
 
-bool USVORayCaster_PhysicsBase::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
-{
-    const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from );
-    const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to );
-
-    return HasLineOfSightPhysicsInternal( world_context, from_position, to_position, nav_agent_properties );
-}
-
 bool USVORayCaster_PhysicsBase::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     return HasLineOfSightPhysicsInternal( world_context, from, to, nav_agent_properties );

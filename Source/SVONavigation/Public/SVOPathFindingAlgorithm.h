@@ -7,7 +7,7 @@
 
 #include "SVOPathFindingAlgorithm.generated.h"
 
-class USVORaycaster;
+class USVORayCaster;
 class FSVOVolumeNavigationData;
 class USVOPathTraversalCostCalculator;
 class USVOPathHeuristicCalculator;
@@ -253,7 +253,7 @@ struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
     FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters();
 
     UPROPERTY( Instanced, EditAnywhere )
-    USVORaycaster * RayCaster;
+    USVORayCaster * RayCaster;
 };
 
 // See https://www.wikiwand.com/en/Theta* or http://idm-lab.org/bib/abstracts/papers/aaai07a.pdf

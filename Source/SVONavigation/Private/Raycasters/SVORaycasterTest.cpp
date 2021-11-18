@@ -1,5 +1,6 @@
 #include "Raycasters/SVORaycasterTest.h"
 
+#include "Raycasters/SVORayCaster.h"
 #include "Raycasters/SVORaycaster_OctreeTraversal.h"
 #include "SVONavigationData.h"
 
@@ -8,11 +9,70 @@
 
 void FSVORayCasterSceneProxyData::GatherData( const ASVORaycasterTest & ray_caster_test )
 {
+    DebugInfos = ray_caster_test.GetDebugInfos();
 }
 
 FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & component, const FSVORayCasterSceneProxyData & proxy_data ) :
     FDebugRenderSceneProxy( &component )
 {
+    DrawType = EDrawType::SolidAndWireMeshes;
+    RayCasterTest = Cast< ASVORaycasterTest >( component.GetOwner() );
+
+    const auto & debug_draw_options = RayCasterTest->GetDebugDrawOptions();
+
+    if ( proxy_data.DebugInfos.NavigationData == nullptr )
+    {
+        return;
+    }
+
+    if ( !debug_draw_options.bEnableDebugDraw )
+    {
+        return;
+    }
+
+    Lines.Emplace( proxy_data.DebugInfos.RayCastStartLocation, proxy_data.DebugInfos.RayCastEndLocation, FColor::Magenta, 5.0f );
+
+    const auto layer_count = proxy_data.DebugInfos.NavigationData->GetData().GetLayerCount();
+    const auto corrected_layer_index = FMath::Clamp( static_cast< int >( debug_draw_options.LayerIndexToDraw ), 0, layer_count - 1 );
+
+    if ( debug_draw_options.bDrawLayerNodes )
+    {
+        if ( corrected_layer_index == 0 )
+        {
+            const auto & layer_zero = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( 0 );
+            const auto & layer_zero_nodes = layer_zero.GetNodes();
+
+            for ( const auto & traversed_leaf_node : proxy_data.DebugInfos.TraversedLeafNodes )
+            {
+                if ( const auto * node_ptr = layer_zero_nodes.FindByPredicate( [ node_address = traversed_leaf_node.NodeAddress ]( const FSVONode & layer_zero_node ) {
+                         return layer_zero_node.FirstChild == node_address;
+                     } ) )
+                {
+                    const FSVONodeAddress node_address( 0, node_ptr->MortonCode );
+
+                    const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( node_address );
+                    const auto node_half_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( node_address.LayerIndex ).GetVoxelHalfExtent();
+
+                    Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_half_extent ) ), traversed_leaf_node.bIsOccluded ? FColor::Orange : FColor::Green );
+                }
+            }
+        }
+        else
+        {
+            for ( const auto & traversed_node : proxy_data.DebugInfos.TraversedNodes )
+            {
+                if ( traversed_node.NodeAddress.LayerIndex != corrected_layer_index )
+                {
+                    continue;
+                }
+
+                const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( traversed_node.NodeAddress );
+                const auto node_half_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( traversed_node.NodeAddress.LayerIndex ).GetVoxelHalfExtent();
+
+                Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_half_extent ) ), traversed_node.bIsOccluded ? FColor::Orange : FColor::Green );
+            }
+        }
+    }
 }
 
 SIZE_T FSVORayCasterSceneProxy::GetTypeHash() const
@@ -29,16 +89,6 @@ FPrimitiveViewRelevance FSVORayCasterSceneProxy::GetViewRelevance( const FSceneV
     // ideally the TranslucencyRelevance should be filled out by the material, here we do it conservative
     Result.bSeparateTranslucency = Result.bNormalTranslucency = IsShown( view );
     return Result;
-}
-
-bool FSVORayCasterSceneProxy::SafeIsActorSelected() const
-{
-    if ( ActorOwner )
-    {
-        return ActorOwner->IsSelected();
-    }
-
-    return false;
 }
 
 ASVORaycasterTest * USVORayCasterRenderingComponent::GetRayCasterTest() const
@@ -61,13 +111,11 @@ FPrimitiveSceneProxy * USVORayCasterRenderingComponent::CreateSceneProxy()
 
 FBoxSphereBounds USVORayCasterRenderingComponent::CalcBounds( const FTransform & local_to_world ) const
 {
-    FBoxSphereBounds result;
+    const FBoxSphereBounds result;
 
     if ( const auto * owner = GetRayCasterTest() )
     {
-        FVector center, extent;
-        owner->GetActorBounds( false, center, extent );
-        result = FBoxSphereBounds( FBox::BuildAABB( center, extent ) );
+        return owner->GetBoundingBoxContainingOtherActorAndMe();
     }
 
     return result;
@@ -93,6 +141,21 @@ ASVORaycasterTest::ASVORaycasterTest()
     NavAgentProperties.PreferredNavData = ASVONavigationData::StaticClass();
     NavAgentProperties.AgentRadius = 100.0f;
     bUpdatePathAfterMoving = true;
+}
+
+FBoxSphereBounds ASVORaycasterTest::GetBoundingBoxContainingOtherActorAndMe() const
+{
+    TArray< FVector > points;
+    points.Reserve( 2 );
+
+    points.Add( GetActorLocation() );
+
+    if ( OtherActor != nullptr )
+    {
+        points.Add( OtherActor->GetActorLocation() );
+    }
+
+    return FBoxSphereBounds( FBox( points ) );
 }
 
 #if WITH_EDITOR
@@ -215,5 +278,8 @@ void ASVORaycasterTest::DoRaycast()
         return;
     }
 
-    const auto has_los = Raycaster->HasLineOfSight( this, GetActorLocation(), OtherActor->GetActorLocation(), NavAgentProperties );
+    Raycaster->SetObserver( MakeShared< FSVORayCasterObserver_GenerateDebugInfos >( RayCasterDebugInfos ) );
+    Raycaster->HasLineOfSight( this, GetActorLocation(), OtherActor->GetActorLocation(), NavAgentProperties );
+
+    UpdateDrawing();
 }
