@@ -55,13 +55,7 @@ public:
         check( 0 );
     }
 
-    void InitDelegateHelper( const FSVONavigationMeshSceneProxy * scene_proxy )
-    {
-        Super::InitDelegateHelper( scene_proxy );
-
-        DebugLabels.Reset();
-        DebugLabels.Append( scene_proxy->GetMortonTexts() );
-    }
+    void InitDelegateHelper( const FSVONavigationMeshSceneProxy * scene_proxy );
 
     SVONAVIGATION_API void RegisterDebugDrawDelgate() override;
     SVONAVIGATION_API void UnregisterDebugDrawDelgate() override;

@@ -55,9 +55,9 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             {
                 const FIntVector morton_coords = FIntVector( FSVOHelpers::GetVectorFromMortonCode( node_morton_code ) );
 
-                MortonTexts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position/*, FLinearColor::White*/ );
-                MortonTexts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, 40.0f )/*, FLinearColor::Black*/ );
-                MortonTexts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, 80.0f )/*, FLinearColor::Red*/ );
+                MortonTexts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position /*, FLinearColor::White*/ );
+                MortonTexts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, 40.0f ) /*, FLinearColor::Black*/ );
+                MortonTexts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, 80.0f ) /*, FLinearColor::Red*/ );
             }
         };
 
@@ -146,6 +146,14 @@ FPrimitiveViewRelevance FSVONavigationMeshSceneProxy::GetViewRelevance( const FS
 }
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+
+void FSVODebugDrawDelegateHelper::InitDelegateHelper( const FSVONavigationMeshSceneProxy * scene_proxy )
+{
+    Super::InitDelegateHelper( scene_proxy );
+
+    DebugLabels.Reset();
+    DebugLabels.Append( scene_proxy->GetMortonTexts() );
+}
 
 void FSVODebugDrawDelegateHelper::RegisterDebugDrawDelgate()
 {
