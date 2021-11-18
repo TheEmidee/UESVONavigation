@@ -55,11 +55,9 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             {
                 const FIntVector morton_coords = FIntVector( FSVOHelpers::GetVectorFromMortonCode( node_morton_code ) );
 
-                const auto vertical_offset_ratio = navigation_bounds_data.GetLayerRatio( node_layer_index ) * 20.0f;
-
                 MortonTexts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position/*, FLinearColor::White*/ );
-                MortonTexts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, 10.0f * vertical_offset_ratio )/*, FLinearColor::Black*/ );
-                MortonTexts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, 20.0f * vertical_offset_ratio )/*, FLinearColor::Red*/ );
+                MortonTexts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, 40.0f )/*, FLinearColor::Black*/ );
+                MortonTexts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, 80.0f )/*, FLinearColor::Red*/ );
             }
         };
 
@@ -103,21 +101,16 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
         {
             const auto & leaf_layer = octree_data.GetLayer( 0 );
             const auto leaf_subnode_half_extent = octree_data.GetLeaves().GetLeafSubNodeHalfExtent();
-            const auto leaf_subnode_extent = octree_data.GetLeaves().GetLeafSubNodeExtent();
-            const auto leaf_voxel_half_extent = leaf_layer.GetVoxelHalfExtent();
 
             for ( const auto & leaf_node : leaf_layer.GetNodes() )
             {
-                const auto leaf_position = navigation_bounds_data.GetNodePositionFromAddress( FSVONodeAddress( 0, leaf_node.MortonCode ) );
-
                 if ( leaf_node.HasChildren() )
                 {
                     const auto & leaf = octree_data.GetLeaves().GetLeaf( leaf_node.FirstChild.NodeIndex );
 
                     for ( SubNodeIndex subnode_index = 0; subnode_index < 64; subnode_index++ )
                     {
-                        const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( subnode_index );
-                        const auto subnode_location = leaf_position - leaf_voxel_half_extent + morton_coords * leaf_subnode_extent + leaf_subnode_half_extent;
+                        const auto subnode_location = navigation_bounds_data.GetSubNodePositionFromAddress( FSVONodeAddress( 0, leaf_node.MortonCode, subnode_index ) );
                         const bool is_subnode_occluded = leaf.IsSubNodeOccluded( subnode_index );
 
                         if ( try_add_voxel_to_boxes( subnode_location, leaf_subnode_half_extent, is_subnode_occluded ) )
@@ -178,35 +171,28 @@ void FSVODebugDrawDelegateHelper::UnregisterDebugDrawDelgate()
 
 void FSVODebugDrawDelegateHelper::DrawDebugLabels( UCanvas * Canvas, APlayerController * pc )
 {
-    /*if ( Canvas == nullptr )
-    {
-        return;
-    }
-
-    FDebugDrawDelegateHelper::DrawDebugLabels( Canvas, pc );
-    return;*/
-
     const bool bVisible = ( Canvas->SceneView && !!Canvas->SceneView->Family->EngineShowFlags.Navigation ); // || bForceRendering;
     if ( !bVisible /*|| bNeedsNewData*/ || DebugLabels.Num() == 0 )
     {
         return;
     }
 
-    const FColor OldDrawColor = Canvas->DrawColor;
-    Canvas->SetDrawColor( FColor::White );
-    const FSceneView * View = Canvas->SceneView;
-    UFont * Font = GEngine->GetSmallFont();
-    const FDebugText * DebugText = DebugLabels.GetData();
-    for ( int32 Idx = 0; Idx < DebugLabels.Num(); ++Idx, ++DebugText )
+    const auto old_draw_color = Canvas->DrawColor;
+    Canvas->SetDrawColor( FColor::Black );
+
+    const FSceneView * view = Canvas->SceneView;
+    const UFont * font = GEngine->GetSmallFont();
+
+    for ( const auto & debug_text : DebugLabels )
     {
-        if ( View->ViewFrustum.IntersectSphere( DebugText->Location, 1.0f ) )
+        if ( view->ViewFrustum.IntersectSphere( debug_text.Location, 1.0f ) )
         {
-            const FVector ScreenLoc = Canvas->Project( DebugText->Location );
-            Canvas->DrawText( Font, DebugText->Text, ScreenLoc.X, ScreenLoc.Y );
+            const auto screen_location = Canvas->Project( debug_text.Location );
+            Canvas->DrawText( font, debug_text.Text, screen_location.X, screen_location.Y );
         }
     }
 
-    Canvas->SetDrawColor( OldDrawColor );
+    Canvas->SetDrawColor( old_draw_color );
 }
 #endif
 
