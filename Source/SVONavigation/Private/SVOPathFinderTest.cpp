@@ -156,7 +156,7 @@ USVOPathFindingRenderingComponent::USVOPathFindingRenderingComponent()
 FPrimitiveSceneProxy * USVOPathFindingRenderingComponent::CreateSceneProxy()
 {
     FSVOPathFindingSceneProxyData proxy_data;
-    GatherData( proxy_data, *GetPathFinderTest() );
+    proxy_data.GatherData( *GetPathFinderTest() );
 
     if ( FSVOPathFindingSceneProxy * new_scene_proxy = new FSVOPathFindingSceneProxy( *this, proxy_data ) )
     {
@@ -170,7 +170,7 @@ FBoxSphereBounds USVOPathFindingRenderingComponent::CalcBounds( const FTransform
 {
     FBoxSphereBounds result;
 
-    if ( auto * owner = Cast< ASVOPathFinderTest >( GetOwner() ) )
+    if (const auto * owner = GetPathFinderTest() )
     {
         FVector center, extent;
         owner->GetActorBounds( false, center, extent );
@@ -178,11 +178,6 @@ FBoxSphereBounds USVOPathFindingRenderingComponent::CalcBounds( const FTransform
     }
 
     return result;
-}
-
-void USVOPathFindingRenderingComponent::GatherData( FSVOPathFindingSceneProxyData & proxy_data, const ASVOPathFinderTest & path_finder_test )
-{
-    proxy_data.GatherData( path_finder_test );
 }
 
 ASVOPathFinderTest::ASVOPathFinderTest()
@@ -201,13 +196,6 @@ ASVOPathFinderTest::ASVOPathFinderTest()
     }
 #endif
 
-#if WITH_EDITOR
-    if ( HasAnyFlags( RF_ClassDefaultObject ) && GetClass() == StaticClass() )
-    {
-        USelection::SelectObjectEvent.AddStatic( &ASVOPathFinderTest::OnEditorSelectionChanged );
-        USelection::SelectionChangedEvent.AddStatic( &ASVOPathFinderTest::OnEditorSelectionChanged );
-    }
-#endif
 
     NavAgentProperties = FNavAgentProperties::DefaultProperties;
     AutoStepTimer = 0.2f;
@@ -433,30 +421,3 @@ void ASVOPathFinderTest::PauseAutoCompletion()
 {
     bAutoComplete = false;
 }
-
-#if WITH_EDITOR
-void ASVOPathFinderTest::OnEditorSelectionChanged( UObject * new_selection )
-{
-    TArray< ASVOPathFinderTest * > selected_test_actors;
-    if ( ASVOPathFinderTest * selected_test_actor = Cast< ASVOPathFinderTest >( new_selection ) )
-    {
-        selected_test_actors.Add( selected_test_actor );
-    }
-    else
-    {
-        if ( USelection * selection = Cast< USelection >( new_selection ) )
-        {
-            selection->GetSelectedObjects< ASVOPathFinderTest >( selected_test_actors );
-        }
-    }
-
-    for ( ASVOPathFinderTest * path_finder_test : selected_test_actors )
-    {
-        /*if ( path_finder_test->QueryTemplate != nullptr && path_finder_test->QueryInstance.IsValid() == false )
-        {
-            path_finder_test->QueryTemplate->CollectQueryParams( *path_finder_test, path_finder_test->QueryConfig );
-            path_finder_test->RunEQSQuery();
-        }*/
-    }
-}
-#endif

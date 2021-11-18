@@ -91,9 +91,6 @@ public:
     FPrimitiveSceneProxy * CreateSceneProxy() override;
 
     FBoxSphereBounds CalcBounds( const FTransform & local_to_world ) const override;
-
-private:
-    void GatherData( FSVOPathFindingSceneProxyData & proxy_data, const ASVOPathFinderTest & path_finder_test );
 };
 
 FORCEINLINE ASVOPathFinderTest * USVOPathFindingRenderingComponent::GetPathFinderTest() const
@@ -126,10 +123,6 @@ public:
 
 private:
     void UpdateDrawing();
-
-#if WITH_EDITOR
-    static void OnEditorSelectionChanged( UObject * new_selection );
-#endif
 
     UFUNCTION( CallInEditor )
     void InitPathFinding();
