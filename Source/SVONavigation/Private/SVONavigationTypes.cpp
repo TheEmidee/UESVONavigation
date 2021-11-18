@@ -26,7 +26,7 @@ void FSVOLeaves::AllocateLeaves( const int leaf_count )
 
 void FSVOLeaves::AddLeaf( const LeafIndex leaf_index, const SubNodeIndex subnode_index, const bool is_occluded )
 {
-    if ( leaf_index >= Leaves.Num() - 1 )
+    if ( leaf_index > Leaves.Num() - 1 )
     {
         AddEmptyLeaf();
     }
