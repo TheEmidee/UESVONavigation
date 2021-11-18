@@ -37,19 +37,6 @@ Y
 
 */
 
-USVORayCaster_OctreeTraversal::USVORayCaster_OctreeTraversal() :
-    bDrawDebug( false )
-{
-}
-
-bool USVORayCaster_OctreeTraversal::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
-{
-    const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from );
-    const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to );
-
-    return HasLineOfSightInternal( world_context, volume_navigation_data, from_position, to_position, nav_agent_properties );
-}
-
 bool USVORayCaster_OctreeTraversal::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     const auto & volume_bounds = volume_navigation_data.GetVolumeBounds();
@@ -94,19 +81,19 @@ bool USVORayCaster_OctreeTraversal::HasLineOfSightInternal( UObject * world_cont
         ( volume_bounds.Min.Z - ray.Origin.Z ) * div_z,
         ( volume_bounds.Max.Z - ray.Origin.Z ) * div_z );
 
-    World = world_context->GetWorld();
+    //World = world_context->GetWorld();
 
     UE_LOG( LogTemp, Warning, TEXT( "USVORayCaster_OctreeTraversal" ) );
 
-    FlushPersistentDebugLines( World );
-    DrawDebugLine( World, from, to, FColor::Magenta, true, 0.5f, 0, 5.0f );
+    /*FlushPersistentDebugLines( World );
+    DrawDebugLine( World, from, to, FColor::Magenta, true, 0.5f, 0, 5.0f );*/
 
     if ( !octree_ray.Intersects() )
     {
         return true;
     }
 
-    return !DoesRayIntersectOccludedNode( octree_ray, FSVONodeAddress( volume_navigation_data.GetData().GetLayerCount() - 1, 0 ), volume_navigation_data );
+    return !DoesRayIntersectOccludedNode( octree_ray, FSVONodeAddress( volume_navigation_data.GetData().GetLayerCount() - 1, 0 ), FSVONodeAddress::InvalidAddress, volume_navigation_data );
 }
 
 USVORayCaster_OctreeTraversal::FOctreeRay::FOctreeRay( const float tx0, const float tx1, const float ty0, const float ty1, const float tz0, const float tz1 ) :
@@ -195,22 +182,31 @@ uint8 USVORayCaster_OctreeTraversal::GetNextNodeIndex( const float txm, const in
     return z;
 }
 
-bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
+bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
+{
+    return false;
+}
+
+bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const
 {
     const auto node_index = node_address.NodeIndex;
     const FSVOLeaf & leaf_node = data.GetData().GetLeaves().GetLeaf( node_index );
+
+    UE_LOG( LogTemp, Warning, TEXT( "LeafNode Address : 0 %i" ), node_address.NodeIndex );
 
     if ( leaf_node.IsCompletelyFree() )
     {
         return false;
     }
 
-    return true;
+    return false;
 }
 
-bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
+bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const
 {
     const auto & node = data.GetData().GetLayer( node_address.LayerIndex ).GetNode( node_address.NodeIndex );
+
+    UE_LOG( LogTemp, Warning, TEXT( "Node Address : %i - %i - %i" ), node_address.LayerIndex, node_address.NodeIndex, node_address.SubNodeIndex );
 
     if ( !node.HasChildren() )
     {
@@ -222,12 +218,13 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
 
     do
     {
-        const FSVONodeAddress new_child_address( first_child_address.LayerIndex, first_child_address.NodeIndex + ( child_index ^ a ) );
+        const auto child_node_index = first_child_address.NodeIndex + ( child_index ^ a );
+        const FSVONodeAddress new_child_address( first_child_address.LayerIndex, child_node_index );
         switch ( child_index )
         {
             case 0:
             {
-                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tz0, ray.tzm ), new_child_address, data ) )
+                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tz0, ray.tzm ), new_child_address, node_address, data ) )
                 {
                     return true;
                 }
@@ -236,7 +233,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
             break;
             case 1:
             {
-                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tz0, ray.tzm ), new_child_address, data ) )
+                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tz0, ray.tzm ), new_child_address, node_address, data ) )
                 {
                     return true;
                 }
@@ -245,7 +242,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
             break;
             case 2:
             {
-                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tz0, ray.tzm ), new_child_address, data ) )
+                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tz0, ray.tzm ), new_child_address, node_address, data ) )
                 {
                     return true;
                 }
@@ -254,7 +251,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
             break;
             case 3:
             {
-                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tz0, ray.tzm ), new_child_address, data ) )
+                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tz0, ray.tzm ), new_child_address, node_address, data ) )
                 {
                     return true;
                 }
@@ -263,7 +260,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
             break;
             case 4:
             {
-                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tzm, ray.tz1 ), new_child_address, data ) )
+                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tzm, ray.tz1 ), new_child_address, node_address, data ) )
                 {
                     return true;
                 }
@@ -272,7 +269,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
             break;
             case 5:
             {
-                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tzm, ray.tz1 ), new_child_address, data ) )
+                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tzm, ray.tz1 ), new_child_address, node_address, data ) )
                 {
                     return true;
                 }
@@ -281,7 +278,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
             break;
             case 6:
             {
-                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tzm, ray.tz1 ), new_child_address, data ) )
+                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tzm, ray.tz1 ), new_child_address, node_address, data ) )
                 {
                     return true;
                 }
@@ -290,7 +287,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
             break;
             case 7:
             {
-                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tzm, ray.tz1 ), new_child_address, data ) )
+                if ( DoesRayIntersectOccludedNode( FOctreeRay( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tzm, ray.tz1 ), new_child_address, node_address, data ) )
                 {
                     return true;
                 }
@@ -309,7 +306,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
     return false;
 }
 
-bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
+bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const
 {
     if ( ray.tx1 < 0.0f || ray.ty1 < 0.0f || ray.tz1 < 0.0f )
     {
@@ -317,28 +314,25 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNode( const FOctreeR
     }
 
     const auto layer_index = node_address.LayerIndex;
-    bool result = false;
-
-    const auto node_position = data.GetNodePositionFromAddress( node_address );
-    const auto node_half_extent = data.GetData().GetLayer( node_address.LayerIndex ).GetVoxelHalfExtent();
-
-    if ( bDrawDebug )
-    {
-        UE_LOG( LogTemp, Warning, TEXT( "Node Address : %i - %i - %i" ), node_address.LayerIndex, node_address.NodeIndex, node_address.SubNodeIndex );
-    }
+    bool result;
 
     if ( layer_index == 0 )
     {
-        result = DoesRayIntersectOccludedLeaf( ray, node_address, data );
+        result = DoesRayIntersectOccludedLeaf( ray, node_address, parent_node_address, data );
+
+        if ( Observer.IsValid() )
+        {
+            Observer->AddTraversedLeafNode( node_address, result );
+        }
     }
     else
     {
-        result = DoesRayIntersectOccludedNormalNode( ray, node_address, data );
-    }
+        result = DoesRayIntersectOccludedNormalNode( ray, node_address, parent_node_address, data );
 
-    if ( bDrawDebug )
-    {
-        DrawDebugBox( World, node_position, FVector( node_half_extent ), result ? FColor::Orange : FColor::Green, false, 0.5f, 0, 5.0f );
+        if ( Observer.IsValid() )
+        {
+            Observer->AddTraversedNode( node_address, result );
+        }
     }
 
     return result;

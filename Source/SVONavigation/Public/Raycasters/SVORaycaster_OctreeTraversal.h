@@ -1,22 +1,18 @@
 #pragma once
 
-#include "SVORaycaster.h"
+#include "SVORayCaster.h"
 
 #include <CoreMinimal.h>
 
 #include "SVORaycaster_OctreeTraversal.generated.h"
 
 UCLASS()
-class SVONAVIGATION_API USVORayCaster_OctreeTraversal final : public USVORaycaster
+class SVONAVIGATION_API USVORayCaster_OctreeTraversal final : public USVORayCaster
 {
     GENERATED_BODY()
 
-public:
-    USVORayCaster_OctreeTraversal();
-
 protected:
 
-    bool HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const override;
     bool HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
 
 private:
@@ -40,13 +36,10 @@ private:
     static uint8 GetFirstNodeIndex( const FOctreeRay & ray );
     static uint8 GetNextNodeIndex( float txm, int32 x, float tym, int32 y, float tzm, int32 z );
 
-    bool DoesRayIntersectOccludedLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
-    bool DoesRayIntersectOccludedNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
-    bool DoesRayIntersectOccludedNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
+    bool DoesRayIntersectOccludedSubNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
+    bool DoesRayIntersectOccludedLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const;
+    bool DoesRayIntersectOccludedNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const;
+    bool DoesRayIntersectOccludedNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const;
 
     mutable uint8 a = 0;
-    mutable UWorld * World;
-
-    UPROPERTY( EditAnywhere )
-    uint8 bDrawDebug : 1;
 };
