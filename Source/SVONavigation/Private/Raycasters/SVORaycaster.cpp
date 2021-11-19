@@ -20,6 +20,11 @@ void FSVORayCasterObserver_GenerateDebugInfos::Initialize( const FSVOVolumeNavig
     DebugInfos.NavigationData = navigation_data;
 }
 
+void FSVORayCasterObserver_GenerateDebugInfos::SetResult( const bool result )
+{
+    DebugInfos.Result = result;
+}
+
 void FSVORayCasterObserver_GenerateDebugInfos::AddTraversedNode( FSVONodeAddress node_address, bool is_occluded )
 {
     DebugInfos.TraversedNodes.Emplace( node_address, is_occluded );
@@ -68,7 +73,15 @@ bool USVORayCaster::HasLineOfSight( UObject * world_context, const FSVOVolumeNav
     {
         Observer->Initialize( &volume_navigation_data, from, to );
     }
-    return HasLineOfSightInternal( world_context, volume_navigation_data, from, to, nav_agent_properties );
+
+    const auto result = HasLineOfSightInternal( world_context, volume_navigation_data, from, to, nav_agent_properties );
+
+    if ( Observer.IsValid() )
+    {
+        Observer->SetResult( result );
+    }
+
+    return result;
 }
 
 void USVORayCaster::SetObserver( const TSharedPtr< FSVORayCasterObserver > observer )

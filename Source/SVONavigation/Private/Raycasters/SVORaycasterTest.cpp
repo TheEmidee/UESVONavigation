@@ -5,6 +5,7 @@
 #include "SVONavigationData.h"
 
 #include <Components/SphereComponent.h>
+#include <Debug/DebugDrawService.h>
 #include <NavigationSystem.h>
 
 void FSVORayCasterSceneProxyData::GatherData( const ASVORaycasterTest & ray_caster_test )
@@ -30,30 +31,49 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
         return;
     }
 
-    Lines.Emplace( proxy_data.DebugInfos.RayCastStartLocation, proxy_data.DebugInfos.RayCastEndLocation, FColor::Magenta, 5.0f );
+    Lines.Emplace( proxy_data.DebugInfos.RayCastStartLocation, proxy_data.DebugInfos.RayCastEndLocation, proxy_data.DebugInfos.Result ? FColor::Red : FColor::Green, 5.0f );
 
     const auto layer_count = proxy_data.DebugInfos.NavigationData->GetData().GetLayerCount();
     const auto corrected_layer_index = FMath::Clamp( static_cast< int >( debug_draw_options.LayerIndexToDraw ), 0, layer_count - 1 );
+
+    const auto get_leaf_morton_coords_from_leaf_index = [ &proxy_data ]( MortonCode & morton_code, const FSVONodeAddress leaf_node_address ) {
+        const auto & layer_zero = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( 0 );
+        const auto & layer_zero_nodes = layer_zero.GetNodes();
+
+        if ( const auto * node_ptr = layer_zero_nodes.FindByPredicate( [ node_address = leaf_node_address ]( const FSVONode & layer_zero_node ) {
+                 return layer_zero_node.FirstChild == node_address;
+             } ) )
+        {
+            morton_code = node_ptr->MortonCode;
+            return true;
+        }
+
+        return false;
+    };
+
+    const auto draw_morton_coords = [ &debug_draw_options, this ]( const FVector & location, const FSVONodeAddress node_address ) {
+        if ( debug_draw_options.bDrawMortonCode )
+        {
+            Texts.Emplace( FString::Printf( TEXT( "%i:%i:%i" ), node_address.LayerIndex, node_address.NodeIndex, node_address.SubNodeIndex ), location + FVector( 0.0f, 0.0f, 40.0f ), FLinearColor::Black );
+        }
+    };
 
     if ( debug_draw_options.bDrawLayerNodes )
     {
         if ( corrected_layer_index == 0 )
         {
-            const auto & layer_zero = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( 0 );
-            const auto & layer_zero_nodes = layer_zero.GetNodes();
-
             for ( const auto & traversed_leaf_node : proxy_data.DebugInfos.TraversedLeafNodes )
             {
-                if ( const auto * node_ptr = layer_zero_nodes.FindByPredicate( [ node_address = traversed_leaf_node.NodeAddress ]( const FSVONode & layer_zero_node ) {
-                         return layer_zero_node.FirstChild == node_address;
-                     } ) )
+                MortonCode morton_code;
+                if ( get_leaf_morton_coords_from_leaf_index( morton_code, traversed_leaf_node.NodeAddress ) )
                 {
-                    const FSVONodeAddress node_address( 0, node_ptr->MortonCode );
+                    const FSVONodeAddress node_address( 0, morton_code );
 
                     const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( node_address );
                     const auto node_half_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( node_address.LayerIndex ).GetVoxelHalfExtent();
 
                     Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_half_extent ) ), traversed_leaf_node.bIsOccluded ? FColor::Orange : FColor::Green );
+                    draw_morton_coords( node_position, node_address );
                 }
             }
         }
@@ -70,6 +90,25 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
                 const auto node_half_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( traversed_node.NodeAddress.LayerIndex ).GetVoxelHalfExtent();
 
                 Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_half_extent ) ), traversed_node.bIsOccluded ? FColor::Orange : FColor::Green );
+                draw_morton_coords( node_position, traversed_node.NodeAddress );
+            }
+        }
+    }
+
+    if ( debug_draw_options.bDrawSubNodes )
+    {
+        for ( const auto & traversed_leaf_sub_node : proxy_data.DebugInfos.TraversedLeafSubNodes )
+        {
+            // traversed_leaf_sub_node.NodeAddress.NodeIndex is the index of the leaf in the Leaves array. We need to get the associated morton coords from that in the nodes of layer 0
+            MortonCode morton_code;
+            if ( get_leaf_morton_coords_from_leaf_index( morton_code, FSVONodeAddress( 0, traversed_leaf_sub_node.NodeAddress.NodeIndex, 0 ) ) )
+            {
+                const auto subnode_address = FSVONodeAddress( 0, morton_code, traversed_leaf_sub_node.NodeAddress.SubNodeIndex );
+                const auto node_position = proxy_data.DebugInfos.NavigationData->GetSubNodePositionFromAddress( subnode_address );
+                const auto node_half_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLeaves().GetLeafSubNodeHalfExtent();
+
+                Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_half_extent ) ), traversed_leaf_sub_node.bIsOccluded ? FColor::Orange : FColor::Green );
+                draw_morton_coords( node_position, subnode_address );
             }
         }
     }
@@ -91,9 +130,57 @@ FPrimitiveViewRelevance FSVORayCasterSceneProxy::GetViewRelevance( const FSceneV
     return Result;
 }
 
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+
+void FSVORayCasterDebugDrawDelegateHelper::InitDelegateHelper( const FSVORayCasterSceneProxy * scene_proxy )
+{
+    Super::InitDelegateHelper( scene_proxy );
+}
+
+void FSVORayCasterDebugDrawDelegateHelper::RegisterDebugDrawDelgate()
+{
+    ensureMsgf( State != RegisteredState, TEXT( "RegisterDebugDrawDelgate is already Registered!" ) );
+    if ( State == InitializedState )
+    {
+        DebugTextDrawingDelegate = FDebugDrawDelegate::CreateRaw( this, &FSVORayCasterDebugDrawDelegateHelper::DrawDebugLabels );
+        DebugTextDrawingDelegateHandle = UDebugDrawService::Register( TEXT( "Navigation" ), DebugTextDrawingDelegate );
+        State = RegisteredState;
+    }
+}
+
+void FSVORayCasterDebugDrawDelegateHelper::UnregisterDebugDrawDelgate()
+{
+    ensureMsgf( State != InitializedState, TEXT( "UnegisterDebugDrawDelgate is in an invalid State: %i !" ), State );
+    if ( State == RegisteredState )
+    {
+        check( DebugTextDrawingDelegate.IsBound() );
+        UDebugDrawService::Unregister( DebugTextDrawingDelegateHandle );
+        State = InitializedState;
+    }
+}
+#endif
+
 ASVORaycasterTest * USVORayCasterRenderingComponent::GetRayCasterTest() const
 {
     return Cast< ASVORaycasterTest >( GetOwner() );
+}
+
+void USVORayCasterRenderingComponent::CreateRenderState_Concurrent( FRegisterComponentContext * context )
+{
+    Super::CreateRenderState_Concurrent( context );
+
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+    DebugDrawDelegateManager.RegisterDebugDrawDelgate();
+#endif
+}
+
+void USVORayCasterRenderingComponent::DestroyRenderState_Concurrent()
+{
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+    DebugDrawDelegateManager.UnregisterDebugDrawDelgate();
+#endif
+
+    Super::DestroyRenderState_Concurrent();
 }
 
 FPrimitiveSceneProxy * USVORayCasterRenderingComponent::CreateSceneProxy()
@@ -103,6 +190,12 @@ FPrimitiveSceneProxy * USVORayCasterRenderingComponent::CreateSceneProxy()
 
     if ( FSVORayCasterSceneProxy * new_scene_proxy = new FSVORayCasterSceneProxy( *this, proxy_data ) )
     {
+        if ( new_scene_proxy != nullptr )
+        {
+            DebugDrawDelegateManager.InitDelegateHelper( new_scene_proxy );
+            DebugDrawDelegateManager.ReregisterDebugDrawDelgate();
+        }
+
         return new_scene_proxy;
     }
 

@@ -23,6 +23,7 @@ struct FSVORayCasterDebugInfos
 {
     FVector RayCastStartLocation;
     FVector RayCastEndLocation;
+    bool Result;
     TArray< FSVORaycasterTraversedNode > TraversedNodes;
     TArray< FSVORaycasterTraversedNode > TraversedLeafNodes;
     TArray< FSVORaycasterTraversedNode > TraversedLeafSubNodes;
@@ -35,6 +36,7 @@ public:
     virtual ~FSVORayCasterObserver() = default;
 
     virtual void Initialize( const FSVOVolumeNavigationData * navigation_data, const FVector from, const FVector to ) {}
+    virtual void SetResult( bool result ) {}
     virtual void AddTraversedNode( FSVONodeAddress node_address, bool is_occluded ) {}
     virtual void AddTraversedLeafNode( FSVONodeAddress node_address, bool is_occluded ) {}
     virtual void AddTraversedLeafSubNode( FSVONodeAddress node_address, bool is_occluded ) {}
@@ -46,6 +48,7 @@ public:
     explicit FSVORayCasterObserver_GenerateDebugInfos( FSVORayCasterDebugInfos & debug_infos );
 
     void Initialize( const FSVOVolumeNavigationData * navigation_data, const FVector from, const FVector to ) override;
+    void SetResult( bool result ) override;
     void AddTraversedNode( FSVONodeAddress node_address, bool is_occluded ) override;
     void AddTraversedLeafNode( FSVONodeAddress node_address, bool is_occluded ) override;
     void AddTraversedLeafSubNode( FSVONodeAddress node_address, bool is_occluded ) override;

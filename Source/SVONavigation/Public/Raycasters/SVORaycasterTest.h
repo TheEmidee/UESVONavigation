@@ -18,6 +18,8 @@ struct SVONAVIGATION_API FSVORayCasterDebugDrawOptions
 {
     GENERATED_USTRUCT_BODY()
 
+    FSVORayCasterDebugDrawOptions() = default;
+
     UPROPERTY( EditAnywhere )
     uint8 bEnableDebugDraw : 1;
 
@@ -29,6 +31,9 @@ struct SVONAVIGATION_API FSVORayCasterDebugDrawOptions
 
     UPROPERTY( EditAnywhere )
     uint8 bDrawSubNodes : 1;
+
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawMortonCode : 1;
 };
 
 struct SVONAVIGATION_API FSVORayCasterSceneProxyData final : public TSharedFromThis< FSVORayCasterSceneProxyData, ESPMode::ThreadSafe >
@@ -50,6 +55,26 @@ private:
     TWeakObjectPtr< ASVORaycasterTest > RayCasterTest;
 };
 
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+class FSVORayCasterDebugDrawDelegateHelper final : public FDebugDrawDelegateHelper
+{
+    typedef FDebugDrawDelegateHelper Super;
+
+public:
+    FSVORayCasterDebugDrawDelegateHelper() = default;
+
+    void InitDelegateHelper( const FDebugRenderSceneProxy * InSceneProxy ) override
+    {
+        check( 0 );
+    }
+
+    void InitDelegateHelper( const FSVORayCasterSceneProxy * scene_proxy );
+
+    SVONAVIGATION_API void RegisterDebugDrawDelgate() override;
+    SVONAVIGATION_API void UnregisterDebugDrawDelgate() override;
+};
+#endif
+
 UCLASS()
 class SVONAVIGATION_API USVORayCasterRenderingComponent final : public UPrimitiveComponent
 {
@@ -59,9 +84,16 @@ public:
     USVORayCasterRenderingComponent() = default;
 
     ASVORaycasterTest * GetRayCasterTest() const;
+    void CreateRenderState_Concurrent( FRegisterComponentContext * Context ) override;
+    void DestroyRenderState_Concurrent() override;
     FPrimitiveSceneProxy * CreateSceneProxy() override;
 
     FBoxSphereBounds CalcBounds( const FTransform & local_to_world ) const override;
+
+private:
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
+    FSVORayCasterDebugDrawDelegateHelper DebugDrawDelegateManager;
+#endif
 };
 
 UCLASS( hidecategories = ( Object, Actor, Input, Rendering, Replication, LOD, Cooking, Physics, Collision, Lighting, VirtualTexture, HLOD ), showcategories = ( "Input|MouseInput", "Input|TouchInput" ) )
