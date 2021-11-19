@@ -639,7 +639,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
 
 bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVONodeAddress from, const FSVONodeAddress to ) const
 {
-    return ThetaStarParameters.RayCaster->HasLineOfSight( Parameters.NavigationData.GetWorld(), *Parameters.VolumeNavigationData, from, to, Parameters.AgentProperties );
+    return !ThetaStarParameters.RayCaster->Trace( Parameters.NavigationData.GetWorld(), *Parameters.VolumeNavigationData, from, to, Parameters.AgentProperties );
 }
 
 FSVOPathFindingAlgorithmStepper_LazyThetaStar::FSVOPathFindingAlgorithmStepper_LazyThetaStar( const FSVOPathFindingParameters & parameters, const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & theta_star_parameters ) :

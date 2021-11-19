@@ -13,9 +13,9 @@ class SVONAVIGATION_API USVORayCaster_PhysicsBase : public USVORayCaster
 
 protected:
 
-    bool HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
+    bool TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
 
-    virtual bool HasLineOfSightPhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties) const;
+    virtual bool TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties) const;
 
     UPROPERTY( EditAnywhere )
     float AgentRadiusMultiplier;
@@ -34,7 +34,7 @@ class SVONAVIGATION_API USVORayCaster_Ray final : public USVORayCaster_PhysicsBa
 
 protected:
 
-    bool HasLineOfSightPhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
+    bool TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
 };
 
 UCLASS()
@@ -43,5 +43,5 @@ class SVONAVIGATION_API USVORayCaster_Sphere final : public USVORayCaster_Physic
     GENERATED_BODY()
 
 protected:
-    bool HasLineOfSightPhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
+    bool TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
 };

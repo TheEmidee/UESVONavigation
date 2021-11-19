@@ -372,7 +372,7 @@ void ASVORaycasterTest::DoRaycast()
     }
 
     Raycaster->SetObserver( MakeShared< FSVORayCasterObserver_GenerateDebugInfos >( RayCasterDebugInfos ) );
-    Raycaster->HasLineOfSight( this, GetActorLocation(), OtherActor->GetActorLocation(), NavAgentProperties );
+    Raycaster->Trace( this, GetActorLocation(), OtherActor->GetActorLocation(), NavAgentProperties );
 
     UpdateDrawing();
 }

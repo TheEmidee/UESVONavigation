@@ -13,7 +13,7 @@ class SVONAVIGATION_API USVORayCaster_OctreeTraversal final : public USVORayCast
 
 protected:
 
-    bool HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
+    bool TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
 
 private:
 

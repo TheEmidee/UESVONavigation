@@ -4,21 +4,21 @@
 
 #include <Kismet/KismetSystemLibrary.h>
 
-bool USVORayCaster_PhysicsBase::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_PhysicsBase::TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
-    return HasLineOfSightPhysicsInternal( world_context, from, to, nav_agent_properties );
+    return TracePhysicsInternal( world_context, from, to, nav_agent_properties );
 }
 
-bool USVORayCaster_PhysicsBase::HasLineOfSightPhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_PhysicsBase::TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     return false;
 }
 
-bool USVORayCaster_Ray::HasLineOfSightPhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_Ray::TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     FHitResult hit_result;
 
-    return !UKismetSystemLibrary::LineTraceSingle(
+    return UKismetSystemLibrary::LineTraceSingle(
         world_context,
         from,
         to,
@@ -33,11 +33,11 @@ bool USVORayCaster_Ray::HasLineOfSightPhysicsInternal( UObject * world_context, 
         0.1f );
 }
 
-bool USVORayCaster_Sphere::HasLineOfSightPhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_Sphere::TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     FHitResult hit_result;
 
-    return !UKismetSystemLibrary::SphereTraceSingle(
+    return UKismetSystemLibrary::SphereTraceSingle(
         world_context,
         from,
         to,

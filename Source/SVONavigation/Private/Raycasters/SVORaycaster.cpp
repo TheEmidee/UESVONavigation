@@ -40,7 +40,7 @@ void FSVORayCasterObserver_GenerateDebugInfos::AddTraversedLeafSubNode( FSVONode
     DebugInfos.TraversedLeafSubNodes.Emplace( node_address, is_occluded );
 }
 
-bool USVORayCaster::HasLineOfSight( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster::Trace( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     if ( UNavigationSystemV1 * navigation_system = UNavigationSystemV1::GetCurrent( world_context->GetWorld() ) )
     {
@@ -50,7 +50,7 @@ bool USVORayCaster::HasLineOfSight( UObject * world_context, const FVector & fro
             {
                 if ( const auto * volume_navigation_data = svo_navigation_data->GetVolumeNavigationDataContainingPoints( { from, to } ) )
                 {
-                    return HasLineOfSight( world_context, *volume_navigation_data, from, to, nav_agent_properties );
+                    return Trace( world_context, *volume_navigation_data, from, to, nav_agent_properties );
                 }
             }
         }
@@ -59,22 +59,22 @@ bool USVORayCaster::HasLineOfSight( UObject * world_context, const FVector & fro
     return false;
 }
 
-bool USVORayCaster::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster::Trace( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
 {
     const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from );
     const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to );
 
-    return HasLineOfSight( world_context, volume_navigation_data, from_position, to_position, nav_agent_properties );
+    return Trace( world_context, volume_navigation_data, from_position, to_position, nav_agent_properties );
 }
 
-bool USVORayCaster::HasLineOfSight( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster::Trace( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     if ( Observer.IsValid() )
     {
         Observer->Initialize( &volume_navigation_data, from, to );
     }
 
-    const auto result = HasLineOfSightInternal( world_context, volume_navigation_data, from, to, nav_agent_properties );
+    const auto result = TraceInternal( world_context, volume_navigation_data, from, to, nav_agent_properties );
 
     if ( Observer.IsValid() )
     {
@@ -89,7 +89,7 @@ void USVORayCaster::SetObserver( const TSharedPtr< FSVORayCasterObserver > obser
     Observer = observer;
 }
 
-bool USVORayCaster::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster::TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     return false;
 }

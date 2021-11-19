@@ -37,7 +37,7 @@ Y
 
 */
 
-bool USVORayCaster_OctreeTraversal::HasLineOfSightInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_OctreeTraversal::TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
     const auto & volume_bounds = volume_navigation_data.GetVolumeBounds();
     FVector volume_center;
@@ -93,7 +93,7 @@ bool USVORayCaster_OctreeTraversal::HasLineOfSightInternal( UObject * world_cont
         return true;
     }
 
-    return !DoesRayIntersectOccludedNode( octree_ray, FSVONodeAddress( volume_navigation_data.GetData().GetLayerCount() - 1, 0 ), FSVONodeAddress::InvalidAddress, volume_navigation_data );
+    return DoesRayIntersectOccludedNode( octree_ray, FSVONodeAddress( volume_navigation_data.GetData().GetLayerCount() - 1, 0 ), FSVONodeAddress::InvalidAddress, volume_navigation_data );
 }
 
 USVORayCaster_OctreeTraversal::FOctreeRay::FOctreeRay( const float tx0, const float tx1, const float ty0, const float ty1, const float tz0, const float tz1 ) :
@@ -206,7 +206,9 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
 {
     const auto & node = data.GetData().GetLayer( node_address.LayerIndex ).GetNode( node_address.NodeIndex );
 
+#if WITH_EDITOR
     UE_LOG( LogTemp, Warning, TEXT( "Node Address : %i - %i - %i" ), node_address.LayerIndex, node_address.NodeIndex, node_address.SubNodeIndex );
+#endif
 
     if ( !node.HasChildren() )
     {
