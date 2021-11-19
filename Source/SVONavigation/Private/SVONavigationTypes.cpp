@@ -14,6 +14,19 @@ void FSVOLeaves::Reset()
     Leaves.Reset();
 }
 
+FSVOVolumeNavigationDataDebugInfos::FSVOVolumeNavigationDataDebugInfos():
+    bDebugDrawBounds( false ),
+    bDebugDrawNodeAddress( false ),
+    bDebugDrawMortonCoords( false ),
+    bDebugDrawNodeLocation( false ),
+    bDebugDrawLayers( false ),
+    LayerIndexToDraw( 1 ),
+    bDebugDrawSubNodes( false ),
+    DebugDrawOccludedVoxels( true ),
+    DebugDrawFreeVoxels( false )
+{
+}
+
 int FSVOLeaves::GetAllocatedSize() const
 {
     return Leaves.Num() * sizeof( FSVOLeaf );

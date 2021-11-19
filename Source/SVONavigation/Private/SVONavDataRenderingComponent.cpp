@@ -24,16 +24,15 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
     DrawType = EDrawType::SolidAndWireMeshes;
 
     RenderingComponent = MakeWeakObjectPtr( const_cast< USVONavDataRenderingComponent * >( Cast< USVONavDataRenderingComponent >( component ) ) );
-    auto * navigation_data = Cast< ASVONavigationData >( RenderingComponent->GetOwner() );
+    NavigationData = MakeWeakObjectPtr( Cast< ASVONavigationData >( RenderingComponent->GetOwner() ) );
 
-    if ( navigation_data == nullptr )
+    if ( NavigationData == nullptr )
     {
         return;
     }
 
-    const auto & debug_infos = navigation_data->GetDebugInfos();
-    //const auto & svo_data = navigation_data->GetSVOData();
-    const auto & all_navigation_bounds_data = navigation_data->GetVolumeNavigationData();
+    const auto & debug_infos = NavigationData->GetDebugInfos();
+    const auto & all_navigation_bounds_data = NavigationData->GetVolumeNavigationData();
 
     for ( const auto & navigation_bounds_data : all_navigation_bounds_data )
     {
@@ -51,13 +50,21 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
         }
 
         const auto try_add_node_text_infos = [ this, &debug_infos, &navigation_bounds_data ]( const MortonCode node_morton_code, const LayerIndex node_layer_index, const FVector & node_position ) {
+            auto vertical_offset = 0.0f;
             if ( debug_infos.bDebugDrawMortonCoords )
             {
+                Texts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position, FLinearColor::Black );
+                vertical_offset += 40.0f;
+            }
+            if ( debug_infos.bDebugDrawNodeAddress )
+            {
                 const FIntVector morton_coords = FIntVector( FSVOHelpers::GetVectorFromMortonCode( node_morton_code ) );
-
-                MortonTexts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position /*, FLinearColor::White*/ );
-                MortonTexts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, 40.0f ) /*, FLinearColor::Black*/ );
-                MortonTexts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, 80.0f ) /*, FLinearColor::Red*/ );
+                Texts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
+                vertical_offset += 40.0f;
+            }
+            if ( debug_infos.bDebugDrawNodeLocation )
+            {
+                Texts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
             }
         };
 
@@ -151,8 +158,7 @@ void FSVODebugDrawDelegateHelper::InitDelegateHelper( const FSVONavigationMeshSc
 {
     Super::InitDelegateHelper( scene_proxy );
 
-    DebugLabels.Reset();
-    DebugLabels.Append( scene_proxy->GetMortonTexts() );
+    NavigationData = scene_proxy->NavigationData;
 }
 
 void FSVODebugDrawDelegateHelper::RegisterDebugDrawDelgate()
@@ -175,32 +181,6 @@ void FSVODebugDrawDelegateHelper::UnregisterDebugDrawDelgate()
         UDebugDrawService::Unregister( DebugTextDrawingDelegateHandle );
         State = InitializedState;
     }
-}
-
-void FSVODebugDrawDelegateHelper::DrawDebugLabels( UCanvas * Canvas, APlayerController * pc )
-{
-    const bool bVisible = ( Canvas->SceneView && !!Canvas->SceneView->Family->EngineShowFlags.Navigation ); // || bForceRendering;
-    if ( !bVisible /*|| bNeedsNewData*/ || DebugLabels.Num() == 0 )
-    {
-        return;
-    }
-
-    const auto old_draw_color = Canvas->DrawColor;
-    Canvas->SetDrawColor( FColor::Black );
-
-    const FSceneView * view = Canvas->SceneView;
-    const UFont * font = GEngine->GetSmallFont();
-
-    for ( const auto & debug_text : DebugLabels )
-    {
-        if ( view->ViewFrustum.IntersectSphere( debug_text.Location, 1.0f ) )
-        {
-            const auto screen_location = Canvas->Project( debug_text.Location );
-            Canvas->DrawText( font, debug_text.Text, screen_location.X, screen_location.Y );
-        }
-    }
-
-    Canvas->SetDrawColor( old_draw_color );
 }
 #endif
 
