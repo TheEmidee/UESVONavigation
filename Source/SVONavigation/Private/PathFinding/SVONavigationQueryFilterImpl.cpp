@@ -1,4 +1,4 @@
-#include "SVONavigationQueryFilterImpl.h"
+#include "PathFinding/SVONavigationQueryFilterImpl.h"
 
 void FSVONavigationQueryFilterImpl::Reset()
 {

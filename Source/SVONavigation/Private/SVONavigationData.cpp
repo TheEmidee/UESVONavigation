@@ -1,11 +1,11 @@
 #include "SVONavigationData.h"
 
+#include "PathFinding/SVONavigationPath.h"
+#include "PathFinding/SVONavigationQueryFilterImpl.h"
 #include "PathFinding/SVOPathFinder.h"
 #include "PathFinding/SVOPathFindingAlgorithm.h"
 #include "SVONavDataRenderingComponent.h"
 #include "SVONavigationDataGenerator.h"
-#include "SVONavigationPath.h"
-#include "SVONavigationQueryFilterImpl.h"
 #include "SVONavigationSettings.h"
 #include "SVOVersion.h"
 

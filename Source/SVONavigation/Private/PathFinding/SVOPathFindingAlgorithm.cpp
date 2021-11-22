@@ -2,11 +2,9 @@
 
 #include "PathFinding/SVOPathHeuristicCalculator.h"
 #include "PathFinding/SVOPathTraversalCostCalculator.h"
+#include "Pathfinding/SVONavigationQueryFilterImpl.h"
 #include "SVONavigationData.h"
-#include "SVONavigationQueryFilterImpl.h"
 #include "SVOVolumeNavigationData.h"
-
-#include <NavigationPath.h>
 
 FSVONodeAddressWithLocation::FSVONodeAddressWithLocation( const FSVONodeAddress & node_address, const FVector & location ) :
     NodeAddress( node_address ),
