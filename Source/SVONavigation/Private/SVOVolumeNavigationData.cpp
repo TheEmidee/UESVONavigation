@@ -7,14 +7,17 @@
 
 #include <ThirdParty/libmorton/morton.h>
 
-static constexpr FIntVector NeighborDirections[ 6 ] = {
-    { 1, 0, 0 },
-    { -1, 0, 0 },
-    { 0, 1, 0 },
-    { 0, -1, 0 },
-    { 0, 0, 1 },
-    { 0, 0, -1 }
-};
+namespace
+{
+    const FIntVector NeighborDirections[ 6 ] = {
+        { 1, 0, 0 },
+        { -1, 0, 0 },
+        { 0, 1, 0 },
+        { 0, -1, 0 },
+        { 0, 0, 1 },
+        { 0, 0, -1 }
+    };
+}
 
 FSVOVolumeNavigationDataGenerationSettings::FSVOVolumeNavigationDataGenerationSettings() :
     VoxelExtent( 0.0f ),
