@@ -4,14 +4,14 @@
 
 const FSVONodeAddress FSVONodeAddress::InvalidAddress;
 
-void FSVOLeaves::Initialize( const float leaf_extent )
+void FSVOLeafNodes::Initialize( const float leaf_extent )
 {
     LeafExtent = leaf_extent;
 }
 
-void FSVOLeaves::Reset()
+void FSVOLeafNodes::Reset()
 {
-    Leaves.Reset();
+    LeafNodes.Reset();
 }
 
 FSVONode::FSVONode() :
@@ -28,32 +28,32 @@ FSVONode::FSVONode( const ::MortonCode morton_code ) :
 {
 }
 
-int FSVOLeaves::GetAllocatedSize() const
+int FSVOLeafNodes::GetAllocatedSize() const
 {
-    return Leaves.Num() * sizeof( FSVOLeaf );
+    return LeafNodes.Num() * sizeof( FSVOLeafNode );
 }
 
-void FSVOLeaves::AllocateLeaves( const int leaf_count )
+void FSVOLeafNodes::AllocateLeafNodes( const int leaf_count )
 {
-    Leaves.Reserve( leaf_count );
+    LeafNodes.Reserve( leaf_count );
 }
 
-void FSVOLeaves::AddLeaf( const LeafIndex leaf_index, const SubNodeIndex subnode_index, const bool is_occluded )
+void FSVOLeafNodes::AddLeafNode( const LeafIndex leaf_index, const SubNodeIndex sub_node_index, const bool is_occluded )
 {
-    if ( leaf_index > Leaves.Num() - 1 )
+    if ( leaf_index > LeafNodes.Num() - 1 )
     {
-        AddEmptyLeaf();
+        AddEmptyLeafNode();
     }
 
     if ( is_occluded )
     {
-        Leaves[ leaf_index ].MarkSubNodeAsOccluded( subnode_index );
+        LeafNodes[ leaf_index ].MarkSubNodeAsOccluded( sub_node_index );
     }
 }
 
-void FSVOLeaves::AddEmptyLeaf()
+void FSVOLeafNodes::AddEmptyLeafNode()
 {
-    Leaves.AddDefaulted( 1 );
+    LeafNodes.AddDefaulted( 1 );
 }
 
 FSVOLayer::FSVOLayer() :
@@ -94,7 +94,7 @@ bool FSVOData::Initialize( const float voxel_extent, const FBox & volume_bounds 
         return false;
     }
 
-    Leaves.Initialize( leaf_extent );
+    LeafNodes.Initialize( leaf_extent );
 
     const auto navigation_bounds_extent = FMath::Pow( 2, voxel_exponent ) * leaf_extent;
 
@@ -116,18 +116,18 @@ bool FSVOData::Initialize( const float voxel_extent, const FBox & volume_bounds 
 void FSVOData::Reset()
 {
     Layers.Reset();
-    Leaves.Reset();
+    LeafNodes.Reset();
 }
 
 FSVOData::FSVOData() :
-    Leaves(),
+    LeafNodes(),
     bIsValid( false )
 {
 }
 
 int FSVOData::GetAllocatedSize() const
 {
-    int size = Leaves.GetAllocatedSize();
+    int size = LeafNodes.GetAllocatedSize();
 
     for ( const auto & layer : Layers )
     {

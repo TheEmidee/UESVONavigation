@@ -107,13 +107,13 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
         if ( debug_infos.bDebugDrawSubNodes )
         {
             const auto & leaf_layer = octree_data.GetLayer( 0 );
-            const auto leaf_subnode_half_extent = octree_data.GetLeaves().GetLeafSubNodeHalfExtent();
+            const auto leaf_subnode_half_extent = octree_data.GetLeafNodes().GetLeafSubNodeHalfExtent();
 
             for ( const auto & leaf_node : leaf_layer.GetNodes() )
             {
                 if ( leaf_node.HasChildren() )
                 {
-                    const auto & leaf = octree_data.GetLeaves().GetLeaf( leaf_node.FirstChild.NodeIndex );
+                    const auto & leaf = octree_data.GetLeafNodes().GetLeafNode( leaf_node.FirstChild.NodeIndex );
 
                     for ( SubNodeIndex subnode_index = 0; subnode_index < 64; subnode_index++ )
                     {
