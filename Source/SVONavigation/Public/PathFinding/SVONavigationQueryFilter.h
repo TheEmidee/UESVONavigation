@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SVONavigationTypes.h"
+#include "SVONavigationQueryFilterSettings.h"
 
 #include <NavFilters/NavigationQueryFilter.h>
 
@@ -12,11 +12,9 @@ class SVONAVIGATION_API USVONavigationQueryFilter final : public UNavigationQuer
     GENERATED_BODY()
 
 protected:
-
-    void InitializeFilter( const ANavigationData & nav_data, const UObject * querier , FNavigationQueryFilter & filter ) const override;
+    void InitializeFilter( const ANavigationData & nav_data, const UObject * querier, FNavigationQueryFilter & filter ) const override;
 
 private:
-
     UPROPERTY( EditDefaultsOnly )
     FSVONavigationQueryFilterSettings QueryFilterSettings;
 };

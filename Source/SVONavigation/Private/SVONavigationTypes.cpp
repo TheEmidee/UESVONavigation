@@ -135,13 +135,3 @@ int FSVOData::GetAllocatedSize() const
 
     return size;
 }
-
-FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings() :
-    PathFinder( nullptr ),
-    TraversalCostCalculator( nullptr ),
-    HeuristicCalculator( nullptr ),
-    HeuristicScale( 1.0f ),
-    bUseNodeSizeCompensation( true ),
-    bOffsetPathVerticallyByAgentRadius( true )
-{
-}
