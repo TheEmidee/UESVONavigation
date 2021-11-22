@@ -43,9 +43,25 @@ bool USVORayCaster_OctreeTraversal::TraceInternal( UObject * world_context, cons
     FVector volume_half_extent;
     navigation_bounds.GetCenterAndExtents( volume_center, volume_half_extent );
 
-    FRay ray( from, ( to - from ) );
+    const FVector from_to( to - from );
+    FRay ray( from, from_to );
 
     a = 0;
+
+    if ( FMath::IsNearlyZero( ray.Direction.X ) )
+    {
+        ray.Direction.X = SMALL_NUMBER;
+    }
+
+    if ( FMath::IsNearlyZero( ray.Direction.Y ) )
+    {
+        ray.Direction.Y = SMALL_NUMBER;
+    }
+
+    if ( FMath::IsNearlyZero( ray.Direction.Z ) )
+    {
+        ray.Direction.Z = SMALL_NUMBER;
+    }
 
     if ( ray.Direction.X < 0.0f )
     {
