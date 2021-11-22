@@ -7,31 +7,13 @@
 
 #include <ThirdParty/libmorton/morton.h>
 
-static const FIntVector NeighborDirections[ 6 ] = {
+static constexpr FIntVector NeighborDirections[ 6 ] = {
     { 1, 0, 0 },
     { -1, 0, 0 },
     { 0, 1, 0 },
     { 0, -1, 0 },
     { 0, 0, 1 },
     { 0, 0, -1 }
-};
-
-const NodeIndex ChildOffsetsDirections[ 6 ][ 4 ] = {
-    { 0, 4, 2, 6 },
-    { 1, 3, 5, 7 },
-    { 0, 1, 4, 5 },
-    { 2, 3, 6, 7 },
-    { 0, 1, 2, 3 },
-    { 4, 5, 6, 7 }
-};
-
-const NodeIndex LeafChildOffsetsDirections[ 6 ][ 16 ] = {
-    { 0, 2, 16, 18, 4, 6, 20, 22, 32, 34, 48, 50, 36, 38, 52, 54 },
-    { 9, 11, 25, 27, 13, 15, 29, 31, 41, 43, 57, 59, 45, 47, 61, 63 },
-    { 0, 1, 8, 9, 4, 5, 12, 13, 32, 33, 40, 41, 36, 37, 44, 45 },
-    { 18, 19, 26, 27, 22, 23, 30, 31, 50, 51, 58, 59, 54, 55, 62, 63 },
-    { 0, 1, 8, 9, 2, 3, 10, 11, 16, 17, 24, 25, 18, 19, 26, 27 },
-    { 36, 37, 44, 45, 38, 39, 46, 47, 52, 53, 60, 61, 54, 55, 62, 63 }
 };
 
 FSVOVolumeNavigationDataGenerationSettings::FSVOVolumeNavigationDataGenerationSettings() :
@@ -53,22 +35,7 @@ FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddr
 
     const auto navigation_bounds_center = navigation_bounds.GetCenter();
     const auto navigation_bounds_extent = navigation_bounds.GetExtent();
-    auto position = navigation_bounds_center - navigation_bounds_extent + morton_coords * voxel_size + voxel_half_size;
-
-    /* if ( address.LayerIndex == 0 && address.NodeIndex < static_cast< uint_fast32_t >( layer.GetNodeCount() ) )
-    {
-        const auto & node = layer.GetNode( address.NodeIndex );
-
-        if ( node.FirstChild.IsValid() )
-        {
-            const auto & leaves = SVOData.GetLeaves();
-            const auto leaf_extent = leaves.GetLeafExtent();
-            const auto leaf_subnode_extent = SVOData.GetLeaves().GetLeafSubNodeExtent();
-            const auto subnode_morton_coords = FSVOHelpers::GetVectorFromMortonCode( address.SubNodeIndex );
-
-            position += subnode_morton_coords * leaf_subnode_extent - leaf_extent * 0.375f;
-        }
-    }*/
+    const auto position = navigation_bounds_center - navigation_bounds_extent + morton_coords * voxel_size + voxel_half_size;
 
     return position;
 }
@@ -243,6 +210,27 @@ void FSVOVolumeNavigationData::GetNodeNeighbors( TArray< FSVONodeAddress > & nei
 
             if ( this_address.LayerIndex > 0 )
             {
+                /* Morton code node ordering
+                    Z
+                    ^
+                    |          5 --- 7
+                    |        / |   / |
+                    |       4 --- 6  |
+                    |  X    |  1 -|- 3
+                    | /     | /   | /
+                    |/      0 --- 2
+                    +-------------------> Y
+                */
+
+                static constexpr NodeIndex ChildOffsetsDirections[ 6 ][ 4 ] = {
+                    { 0, 4, 2, 6 },
+                    { 1, 3, 5, 7 },
+                    { 0, 1, 4, 5 },
+                    { 2, 3, 6, 7 },
+                    { 0, 1, 2, 3 },
+                    { 4, 5, 6, 7 }
+                };
+
                 // If it's above layer 0, we will need to potentially add 4 children using our offsets
                 for ( const auto & child_index : ChildOffsetsDirections[ neighbor_direction ] )
                 {
@@ -262,6 +250,29 @@ void FSVOVolumeNavigationData::GetNodeNeighbors( TArray< FSVONodeAddress > & nei
             }
             else
             {
+                /*
+                Sub node morton code ordering for the face pointing to neighbor[0], which is (1,0,0)
+                Use the debug draw options of the navigation data in the scene to show all the sub nodes
+                 
+                Z
+                |
+                |   36 38 52 54
+                |   32 34 48 50
+                |   04 06 20 22
+                |   00 02 16 18
+                |
+                ------------------ Y
+                */
+
+                static constexpr NodeIndex LeafChildOffsetsDirections[ 6 ][ 16 ] = {
+                    { 0, 2, 16, 18, 4, 6, 20, 22, 32, 34, 48, 50, 36, 38, 52, 54 },
+                    { 9, 11, 25, 27, 13, 15, 29, 31, 41, 43, 57, 59, 45, 47, 61, 63 },
+                    { 0, 1, 8, 9, 4, 5, 12, 13, 32, 33, 40, 41, 36, 37, 44, 45 },
+                    { 18, 19, 26, 27, 22, 23, 30, 31, 50, 51, 58, 59, 54, 55, 62, 63 },
+                    { 0, 1, 8, 9, 2, 3, 10, 11, 16, 17, 24, 25, 18, 19, 26, 27 },
+                    { 36, 37, 44, 45, 38, 39, 46, 47, 52, 53, 60, 61, 54, 55, 62, 63 }
+                };
+
                 // If this is a leaf layer, then we need to add whichever of the 16 facing leaf nodes aren't blocked
                 for ( const auto & leaf_index : LeafChildOffsetsDirections[ neighbor_direction ] )
                 {
