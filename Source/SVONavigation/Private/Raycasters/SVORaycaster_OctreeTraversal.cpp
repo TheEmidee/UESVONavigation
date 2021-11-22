@@ -79,11 +79,6 @@ bool USVORayCaster_OctreeTraversal::TraceInternal( UObject * world_context, cons
         ( navigation_bounds.Max.Y - ray.Origin.Y ) * div_y,
         ( navigation_bounds.Min.Z - ray.Origin.Z ) * div_z,
         ( navigation_bounds.Max.Z - ray.Origin.Z ) * div_z );
-    
-#if WITH_EDITOR
-    UE_LOG( LogTemp, Warning, TEXT( "" ) );
-    UE_LOG( LogTemp, Warning, TEXT( "USVORayCaster_OctreeTraversal" ) );
-#endif
 
     if ( !octree_ray.Intersects() )
     {
@@ -189,23 +184,6 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedLeaf( const FOctreeR
     const auto node_index = node_address.NodeIndex;
     const FSVOLeaf & leaf_node = data.GetData().GetLeaves().GetLeaf( node_index );
 
-#if WITH_EDITOR
-    const auto & layer_zero = data.GetData().GetLayer( 0 );
-    const auto & layer_zero_nodes = layer_zero.GetNodes();
-
-    if ( const auto * node_ptr = layer_zero_nodes.FindByPredicate( [ &node_address ]( const FSVONode & layer_zero_node ) {
-             return layer_zero_node.FirstChild == node_address;
-         } ) )
-    {
-        const FSVONodeAddress leaf_node_address( 0, node_ptr->MortonCode );
-        UE_LOG( LogTemp, Warning, TEXT( "LeafNode Address : 0 %i - Index : %i" ), leaf_node_address.NodeIndex, node_address.NodeIndex );
-    }
-    else
-    {
-        UE_LOG( LogTemp, Warning, TEXT( "LeafNode Address not found for index : %i" ), node_address.NodeIndex );
-    }
-#endif
-
     if ( leaf_node.IsCompletelyFree() )
     {
         return false;
@@ -217,10 +195,6 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedLeaf( const FOctreeR
 bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const
 {
     const auto & node = data.GetData().GetLayer( node_address.LayerIndex ).GetNode( node_address.NodeIndex );
-
-#if WITH_EDITOR
-    UE_LOG( LogTemp, Warning, TEXT( "Node Address : %i - %i - %i" ), node_address.LayerIndex, node_address.NodeIndex, node_address.SubNodeIndex );
-#endif
 
     if ( !node.HasChildren() )
     {
