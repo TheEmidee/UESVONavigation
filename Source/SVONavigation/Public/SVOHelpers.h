@@ -4,7 +4,7 @@
 
 #include <CoreMinimal.h>
 #include <GraphAStar.h>
-#include <libmorton/morton.h>
+#include <ThirdParty/libmorton/morton.h>
 
 class SVONAVIGATION_API FSVOHelpers
 {

@@ -5,7 +5,7 @@
 #include "SVONavigationTypes.h"
 #include "SVOVersion.h"
 
-#include <libmorton/morton.h>
+#include <ThirdParty/libmorton/morton.h>
 
 static const FIntVector NeighborDirections[ 6 ] = {
     { 1, 0, 0 },
@@ -55,7 +55,7 @@ FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddr
     const auto navigation_bounds_extent = navigation_bounds.GetExtent();
     auto position = navigation_bounds_center - navigation_bounds_extent + morton_coords * voxel_size + voxel_half_size;
 
-   /* if ( address.LayerIndex == 0 && address.NodeIndex < static_cast< uint_fast32_t >( layer.GetNodeCount() ) )
+    /* if ( address.LayerIndex == 0 && address.NodeIndex < static_cast< uint_fast32_t >( layer.GetNodeCount() ) )
     {
         const auto & node = layer.GetNode( address.NodeIndex );
 
@@ -77,7 +77,7 @@ FVector FSVOVolumeNavigationData::GetSubNodePositionFromAddress( const FSVONodeA
 {
     checkf( address.LayerIndex == 0, TEXT( "To get the position of a node, you must use GetNodePositionFromAddress" ) )
 
-    QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetSubNodePositionFromAddress );
+        QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetSubNodePositionFromAddress );
 
     const auto node_position = GetNodePositionFromAddress( address );
 
