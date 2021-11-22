@@ -17,6 +17,19 @@
 #include <ObjectEditorUtils.h>
 #endif
 
+FSVOVolumeNavigationDataDebugInfos::FSVOVolumeNavigationDataDebugInfos() :
+    bDebugDrawBounds( false ),
+    bDebugDrawNodeAddress( false ),
+    bDebugDrawMortonCoords( false ),
+    bDebugDrawNodeLocation( false ),
+    bDebugDrawLayers( false ),
+    LayerIndexToDraw( 1 ),
+    bDebugDrawSubNodes( false ),
+    DebugDrawOccludedVoxels( true ),
+    DebugDrawFreeVoxels( false )
+{
+}
+
 ASVONavigationData::ASVONavigationData() :
     Version( ESVOVersion::Latest )
 {
