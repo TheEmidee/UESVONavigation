@@ -15,24 +15,6 @@ typedef uint8 NeighborDirection;
 
 DECLARE_DELEGATE_ThreeParams( FSVONavigationPathQueryDelegate, uint32, ENavigationQueryResult::Type, FNavPathSharedPtr );
 
-struct FSVOPathFindingResult
-{
-    FNavPathSharedPtr Path;
-    ENavigationQueryResult::Type Result;
-
-    explicit FSVOPathFindingResult( ENavigationQueryResult::Type result = ENavigationQueryResult::Invalid ) :
-        Result( result )
-    {
-    }
-
-    bool IsSuccessful() const;
-};
-
-FORCEINLINE bool FSVOPathFindingResult::IsSuccessful() const
-{
-    return Result == ENavigationQueryResult::Success;
-}
-
 USTRUCT()
 struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
 {
