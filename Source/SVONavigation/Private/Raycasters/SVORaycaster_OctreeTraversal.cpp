@@ -374,7 +374,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
     return result;
 }
 
-bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const
+bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
 {
     const auto node_index = node_address.NodeIndex;
     const FSVOLeaf & leaf_node = data.GetData().GetLeaves().GetLeaf( node_index );
@@ -478,7 +478,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedLeaf( const FOctreeR
     return false;
 }
 
-bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const
+bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
 {
     const auto & node = data.GetData().GetLayer( node_address.LayerIndex ).GetNode( node_address.NodeIndex );
 
@@ -592,7 +592,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNode( const FOctreeR
 
     if ( layer_index == 0 )
     {
-        result = DoesRayIntersectOccludedLeaf( ray, node_address, parent_node_address, data );
+        result = DoesRayIntersectOccludedLeaf( ray, node_address, data );
 
         if ( Observer.IsValid() )
         {
@@ -601,7 +601,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNode( const FOctreeR
     }
     else
     {
-        result = DoesRayIntersectOccludedNormalNode( ray, node_address, parent_node_address, data );
+        result = DoesRayIntersectOccludedNormalNode( ray, node_address, data );
 
         if ( Observer.IsValid() )
         {
