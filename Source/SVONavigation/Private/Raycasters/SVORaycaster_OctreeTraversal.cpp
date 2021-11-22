@@ -1,8 +1,7 @@
 #include "Raycasters/SVORaycaster_OctreeTraversal.h"
 
+#include "SVOHelpers.h"
 #include "SVOVolumeNavigationData.h"
-
-#include <DrawDebugHelpers.h>
 
 /* This is an implementation of An Efficient Parametric Algorithm for Octree Traversal : http://wscg.zcu.cz/wscg2000/Papers_2000/X31.pdf
 Some code examples :
@@ -39,10 +38,10 @@ Y
 
 bool USVORayCaster_OctreeTraversal::TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
 {
-    const auto & volume_bounds = volume_navigation_data.GetVolumeBounds();
+    const auto & navigation_bounds = volume_navigation_data.GetNavigationBounds();
     FVector volume_center;
     FVector volume_half_extent;
-    volume_bounds.GetCenterAndExtents( volume_center, volume_half_extent );
+    navigation_bounds.GetCenterAndExtents( volume_center, volume_half_extent );
 
     FRay ray( from, ( to - from ) );
 
@@ -74,15 +73,16 @@ bool USVORayCaster_OctreeTraversal::TraceInternal( UObject * world_context, cons
     const auto div_z = 1.0f / ray.Direction.Z;
 
     const FOctreeRay octree_ray(
-        ( volume_bounds.Min.X - ray.Origin.X ) * div_x,
-        ( volume_bounds.Max.X - ray.Origin.X ) * div_x,
-        ( volume_bounds.Min.Y - ray.Origin.Y ) * div_y,
-        ( volume_bounds.Max.Y - ray.Origin.Y ) * div_y,
-        ( volume_bounds.Min.Z - ray.Origin.Z ) * div_z,
-        ( volume_bounds.Max.Z - ray.Origin.Z ) * div_z );
 
     //World = world_context->GetWorld();
 
+        ( navigation_bounds.Min.X - ray.Origin.X ) * div_x,
+        ( navigation_bounds.Max.X - ray.Origin.X ) * div_x,
+        ( navigation_bounds.Min.Y - ray.Origin.Y ) * div_y,
+        ( navigation_bounds.Max.Y - ray.Origin.Y ) * div_y,
+        ( navigation_bounds.Min.Z - ray.Origin.Z ) * div_z,
+        ( navigation_bounds.Max.Z - ray.Origin.Z ) * div_z );
+    
     UE_LOG( LogTemp, Warning, TEXT( "USVORayCaster_OctreeTraversal" ) );
 
     /*FlushPersistentDebugLines( World );
