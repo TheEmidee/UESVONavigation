@@ -1,6 +1,7 @@
 #pragma once
 
 #include "SVONavigationTypes.h"
+#include "SVOVolumeNavigationData.h"
 
 #include <GraphAStar.h>
 #include <NavigationData.h>
@@ -8,7 +9,6 @@
 #include "SVOPathFindingAlgorithm.generated.h"
 
 class USVORayCaster;
-class FSVOVolumeNavigationData;
 class USVOPathTraversalCostCalculator;
 class USVOPathHeuristicCalculator;
 class FSVONavigationQueryFilterImpl;

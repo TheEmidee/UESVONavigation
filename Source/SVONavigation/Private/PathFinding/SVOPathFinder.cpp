@@ -1,7 +1,7 @@
-#include "SVOPathFinder.h"
+#include "PathFinding/SVOPathFinder.h"
 
 #include "SVONavigationQueryFilterImpl.h"
-#include "SVOPathFindingAlgorithm.h"
+#include "PathFinding/SVOPathFindingAlgorithm.h"
 
 namespace
 {

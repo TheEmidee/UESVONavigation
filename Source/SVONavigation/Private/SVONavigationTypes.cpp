@@ -1,6 +1,6 @@
 #include "SVONavigationTypes.h"
 
-#include "SVOPathFindingAlgorithm.h"
+#include "PathFinding/SVOPathFindingAlgorithm.h"
 
 const FSVONodeAddress FSVONodeAddress::InvalidAddress;
 

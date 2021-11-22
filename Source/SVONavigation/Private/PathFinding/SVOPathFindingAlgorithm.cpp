@@ -1,11 +1,12 @@
-#include "SVOPathFindingAlgorithm.h"
+#include "PathFinding/SVOPathFindingAlgorithm.h"
 
+#include "PathFinding/SVOPathHeuristicCalculator.h"
+#include "PathFinding/SVOPathTraversalCostCalculator.h"
+#include "Raycasters/SVORayCaster.h"
+#include "Raycasters/SVORaycaster_OctreeTraversal.h"
 #include "SVONavigationData.h"
 #include "SVONavigationQueryFilterImpl.h"
 #include "SVONavigationTypes.h"
-#include "SVOPathHeuristicCalculator.h"
-#include "SVOPathTraversalCostCalculator.h"
-#include "Raycasters/SVORayCaster.h"
 
 #include <Kismet/GameplayStatics.h>
 

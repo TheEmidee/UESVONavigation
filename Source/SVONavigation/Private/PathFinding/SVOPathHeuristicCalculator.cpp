@@ -1,4 +1,4 @@
-#include "SVOPathHeuristicCalculator.h"
+#include "PathFinding/SVOPathHeuristicCalculator.h"
 
 #include "SVOVolumeNavigationData.h"
 

@@ -1,8 +1,8 @@
-#include "SVOPathFinderTest.h"
+#include "PathFinding/SVOPathFinderTest.h"
 
 #include "SVONavigationData.h"
-#include "SVOPathFinder.h"
-#include "SVOPathFindingAlgorithm.h"
+#include "PathFinding/SVOPathFinder.h"
+#include "PathFinding/SVOPathFindingAlgorithm.h"
 
 #include <Components/SphereComponent.h>
 #include <Engine/Canvas.h>
