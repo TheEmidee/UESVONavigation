@@ -106,6 +106,11 @@ bool USVORayCaster_OctreeTraversal::FOctreeRay::Intersects() const
     return FMath::Max3( tx0, ty0, tz0 ) < FMath::Min3( tx1, ty1, tz1 );
 }
 
+bool USVORayCaster_OctreeTraversal::FOctreeRay::IsInRange() const
+{
+    return tx1 >= 0.0f && ty1 >= 0.0f && tz1 >= 0.0f;
+}
+
 uint8 USVORayCaster_OctreeTraversal::GetFirstNodeIndex( const FOctreeRay & ray )
 {
     uint8 answer = 0;
@@ -296,7 +301,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
 
 bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const
 {
-    if ( ray.tx1 < 0.0f || ray.ty1 < 0.0f || ray.tz1 < 0.0f )
+    if ( !ray.IsInRange() )
     {
         return false;
     }

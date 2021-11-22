@@ -21,6 +21,7 @@ private:
     {
         FOctreeRay( float tx0, float tx1, float ty0, float ty1, float tz0, float tz1 );
         bool Intersects() const;
+        bool IsInRange() const;
 
         float tx0;
         float tx1;
