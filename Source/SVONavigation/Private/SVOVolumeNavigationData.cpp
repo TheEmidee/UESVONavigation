@@ -526,11 +526,11 @@ void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
 
         auto & first_child = layer_node.FirstChild;
 
-        if ( child_index_from_code.IsSet() )
+        if ( child_index_from_code != INDEX_NONE )
         {
             // Set parent->child links
             first_child.LayerIndex = child_layer_index;
-            first_child.NodeIndex = child_index_from_code.GetValue();
+            first_child.NodeIndex = child_index_from_code;
 
             auto & child_layer = SVOData.GetLayer( child_layer_index );
 
@@ -550,35 +550,14 @@ void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
     }
 }
 
-TOptional< int32 > FSVOVolumeNavigationData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
+int32 FSVOVolumeNavigationData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodeIndexFromMortonCode );
 
     const auto & layer_nodes = SVOData.GetLayer( layer_index ).GetNodes();
-    auto start = 0;
-    auto end = layer_nodes.Num() - 1;
-    auto mean = static_cast< int32 >( ( start + end ) * 0.5f );
 
-    // Binary search by Morton code
-    while ( start <= end )
-    {
-        if ( layer_nodes[ mean ].MortonCode < morton_code )
-        {
-            start = mean + 1;
-        }
-        else if ( layer_nodes[ mean ].MortonCode == morton_code )
-        {
-            return mean;
-        }
-        else
-        {
-            end = mean - 1;
-        }
-
-        mean = ( start + end ) * 0.5f;
-    }
-
-    return TOptional< int32 >();
+    // Since nodes are ordered, we can use the binary search
+    return Algo::BinarySearch( layer_nodes, FSVONode( morton_code ) );
 }
 
 void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index )
@@ -610,7 +589,9 @@ void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
                 else
                 {
                     current_layer++;
-                    node_index = GetNodeIndexFromMortonCode( current_layer, FSVOHelpers::GetParentMortonCode( node.MortonCode ) ).Get( 0 );
+                    const auto node_index_from_morton = GetNodeIndexFromMortonCode( current_layer, FSVOHelpers::GetParentMortonCode( node.MortonCode ) );
+                    ensure( node_index_from_morton != INDEX_NONE );
+                    node_index = static_cast< NodeIndex >( node_index_from_morton );
                 }
             }
         }
