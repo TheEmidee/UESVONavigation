@@ -8,32 +8,73 @@ Some code examples :
 https://github.com/kwstanths/Ray-traversal/blob/master/TrianglesOctree.hpp
 https://newbedev.com/ray-octree-intersection-algorithms
 
-But because we use morton codes to store the node coordinates, the original algorithm needs to be updated because the order is different
+But because we use morton codes to store the node coordinates, the original algorithm needs to be updated because the order is different.
+This is why the function GetFirstNodeIndex returns a different index, and why the various parameters passed to GetNextNodeIndex or when creating FOctreeRay are not stricly the same as in the paper.
 
-Node order in the paper
-Y
+Node ordering in the paper:
+
+Z
 ^
-|
-|
-|          3 - 7
-|        /   / |
-|  Z    2 - 6  5
-| /     |   | /
-|/      0 - 4
-+-------------------> X
+|          5 --- 7
+|        / |   / |
+|       1 --- 3  |
+|  X    |  4 -|- 6
+| /     | /   | /
+|/      0 --- 2
++-------------------> Y
 
-Node order with morton codes
-Y
+Node ordering with morton codes:
+
+Z
 ^
-|
-|
-|          6 - 7
-|        /   / |
-|  Z    2 - 3  5
-| /     |   | /
-|/      0 - 1
-+-------------------> X
+|          5 --- 7
+|        / |   / |
+|       4 --- 6  |
+|  X    |  1 -|- 3
+| /     | /   | /
+|/      0 --- 2
++-------------------> Y
 
+
+
+
+
+
+
+*****************************************
+***  How sub node intersection works  ***
+*****************************************
+
+Leaf nodes are split in 4 cubes in each direction (64 cubes in total), but the data is contained in a single 64 bit uint.
+
+Here is the sub node ordering on the (Y;Z) axis (which will be used to explain below)
+
+Z
+|
+|   36 38 52 54
+|   32 34 48 50
+|   04 06 20 22
+|   00 02 16 18
+|
+------------------ Y
+
+Finding the sub node occlusion is done in 2 parts:
+
+1. In DoesRayIntersectOccludedLeaf, instead of working with 16 cubes for each face, work with 4 cubes as with normal nodes. The index of the cube being processed corresponds to one of those 4 cubes.
+For example, if the ray goes through the lower right half of the leaf (with axes being the same as in the schema above), the child index will be 2.
+
+Z
+|
+|   04 06
+|   00 02
+|
+-------------- Y
+
+2. Pass that node index to DoesRayIntersectOccludedSubNode which will split the cube again in 4 to access the sub node.
+If for example the ray intersects the upper left sub node of the previously hit cube, GetFirstNodeIndex would return 4.
+We are finally able to get the sub node index using the formula : ( SubNodeParentNodeIndex << 3 ) + (ChildIndex)
+which in this case returns 20 as expected.
+From there we can apply the rules of the algorithm to know which of the neighbor sub nodes to test.
 */
 
 bool USVORayCaster_OctreeTraversal::TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
@@ -131,8 +172,6 @@ uint8 USVORayCaster_OctreeTraversal::GetFirstNodeIndex( const FOctreeRay & ray )
 {
     uint8 answer = 0;
 
-    // select the entry plane and set bits ( cf Table 1 and 2 of the paper)
-    // Updated to match morton coords ordering
     if ( ray.tx0 > ray.ty0 )
     {
         if ( ray.tx0 > ray.tz0 )
@@ -195,9 +234,144 @@ uint8 USVORayCaster_OctreeTraversal::GetNextNodeIndex( const float txm, const in
     return z;
 }
 
-bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
+bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const NodeIndex leaf_sub_node_index, const FSVOVolumeNavigationData & data ) const
 {
-    return false;
+    if ( !ray.IsInRange() )
+    {
+        return false;
+    }
+
+    const auto & leaf_node = data.GetData().GetLeaves().GetLeaf( node_address.NodeIndex );
+    int32 current_child_idx = GetFirstNodeIndex( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tz0, ray.tzm ) );
+
+    bool result = false;
+
+    do
+    {
+        // leaf_sub_node_index is the index of one of the 8 cubes of the leaf node (see the explanation above)
+        const SubNodeIndex sub_node_idx = ( leaf_sub_node_index << 3 ) + ( current_child_idx ^ a );
+
+        switch ( current_child_idx )
+        {
+            case 0:
+            {
+                FOctreeRay sub_node_ray( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tz0, ray.tzm );
+                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                {
+                    result = true;
+                }
+                else
+                {
+                    current_child_idx = GetNextNodeIndex( ray.txm, 1, ray.tym, 2, ray.tzm, 4 );
+                }
+                break;
+            }
+            case 1:
+            {
+                FOctreeRay sub_node_ray( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tz0, ray.tzm );
+                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                {
+                    result = true;
+                }
+                else
+                {
+                    current_child_idx = GetNextNodeIndex( ray.tx1, 8, ray.tym, 3, ray.tzm, 5 );
+                }
+                break;
+            }
+            case 2:
+            {
+                FOctreeRay sub_node_ray( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tz0, ray.tzm );
+                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                {
+                    result = true;
+                }
+                else
+                {
+                    current_child_idx = GetNextNodeIndex( ray.txm, 3, ray.ty1, 8, ray.tzm, 6 );
+                }
+                break;
+            }
+            case 3:
+            {
+                FOctreeRay sub_node_ray( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tz0, ray.tzm );
+                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                {
+                    result = true;
+                }
+                else
+                {
+                    current_child_idx = GetNextNodeIndex( ray.tx1, 8, ray.ty1, 8, ray.tzm, 7 );
+                }
+                break;
+            }
+            case 4:
+            {
+                FOctreeRay sub_node_ray( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tzm, ray.tz1 );
+                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                {
+                    result = true;
+                }
+                else
+                {
+                    current_child_idx = GetNextNodeIndex( ray.txm, 5, ray.tym, 6, ray.tz1, 8 );
+                }
+                break;
+            }
+            case 5:
+            {
+                FOctreeRay sub_node_ray( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tzm, ray.tz1 );
+                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                {
+                    result = true;
+                }
+                else
+                {
+                    current_child_idx = GetNextNodeIndex( ray.tx1, 8, ray.tym, 7, ray.tz1, 8 );
+                }
+                break;
+            }
+            case 6:
+            {
+                FOctreeRay sub_node_ray( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tzm, ray.tz1 );
+                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                {
+                    result = true;
+                }
+                else
+                {
+                    current_child_idx = GetNextNodeIndex( ray.txm, 7, ray.ty1, 8, ray.tz1, 8 );
+                }
+                break;
+            }
+            case 7:
+            {
+                FOctreeRay sub_node_ray( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tzm, ray.tz1 );
+                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                {
+                    result = true;
+                }
+                else
+                {
+                    current_child_idx = 8;
+                }
+                break;
+            }
+            default:
+            {
+                checkNoEntry();
+                current_child_idx = 8;
+            }
+            break;
+        }
+
+        if ( Observer.IsValid() )
+        {
+            Observer->AddTraversedLeafSubNode( FSVONodeAddress( 0, node_address.NodeIndex, sub_node_idx ), result );
+        }
+    } while ( current_child_idx < 8 && !result );
+
+    return result;
 }
 
 bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const
@@ -209,6 +383,97 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedLeaf( const FOctreeR
     {
         return false;
     }
+
+    // Even though leaf nodes don't contain more cubes inside (only 64 sub nodes packed in one 64bit uint) we split that leaf in 2 in all dimensions
+    // to find which sub-cube the ray goes in, and then DoesRayIntersectOccludedSubNode does the last split to know which cube of the final resolution is hit
+    auto leaf_sub_node_index = GetFirstNodeIndex( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tz0, ray.tzm ) );
+
+    do
+    {
+        const auto reflected_leaf_sub_node_index = leaf_sub_node_index ^ a;
+        switch ( leaf_sub_node_index )
+        {
+            case 0:
+            {
+                if ( DoesRayIntersectOccludedSubNode( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tz0, ray.tzm ), node_address, reflected_leaf_sub_node_index, data ) )
+                {
+                    return true;
+                }
+                leaf_sub_node_index = GetNextNodeIndex( ray.txm, 1, ray.tym, 2, ray.tzm, 4 );
+            }
+
+            break;
+            case 1:
+            {
+                if ( DoesRayIntersectOccludedSubNode( FOctreeRay( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tz0, ray.tzm ), node_address, reflected_leaf_sub_node_index, data ) )
+                {
+                    return true;
+                }
+                leaf_sub_node_index = GetNextNodeIndex( ray.tx1, 8, ray.tym, 3, ray.tzm, 5 );
+            }
+            break;
+            case 2:
+            {
+                if ( DoesRayIntersectOccludedSubNode( FOctreeRay( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tz0, ray.tzm ), node_address, reflected_leaf_sub_node_index, data ) )
+                {
+                    return true;
+                }
+                leaf_sub_node_index = GetNextNodeIndex( ray.txm, 3, ray.ty1, 8, ray.tzm, 6 );
+            }
+            break;
+            case 3:
+            {
+                if ( DoesRayIntersectOccludedSubNode( FOctreeRay( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tz0, ray.tzm ), node_address, reflected_leaf_sub_node_index, data ) )
+                {
+                    return true;
+                }
+                leaf_sub_node_index = GetNextNodeIndex( ray.tx1, 8, ray.ty1, 8, ray.tzm, 7 );
+            }
+            break;
+            case 4:
+            {
+                if ( DoesRayIntersectOccludedSubNode( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tzm, ray.tz1 ), node_address, reflected_leaf_sub_node_index, data ) )
+                {
+                    return true;
+                }
+                leaf_sub_node_index = GetNextNodeIndex( ray.txm, 5, ray.tym, 6, ray.tz1, 8 );
+            }
+            break;
+            case 5:
+            {
+                if ( DoesRayIntersectOccludedSubNode( FOctreeRay( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tzm, ray.tz1 ), node_address, reflected_leaf_sub_node_index, data ) )
+                {
+                    return true;
+                }
+                leaf_sub_node_index = GetNextNodeIndex( ray.tx1, 8, ray.tym, 7, ray.tz1, 8 );
+            }
+            break;
+            case 6:
+            {
+                if ( DoesRayIntersectOccludedSubNode( FOctreeRay( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tzm, ray.tz1 ), node_address, reflected_leaf_sub_node_index, data ) )
+                {
+                    return true;
+                }
+                leaf_sub_node_index = GetNextNodeIndex( ray.txm, 7, ray.ty1, 8, ray.tz1, 8 );
+            }
+            break;
+            case 7:
+            {
+                if ( DoesRayIntersectOccludedSubNode( FOctreeRay( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tzm, ray.tz1 ), node_address, reflected_leaf_sub_node_index, data ) )
+                {
+                    return true;
+                }
+                leaf_sub_node_index = 8;
+            }
+            break;
+            default:
+            {
+                checkNoEntry();
+                leaf_sub_node_index = 8;
+            }
+            break;
+        }
+    } while ( leaf_sub_node_index < 8 );
 
     return false;
 }
@@ -227,8 +492,8 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
 
     do
     {
-        const auto child_node_index = first_child_address.NodeIndex + ( child_index ^ a );
-        const FSVONodeAddress new_child_address( first_child_address.LayerIndex, child_node_index );
+        const auto reflected_child_node_index = first_child_address.NodeIndex + ( child_index ^ a );
+        const FSVONodeAddress new_child_address( first_child_address.LayerIndex, reflected_child_node_index );
         switch ( child_index )
         {
             case 0:

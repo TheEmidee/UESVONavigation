@@ -37,7 +37,7 @@ private:
     static uint8 GetFirstNodeIndex( const FOctreeRay & ray );
     static uint8 GetNextNodeIndex( float txm, int32 x, float tym, int32 y, float tzm, int32 z );
 
-    bool DoesRayIntersectOccludedSubNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const;
+    bool DoesRayIntersectOccludedSubNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const NodeIndex leaf_sub_node_index, const FSVOVolumeNavigationData & data ) const;
     bool DoesRayIntersectOccludedLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const;
     bool DoesRayIntersectOccludedNormalNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const;
     bool DoesRayIntersectOccludedNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const;
