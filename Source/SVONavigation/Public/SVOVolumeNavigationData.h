@@ -28,6 +28,7 @@ public:
 
     const FSVOVolumeNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
+    const FBox & GetNavigationBounds() const;
     const FSVOData & GetData() const;
     const FSVONode & GetNodeFromAddress( const FSVONodeAddress & address ) const;
 
@@ -69,6 +70,11 @@ FORCEINLINE const FSVOVolumeNavigationDataGenerationSettings & FSVOVolumeNavigat
 FORCEINLINE const FBox & FSVOVolumeNavigationData::GetVolumeBounds() const
 {
     return VolumeBounds;
+}
+
+FORCEINLINE const FBox & FSVOVolumeNavigationData::GetNavigationBounds() const
+{
+    return SVOData.GetNavigationBounds();
 }
 
 FORCEINLINE const FSVOData & FSVOVolumeNavigationData::GetData() const
