@@ -573,7 +573,6 @@ void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
     for ( NodeIndex layer_node_index = 0; layer_node_index < static_cast< uint32 >( layer_nodes.Num() ); layer_node_index++ )
     {
         auto & node = layer_nodes[ layer_node_index ];
-        FVector node_position = GetNodePositionFromAddress( FSVONodeAddress( layer_index, node.MortonCode ) );
 
         for ( NeighborDirection direction = 0; direction < 6; direction++ )
         {
@@ -581,7 +580,7 @@ void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
             FSVONodeAddress & neighbor_address = node.Neighbors[ direction ];
             LayerIndex current_layer = layer_index;
 
-            while ( !FindNeighborInDirection( neighbor_address, current_layer, node_index, direction, node_position ) && current_layer < max_layer_index )
+            while ( !FindNeighborInDirection( neighbor_address, current_layer, node_index, direction ) && current_layer < max_layer_index )
             {
                 auto & parent_address = SVOData.GetLayer( current_layer ).GetNodes()[ node_index ].Parent;
                 if ( parent_address.IsValid() )
@@ -601,7 +600,7 @@ void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
     }
 }
 
-bool FSVOVolumeNavigationData::FindNeighborInDirection( FSVONodeAddress & node_address, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position )
+bool FSVOVolumeNavigationData::FindNeighborInDirection( FSVONodeAddress & node_address, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_FindNeighborInDirection );
 
