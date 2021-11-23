@@ -371,8 +371,23 @@ void ASVORaycasterTest::DoRaycast()
         return;
     }
 
-    Raycaster->SetObserver( MakeShared< FSVORayCasterObserver_GenerateDebugInfos >( RayCasterDebugInfos ) );
-    Raycaster->Trace( this, GetActorLocation(), OtherActor->GetActorLocation(), NavAgentProperties );
+    if ( UNavigationSystemV1 * navigation_system = UNavigationSystemV1::GetCurrent( this ) )
+    {
+        if ( auto * navigation_data = navigation_system->GetNavDataForProps( NavAgentProperties ) )
+        {
+            if ( const auto * svo_navigation_data = Cast< ASVONavigationData >( navigation_data ) )
+            {
+                const auto from = GetActorLocation();
+                const auto to = OtherActor->GetActorLocation();
+
+                if ( const auto * volume_navigation_data = svo_navigation_data->GetVolumeNavigationDataContainingPoints( { from, to } ) )
+                {
+                    Raycaster->SetObserver( MakeShared< FSVORayCasterObserver_GenerateDebugInfos >( RayCasterDebugInfos ) );
+                    Raycaster->Trace( *volume_navigation_data, from, to );
+                }
+            }
+        }
+    }
 
     UpdateDrawing();
 }

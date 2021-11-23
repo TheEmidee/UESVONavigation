@@ -266,25 +266,49 @@ void ASVONavigationData::BatchProjectPoints( TArray< FNavigationProjectionWork >
     ensure( false );
 }
 
-ENavigationQueryResult::Type ASVONavigationData::CalcPathCost( const FVector & path_start, const FVector & path_end, float & out_path_cost, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+ENavigationQueryResult::Type ASVONavigationData::CalcPathCost( const FVector & path_start, const FVector & path_end, float & out_path_cost, const FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
-    // :TODO:
-    ensure( false );
-    return ENavigationQueryResult::Error;
+    float path_length = 0.f;
+    return CalcPathLengthAndCost( path_start, path_end, path_length, out_path_cost, filter, querier );
 }
 
-ENavigationQueryResult::Type ASVONavigationData::CalcPathLength( const FVector & path_start, const FVector & path_end, float & out_path_length, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+ENavigationQueryResult::Type ASVONavigationData::CalcPathLength( const FVector & path_start, const FVector & path_end, float & out_path_length, const FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
-    // :TODO:
-    ensure( false );
-    return ENavigationQueryResult::Error;
+    float path_cost = 0.f;
+    return CalcPathLengthAndCost( path_start, path_end, out_path_length, path_cost, filter, querier );
 }
 
 ENavigationQueryResult::Type ASVONavigationData::CalcPathLengthAndCost( const FVector & path_start, const FVector & path_end, float & out_path_length, float & out_path_cost, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
-    // :TODO:
-    ensure( false );
-    return ENavigationQueryResult::Error;
+    ENavigationQueryResult::Type result = ENavigationQueryResult::Invalid;
+
+    if ( ( path_start - path_end ).IsNearlyZero() )
+    {
+        out_path_length = 0.f;
+        return ENavigationQueryResult::Success;
+    }
+
+    auto * volume_navigation_data = GetVolumeNavigationDataContainingPoints( { path_start, path_end } );
+
+    if ( volume_navigation_data == nullptr )
+    {
+        return ENavigationQueryResult::Error;
+    }
+
+    const TSharedRef< FSVONavigationPath > navigation_path = MakeShareable( new FSVONavigationPath() );
+
+    //result = FSVOPathFinder::GetPath( navigation_path.Get(), *this, path_start, path_end, path_finding_query );
+
+    /*const float CostLimit = FLT_MAX;
+    result = RecastNavMeshImpl->FindPath( PathStart, PathEnd, CostLimit, navigation_path.Get(), GetRightFilterRef( QueryFilter ), QueryOwner );*/
+
+    /*if ( result == ENavigationQueryResult::Success || ( result == ENavigationQueryResult::Fail && navigation_path->IsPartial() ) )
+    {
+        out_path_length = navigation_path->GetTotalPathLength();
+        out_path_cost = navigation_path->GetCost();
+    }*/
+
+    return result;
 }
 
 bool ASVONavigationData::DoesNodeContainLocation( NavNodeRef node_ref, const FVector & world_space_location ) const
@@ -609,7 +633,7 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & age
 
     if ( navigation_path != nullptr )
     {
-        if ( const FNavigationQueryFilter * navigation_filter = path_finding_query.QueryFilter.Get() )
+        if ( path_finding_query.QueryFilter.IsValid() )
         {
             const FVector adjusted_end_location = path_finding_query.EndLocation; // navigation_filter->GetAdjustedEndLocation( path_finding_query.EndLocation );
             if ( ( path_finding_query.StartLocation - adjusted_end_location ).IsNearlyZero() )
@@ -620,7 +644,7 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & age
             }
             else
             {
-                result.Result = FSVOPathFinder::GetPath( *result.Path.Get(), agent_properties, *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query );
+                result.Result = FSVOPathFinder::GetPath( *result.Path.Get(), *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query.QueryFilter );
             }
         }
     }

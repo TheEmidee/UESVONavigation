@@ -52,14 +52,14 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
             return;
         }
 
-        const auto * bounds_data = proxy_data.Stepper->GetParameters().VolumeNavigationData;
+        const auto & volume_navigation_data = proxy_data.Stepper->GetParameters().VolumeNavigationData;
 
         if ( DebugDrawOptions.bDrawNodes )
         {
-            const auto from_node_extent = bounds_data->GetNodeExtentFromNodeAddress( debug_node_cost.From.NodeAddress );
+            const auto from_node_extent = volume_navigation_data.GetNodeExtentFromNodeAddress( debug_node_cost.From.NodeAddress );
             Boxes.Emplace( FBox::BuildAABB( debug_node_cost.From.Location, FVector( from_node_extent ) ), color );
 
-            const auto to_node_extent = bounds_data->GetNodeExtentFromNodeAddress( debug_node_cost.To.NodeAddress );
+            const auto to_node_extent = volume_navigation_data.GetNodeExtentFromNodeAddress( debug_node_cost.To.NodeAddress );
             Boxes.Emplace( FBox::BuildAABB( debug_node_cost.To.Location, FVector( to_node_extent ) ), color );
         }
 
@@ -337,8 +337,8 @@ void ASVOPathFinderTest::InitPathFinding()
                     const auto path_start = GetActorLocation();
                     const auto path_end = OtherActor->GetActorLocation();
 
-                    const FPathFindingQuery Query( this, *svo_navigation_data, path_start, path_end, UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter ) );
-                    Stepper = FSVOPathFinder::GetDebugPathStepper( PathFinderDebugInfos, Query.NavAgentProperties, *svo_navigation_data, path_start, path_end, Query );
+                    const auto navigation_query_filter = UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter );
+                    Stepper = FSVOPathFinder::GetDebugPathStepper( PathFinderDebugInfos, *svo_navigation_data, path_start, path_end, navigation_query_filter );
 
                     PathFinderDebugInfos.Reset();
                     NavigationPath.ResetForRepath();

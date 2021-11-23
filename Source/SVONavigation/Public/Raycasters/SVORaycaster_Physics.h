@@ -13,12 +13,10 @@ class SVONAVIGATION_API USVORayCaster_PhysicsBase : public USVORayCaster
 
 protected:
 
-    bool TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
+    bool TraceInternal( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to ) const override;
 
-    virtual bool TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties) const;
-
-    UPROPERTY( EditAnywhere )
-    float AgentRadiusMultiplier;
+    virtual bool TracePhysicsInternal( const FVector & from, const FVector & to ) const;
+    static UWorld * GetWorldContext();
 
     UPROPERTY( EditAnywhere )
     uint8 bShowLineOfSightTraces : 1;
@@ -34,7 +32,7 @@ class SVONAVIGATION_API USVORayCaster_Ray final : public USVORayCaster_PhysicsBa
 
 protected:
 
-    bool TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
+    bool TracePhysicsInternal( const FVector & from, const FVector & to ) const override;
 };
 
 UCLASS()
@@ -42,6 +40,13 @@ class SVONAVIGATION_API USVORayCaster_Sphere final : public USVORayCaster_Physic
 {
     GENERATED_BODY()
 
+public:
+
+    USVORayCaster_Sphere();
+
 protected:
-    bool TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const override;
+    bool TracePhysicsInternal( const FVector & from, const FVector & to ) const override;
+
+    UPROPERTY( EditAnywhere )
+    float Radius;
 };

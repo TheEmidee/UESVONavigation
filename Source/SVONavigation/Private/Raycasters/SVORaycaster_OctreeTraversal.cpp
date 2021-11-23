@@ -77,7 +77,7 @@ which in this case returns 20 as expected.
 From there we can apply the rules of the algorithm to know which of the neighbor sub nodes to test.
 */
 
-bool USVORayCaster_OctreeTraversal::TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_OctreeTraversal::TraceInternal( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to ) const
 {
     const auto & navigation_bounds = volume_navigation_data.GetNavigationBounds();
     FVector volume_center;

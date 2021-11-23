@@ -105,7 +105,7 @@ float FSVOPathFindingAlgorithmStepper_AStar::AdjustTotalCostWithNodeSizeCompensa
         return total_cost;
     }
 
-    return total_cost * Parameters.VolumeNavigationData->GetLayerInverseRatio( neighbor_node_address.LayerIndex );
+    return total_cost * Parameters.VolumeNavigationData.GetLayerInverseRatio( neighbor_node_address.LayerIndex );
 }
 
 ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::ProcessSingleNode( EGraphAStarResult & result )

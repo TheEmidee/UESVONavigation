@@ -38,24 +38,18 @@ void FSVOPathFinderDebugInfos::Reset()
     CurrentBestPath.ResetForRepath();
 }
 
-FSVOPathFindingParameters::FSVOPathFindingParameters( const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query ) :
-    AgentProperties( agent_properties ),
-    NavigationData( navigation_data ),
+FSVOPathFindingParameters::FSVOPathFindingParameters( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & start_location, const FVector & end_location, const FNavigationQueryFilter & nav_query_filter ) :
     StartLocation( start_location ),
     EndLocation( end_location ),
-    NavigationQueryFilter( *path_finding_query.QueryFilter ),
-    QueryFilterImplementation( static_cast< const FSVONavigationQueryFilterImpl * >( path_finding_query.QueryFilter->GetImplementation() ) ),
+    NavigationQueryFilter( nav_query_filter ),
+    QueryFilterImplementation( static_cast< const FSVONavigationQueryFilterImpl * >( NavigationQueryFilter.GetImplementation() ) ),
     QueryFilterSettings( QueryFilterImplementation->QueryFilterSettings ),
     HeuristicCalculator( QueryFilterSettings.HeuristicCalculator ),
     CostCalculator( QueryFilterSettings.TraversalCostCalculator ),
-    VolumeNavigationData( navigation_data.GetVolumeNavigationDataContainingPoints( { start_location, end_location } ) ),
-    VerticalOffset( QueryFilterSettings.bOffsetPathVerticallyByAgentRadius ? -path_finding_query.NavAgentProperties.AgentRadius : 0.0f )
+    VolumeNavigationData( volume_navigation_data )
 {
-    if ( VolumeNavigationData != nullptr )
-    {
-        VolumeNavigationData->GetNodeAddressFromPosition( StartNodeAddress, StartLocation );
-        VolumeNavigationData->GetNodeAddressFromPosition( EndNodeAddress, EndLocation );
-    }
+    VolumeNavigationData.GetNodeAddressFromPosition( StartNodeAddress, StartLocation );
+    VolumeNavigationData.GetNodeAddressFromPosition( EndNodeAddress, EndLocation );
 }
 
 FSVOGraphAStar::FSVOGraphAStar( const FSVOVolumeNavigationData & graph ) :
@@ -64,7 +58,7 @@ FSVOGraphAStar::FSVOGraphAStar( const FSVOVolumeNavigationData & graph ) :
 }
 
 FSVOPathFindingAlgorithmStepper::FSVOPathFindingAlgorithmStepper( const FSVOPathFindingParameters & parameters ) :
-    Graph( *parameters.VolumeNavigationData ),
+    Graph( parameters.VolumeNavigationData ),
     State( ESVOPathFindingAlgorithmState::Init ),
     Parameters( parameters )
 {
@@ -116,12 +110,12 @@ void FSVOPathFindingAlgorithmStepper::SetState( const ESVOPathFindingAlgorithmSt
 
 float FSVOPathFindingAlgorithmStepper::GetHeuristicCost( const FSVONodeAddress & from, const FSVONodeAddress & to ) const
 {
-    return Parameters.HeuristicCalculator->GetHeuristicCost( *Parameters.VolumeNavigationData, from, to ) * Parameters.NavigationQueryFilter.GetHeuristicScale();
+    return Parameters.HeuristicCalculator->GetHeuristicCost( Parameters.VolumeNavigationData, from, to ) * Parameters.NavigationQueryFilter.GetHeuristicScale();
 }
 
 float FSVOPathFindingAlgorithmStepper::GetTraversalCost( const FSVONodeAddress & from, const FSVONodeAddress & to ) const
 {
-    return Parameters.CostCalculator->GetTraversalCost( *Parameters.VolumeNavigationData, from, to );
+    return Parameters.CostCalculator->GetTraversalCost( Parameters.VolumeNavigationData, from, to );
 }
 
 ENavigationQueryResult::Type USVOPathFindingAlgorithm::GetPath( FNavigationPath & /*navigation_path*/, const FSVOPathFindingParameters & /*params*/ ) const

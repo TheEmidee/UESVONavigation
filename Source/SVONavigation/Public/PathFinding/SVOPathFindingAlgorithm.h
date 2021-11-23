@@ -78,11 +78,8 @@ struct SVONAVIGATION_API FSVOPathFinderDebugInfos
 
 struct FSVOPathFindingParameters
 {
-    FSVOPathFindingParameters( const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query );
+    FSVOPathFindingParameters( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & start_location, const FVector & end_location, const FNavigationQueryFilter & nav_query_filter );
 
-    // By copy because it can be constructed as a temp variable
-    const FNavAgentProperties AgentProperties;
-    const ASVONavigationData & NavigationData;
     FVector StartLocation;
     FVector EndLocation;
     const FNavigationQueryFilter & NavigationQueryFilter;
@@ -90,10 +87,9 @@ struct FSVOPathFindingParameters
     const FSVONavigationQueryFilterSettings & QueryFilterSettings;
     const USVOPathHeuristicCalculator * HeuristicCalculator;
     const USVOPathTraversalCostCalculator * CostCalculator;
-    const FSVOVolumeNavigationData * VolumeNavigationData;
+    const FSVOVolumeNavigationData & VolumeNavigationData;
     FSVONodeAddress StartNodeAddress;
     FSVONodeAddress EndNodeAddress;
-    float VerticalOffset;
 };
 
 enum class ESVOPathFindingAlgorithmState : uint8
