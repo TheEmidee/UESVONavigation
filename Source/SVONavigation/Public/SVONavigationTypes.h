@@ -190,23 +190,23 @@ public:
 
     const FSVOLeafNode & GetLeafNode( const LeafIndex leaf_index ) const;
     const TArray< FSVOLeafNode > & GetLeafNodes() const;
+    float GetLeafNodeSize() const;
     float GetLeafNodeExtent() const;
-    float GetLeafNodeHalfExtent() const;
+    float GetLeafSubNodeSize() const;
     float GetLeafSubNodeExtent() const;
-    float GetLeafSubNodeHalfExtent() const;
 
     int GetAllocatedSize() const;
 
 private:
     FSVOLeafNode GetLeafNode( const LeafIndex leaf_index );
 
-    void Initialize( float leaf_extent );
+    void Initialize( float leaf_size );
     void Reset();
     void AllocateLeafNodes( int leaf_count );
     void AddLeafNode( LeafIndex leaf_index, SubNodeIndex sub_node_index, bool is_occluded );
     void AddEmptyLeafNode();
 
-    float LeafExtent;
+    float LeafNodeSize;
     TArray< FSVOLeafNode > LeafNodes;
 };
 
@@ -220,24 +220,24 @@ FORCEINLINE const TArray< FSVOLeafNode > & FSVOLeafNodes::GetLeafNodes() const
     return LeafNodes;
 }
 
-FORCEINLINE float FSVOLeafNodes::GetLeafNodeExtent() const
+FORCEINLINE float FSVOLeafNodes::GetLeafNodeSize() const
 {
-    return LeafExtent;
+    return LeafNodeSize;
 }
 
-FORCEINLINE float FSVOLeafNodes::GetLeafNodeHalfExtent() const
+FORCEINLINE float FSVOLeafNodes::GetLeafNodeExtent() const
 {
-    return GetLeafNodeExtent() * 0.5f;
+    return GetLeafNodeSize() * 0.5f;
+}
+
+FORCEINLINE float FSVOLeafNodes::GetLeafSubNodeSize() const
+{
+    return GetLeafNodeSize() * 0.25f;
 }
 
 FORCEINLINE float FSVOLeafNodes::GetLeafSubNodeExtent() const
 {
-    return GetLeafNodeExtent() * 0.25f;
-}
-
-FORCEINLINE float FSVOLeafNodes::GetLeafSubNodeHalfExtent() const
-{
-    return GetLeafSubNodeExtent() * 0.5f;
+    return GetLeafSubNodeSize() * 0.5f;
 }
 
 FORCEINLINE FSVOLeafNode FSVOLeafNodes::GetLeafNode( const LeafIndex leaf_index )
@@ -248,7 +248,7 @@ FORCEINLINE FSVOLeafNode FSVOLeafNodes::GetLeafNode( const LeafIndex leaf_index 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeafNodes & leaf_nodes )
 {
     archive << leaf_nodes.LeafNodes;
-    archive << leaf_nodes.LeafExtent;
+    archive << leaf_nodes.LeafNodeSize;
     return archive;
 }
 
@@ -259,13 +259,13 @@ public:
     friend class FSVOVolumeNavigationData;
 
     FSVOLayer();
-    FSVOLayer( int max_node_count, float voxel_extent );
+    FSVOLayer( int max_node_count, float node_size );
 
     const TArray< FSVONode > & GetNodes() const;
     int32 GetNodeCount() const;
     const FSVONode & GetNode( NodeIndex node_index ) const;
-    float GetVoxelExtent() const;
-    float GetVoxelHalfExtent() const;
+    float GetNodeSize() const;
+    float GetNodeExtent() const;
     uint32 GetMaxNodeCount() const;
     uint32 GetBlockedNodesCount() const;
     const TSet< MortonCode > & GetBlockedNodes() const;
@@ -279,7 +279,7 @@ private:
     TArray< FSVONode > Nodes;
     TSet< MortonCode > BlockedNodes;
     int MaxNodeCount;
-    float VoxelExtent;
+    float NodeSize;
 };
 
 FORCEINLINE const TArray< FSVONode > & FSVOLayer::GetNodes() const
@@ -302,14 +302,14 @@ FORCEINLINE const FSVONode & FSVOLayer::GetNode( const NodeIndex node_index ) co
     return Nodes[ node_index ];
 }
 
-FORCEINLINE float FSVOLayer::GetVoxelExtent() const
+FORCEINLINE float FSVOLayer::GetNodeSize() const
 {
-    return VoxelExtent;
+    return NodeSize;
 }
 
-FORCEINLINE float FSVOLayer::GetVoxelHalfExtent() const
+FORCEINLINE float FSVOLayer::GetNodeExtent() const
 {
-    return GetVoxelExtent() * 0.5f;
+    return GetNodeSize() * 0.5f;
 }
 
 FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
@@ -330,7 +330,7 @@ FORCEINLINE uint32 FSVOLayer::GetBlockedNodesCount() const
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
 {
     archive << layer.Nodes;
-    archive << layer.VoxelExtent;
+    archive << layer.NodeSize;
     return archive;
 }
 
@@ -354,7 +354,7 @@ public:
 private:
     FSVOLayer & GetLayer( LayerIndex layer_index );
     FSVOLeafNodes & GetLeafNodes();
-    bool Initialize( float voxel_extent, const FBox & volume_bounds );
+    bool Initialize( float voxel_size, const FBox & volume_bounds );
     void Reset();
 
     TArray< FSVOLayer > Layers;

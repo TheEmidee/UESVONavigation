@@ -81,8 +81,8 @@ bool USVORayCaster_OctreeTraversal::TraceInternal( UObject * world_context, cons
 {
     const auto & navigation_bounds = volume_navigation_data.GetNavigationBounds();
     FVector volume_center;
-    FVector volume_half_extent;
-    navigation_bounds.GetCenterAndExtents( volume_center, volume_half_extent );
+    FVector volume_extent;
+    navigation_bounds.GetCenterAndExtents( volume_center, volume_extent );
 
     const FVector from_to( to - from );
     FRay ray( from, from_to );
