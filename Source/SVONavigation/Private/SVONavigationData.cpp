@@ -297,16 +297,13 @@ ENavigationQueryResult::Type ASVONavigationData::CalcPathLengthAndCost( const FV
 
     const TSharedRef< FSVONavigationPath > navigation_path = MakeShareable( new FSVONavigationPath() );
 
-    //result = FSVOPathFinder::GetPath( navigation_path.Get(), *this, path_start, path_end, path_finding_query );
+    result = FSVOPathFinder::GetPath( navigation_path.Get(), *this, path_start, path_end, filter );
 
-    /*const float CostLimit = FLT_MAX;
-    result = RecastNavMeshImpl->FindPath( PathStart, PathEnd, CostLimit, navigation_path.Get(), GetRightFilterRef( QueryFilter ), QueryOwner );*/
-
-    /*if ( result == ENavigationQueryResult::Success || ( result == ENavigationQueryResult::Fail && navigation_path->IsPartial() ) )
+    if ( result == ENavigationQueryResult::Success || ( result == ENavigationQueryResult::Fail && navigation_path->IsPartial() ) )
     {
-        out_path_length = navigation_path->GetTotalPathLength();
+        out_path_length = navigation_path->GetLength();
         out_path_cost = navigation_path->GetCost();
-    }*/
+    }
 
     return result;
 }
@@ -436,7 +433,7 @@ void ASVONavigationData::ConditionalConstructGenerator()
     }
 }
 
-void ASVONavigationData::RequestDrawingUpdate( bool force )
+void ASVONavigationData::RequestDrawingUpdate( const bool force )
 {
 #if !UE_BUILD_SHIPPING
     if ( force || USVONavDataRenderingComponent::IsNavigationShowFlagSet( GetWorld() ) )
@@ -605,7 +602,7 @@ void ASVONavigationData::InvalidateAffectedPaths( const TArray< FBox > & updated
     }
 }
 
-FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query )
+FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*agent_properties*/, const FPathFindingQuery & path_finding_query )
 {
     const auto * self = Cast< ASVONavigationData >( path_finding_query.NavData.Get() );
 

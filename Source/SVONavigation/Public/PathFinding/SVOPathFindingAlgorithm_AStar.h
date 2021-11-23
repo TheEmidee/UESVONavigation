@@ -9,7 +9,7 @@ class FSVOPathFindingAlgorithmStepper_AStar : public FSVOPathFindingAlgorithmSte
 public:
     explicit FSVOPathFindingAlgorithmStepper_AStar( const FSVOPathFindingParameters & parameters );
 
-    bool FillNodeAddresses( TArray< FSVONodeAddress > & ) const override;
+    bool FillNodeAddresses( TArray< FSVOPathFinderNodeAddressWithCost > & ) const override;
 
 protected:
     ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;

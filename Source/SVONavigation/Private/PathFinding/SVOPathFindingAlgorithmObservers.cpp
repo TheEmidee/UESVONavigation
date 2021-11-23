@@ -7,21 +7,25 @@
 
 namespace
 {
-    void BuildPath( FSVONavigationPath & path, const FSVOPathFindingParameters & params, const TArray< FSVONodeAddress > & node_addresses, const bool add_end_location )
+    void BuildPath( FSVONavigationPath & path, const FSVOPathFindingParameters & params, const TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses, const bool add_end_location )
     {
         auto & path_points = path.GetPathPoints();
+        auto & path_point_costs = path.GetPathPointCosts();
+
         const auto path_points_size = node_addresses.Num() + 1;
 
         path_points.Reset( path_points_size );
-
         path_points.Emplace( params.StartLocation );
+
+        path_point_costs.Reset( path_points_size );
 
         const auto & bounds_data = params.VolumeNavigationData;
 
         for ( auto index = 0; index < node_addresses.Num() - 1; index++ )
         {
-            const auto address = node_addresses[ index ];
-            path_points.Emplace( bounds_data.GetNodePositionFromAddress( address ) );
+            const auto address_with_cost = node_addresses[ index ];
+            path_points.Emplace( bounds_data.GetNodePositionFromAddress( address_with_cost.NodeAddress ) );
+            path_point_costs.Add( address_with_cost.Cost );
         }
 
         if ( add_end_location )
@@ -42,7 +46,7 @@ FSVOPathFindingAStarObserver_BuildPath::FSVOPathFindingAStarObserver_BuildPath( 
 {
 }
 
-void FSVOPathFindingAStarObserver_BuildPath::OnSearchSuccess( const TArray< FSVONodeAddress > & node_addresses )
+void FSVOPathFindingAStarObserver_BuildPath::OnSearchSuccess( const TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses )
 {
     const auto & params = Stepper.GetParameters();
 
@@ -75,7 +79,7 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
 
     DebugInfos.Iterations++;
 
-    TArray< FSVONodeAddress > node_addresses;
+    TArray< FSVOPathFinderNodeAddressWithCost > node_addresses;
     Stepper.FillNodeAddresses( node_addresses );
 
     // Fill DebugInfos.CurrentBestPath
@@ -94,7 +98,7 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const F
     DebugInfos.VisitedNodes++;
 }
 
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const TArray< FSVONodeAddress > & node_addresses )
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const ::TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses )
 {
     FillCurrentBestPath( node_addresses, true );
 
@@ -112,7 +116,7 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const TAr
     DebugInfos.PathLength = path_length;
 }
 
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::FillCurrentBestPath( const TArray< FSVONodeAddress > & node_addresses, const bool add_end_location ) const
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::FillCurrentBestPath( const TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses, const bool add_end_location ) const
 {
     DebugInfos.CurrentBestPath.ResetForRepath();
 

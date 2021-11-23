@@ -12,7 +12,7 @@ FSVOPathFindingAlgorithmStepper_AStar::FSVOPathFindingAlgorithmStepper_AStar( co
 {
 }
 
-bool FSVOPathFindingAlgorithmStepper_AStar::FillNodeAddresses( TArray< FSVONodeAddress > & node_addresses ) const
+bool FSVOPathFindingAlgorithmStepper_AStar::FillNodeAddresses( TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses ) const
 {
     int32 search_node_index = BestNodeIndex;
     int32 path_length = 0;
@@ -35,11 +35,12 @@ bool FSVOPathFindingAlgorithmStepper_AStar::FillNodeAddresses( TArray< FSVONodeA
     int32 result_node_index = path_length;
     do
     {
-        node_addresses[ result_node_index-- ] = Graph.NodePool[ search_node_index ].NodeRef;
-        search_node_index = Graph.NodePool[ search_node_index ].ParentNodeIndex;
+        const auto & node = Graph.NodePool[ search_node_index ];
+        node_addresses[ result_node_index-- ] = { node.NodeRef, node.TraversalCost };
+        search_node_index = node.ParentNodeIndex;
     } while ( result_node_index >= 0 && search_node_index != INDEX_NONE );
 
-    node_addresses[ 0 ] = Parameters.StartNodeAddress;
+    node_addresses[ 0 ] = { Parameters.StartNodeAddress, 0.0f };
 
     return true;
 }
@@ -207,7 +208,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::End
 
     if ( result == EGraphAStarResult::SearchSuccess )
     {
-        TArray< FSVONodeAddress > node_addresses;
+        TArray< FSVOPathFinderNodeAddressWithCost > node_addresses;
 
         if ( !FillNodeAddresses( node_addresses ) )
         {
