@@ -419,7 +419,7 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
         {
             auto & layer = SVOData.GetLayer( layer_index );
             auto & parent_layer = SVOData.GetLayer( layer_index - 1 );
-            for ( MortonCode morton_code : parent_layer.GetBlockedNodes() )
+            for (const MortonCode morton_code : parent_layer.GetBlockedNodes() )
             {
                 layer.AddBlockedNode( FSVOHelpers::GetParentMortonCode( morton_code ) );
             }
@@ -436,13 +436,13 @@ void FSVOVolumeNavigationData::RasterizeLeaf( const FVector & node_position, con
     const auto leaf_sub_node_extent = SVOData.GetLeafNodes().GetLeafSubNodeExtent();
     const auto location = node_position - leaf_node_extent;
 
-    for ( SubNodeIndex subnode_index = 0; subnode_index < 64; subnode_index++ )
+    for ( SubNodeIndex sub_node_index = 0; sub_node_index < 64; sub_node_index++ )
     {
-        const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( subnode_index );
-        const auto voxel_location = location + morton_coords * leaf_sub_node_size + leaf_sub_node_extent;
-        const bool is_leaf_occluded = IsPositionOccluded( voxel_location, leaf_sub_node_extent );
+        const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( sub_node_index );
+        const auto leaf_node_location = location + morton_coords * leaf_sub_node_size + leaf_sub_node_extent;
+        const bool is_leaf_occluded = IsPositionOccluded( leaf_node_location, leaf_sub_node_extent );
 
-        SVOData.GetLeafNodes().AddLeafNode( leaf_index, subnode_index, is_leaf_occluded );
+        SVOData.GetLeafNodes().AddLeafNode( leaf_index, sub_node_index, is_leaf_occluded );
     }
 }
 
@@ -686,11 +686,11 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVONodeAddress > & nei
         // If the neighbor is in bounds of this leaf node
         if ( neighbor_coords.X >= 0 && neighbor_coords.X < 4 && neighbor_coords.Y >= 0 && neighbor_coords.Y < 4 && neighbor_coords.Z >= 0 && neighbor_coords.Z < 4 )
         {
-            const MortonCode subnode_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
+            const MortonCode sub_node_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
             // If this node is not blocked, this is a valid address, add it
-            if ( !leaf.IsSubNodeOccluded( subnode_index ) )
+            if ( !leaf.IsSubNodeOccluded( sub_node_index ) )
             {
-                neighbors.Emplace( FSVONodeAddress( 0, leaf_address.NodeIndex, subnode_index ) );
+                neighbors.Emplace( FSVONodeAddress( 0, leaf_address.NodeIndex, sub_node_index ) );
             }
         }
         else // the neighbor is out of bounds, we need to find our neighbor
@@ -735,12 +735,12 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVONodeAddress > & nei
                     neighbor_coords.Z = 0;
                 }
 
-                const MortonCode subnode_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
+                const MortonCode sub_node_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
 
                 // Only return the neighbor if it isn't blocked!
-                if ( !leaf_node.IsSubNodeOccluded( subnode_index ) )
+                if ( !leaf_node.IsSubNodeOccluded( sub_node_index ) )
                 {
-                    neighbors.Emplace( FSVONodeAddress( 0, neighbor_node.FirstChild.NodeIndex, subnode_index ) );
+                    neighbors.Emplace( FSVONodeAddress( 0, neighbor_node.FirstChild.NodeIndex, sub_node_index ) );
                 }
             }
             // else the leaf node is completely blocked, we don't return it
