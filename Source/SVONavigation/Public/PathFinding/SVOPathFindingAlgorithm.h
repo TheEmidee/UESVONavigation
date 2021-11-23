@@ -9,6 +9,7 @@
 
 #include "SVOPathFindingAlgorithm.generated.h"
 
+struct FSVONavigationQueryFilterSettings;
 class FSVONavigationQueryFilterImpl;
 struct FPathFindingQuery;
 class ASVONavigationData;
