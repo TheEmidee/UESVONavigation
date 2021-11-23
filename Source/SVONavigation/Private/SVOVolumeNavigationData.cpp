@@ -427,7 +427,7 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
     }
 }
 
-void FSVOVolumeNavigationData::RasterizeLeaf( const FVector & node_position, const LeafIndex leaf_index )
+void FSVOVolumeNavigationData::RasterizeLeaf( const FVector & node_position, const LeafIndex leaf_index, const FSVONodeAddress leaf_node_parent )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_RasterizeLeaf );
 
@@ -442,7 +442,7 @@ void FSVOVolumeNavigationData::RasterizeLeaf( const FVector & node_position, con
         const auto leaf_node_location = location + morton_coords * leaf_sub_node_size + leaf_sub_node_extent;
         const bool is_leaf_occluded = IsPositionOccluded( leaf_node_location, leaf_sub_node_extent );
 
-        SVOData.GetLeafNodes().AddLeafNode( leaf_index, sub_node_index, is_leaf_occluded );
+        SVOData.GetLeafNodes().AddLeafNode( leaf_node_parent, leaf_index, sub_node_index, is_leaf_occluded );
     }
 }
 
@@ -476,18 +476,19 @@ void FSVOVolumeNavigationData::RasterizeInitialLayer()
         layer_zero_node.MortonCode = node_index;
 
         const auto node_position = GetNodePositionFromAddress( FSVONodeAddress( 0, node_index ) );
+        const FSVONodeAddress leaf_node_parent( 1, parent_morton_code, 0 );
 
         // Now check if we have any blocking, and search leaf nodes
         if ( IsPositionOccluded( node_position, layer_node_extent ) )
         {
-            RasterizeLeaf( node_position, leaf_index );
+            RasterizeLeaf( node_position, leaf_index, leaf_node_parent );
             layer_zero_node.FirstChild.LayerIndex = 0;
             layer_zero_node.FirstChild.NodeIndex = leaf_index;
             layer_zero_node.FirstChild.SubNodeIndex = 0;
         }
         else
         {
-            SVOData.GetLeafNodes().AddEmptyLeafNode();
+            SVOData.GetLeafNodes().AddEmptyLeafNode( leaf_node_parent );
             layer_zero_node.FirstChild.Invalidate();
         }
 

@@ -48,7 +48,7 @@ private:
     int GetLayerCount() const;
     bool IsPositionOccluded( const FVector & position, float box_extent ) const;
     void FirstPassRasterization();
-    void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index );
+    void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index, FSVONodeAddress leaf_node_parent );
     void RasterizeInitialLayer();
     void RasterizeLayer( LayerIndex layer_index );
     int32 GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;

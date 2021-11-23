@@ -39,42 +39,6 @@ struct FSVODataGenerationSettings
     FCollisionQueryParams CollisionQueryParameters;
 };
 
-struct FSVOLeafNode
-{
-    void MarkSubNodeAsOccluded( const SubNodeIndex index );
-    bool IsSubNodeOccluded( const MortonCode morton_code ) const;
-    bool IsCompletelyOccluded() const;
-    bool IsCompletelyFree() const;
-
-    uint_fast64_t SubNodes = 0;
-};
-
-FORCEINLINE void FSVOLeafNode::MarkSubNodeAsOccluded( const SubNodeIndex index )
-{
-    SubNodes |= 1ULL << index;
-}
-
-FORCEINLINE bool FSVOLeafNode::IsSubNodeOccluded( const MortonCode morton_code ) const
-{
-    return ( SubNodes & 1ULL << morton_code ) != 0;
-}
-
-FORCEINLINE bool FSVOLeafNode::IsCompletelyOccluded() const
-{
-    return SubNodes == -1;
-}
-
-FORCEINLINE bool FSVOLeafNode::IsCompletelyFree() const
-{
-    return SubNodes == 0;
-}
-
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeafNode & data )
-{
-    archive << data.SubNodes;
-    return archive;
-}
-
 struct FSVONodeAddress
 {
     FSVONodeAddress() :
@@ -145,6 +109,44 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONodeAddress & data )
     return archive;
 }
 
+struct FSVOLeafNode
+{
+    void MarkSubNodeAsOccluded( const SubNodeIndex index );
+    bool IsSubNodeOccluded( const MortonCode morton_code ) const;
+    bool IsCompletelyOccluded() const;
+    bool IsCompletelyFree() const;
+
+    uint_fast64_t SubNodes = 0;
+    FSVONodeAddress Parent;
+};
+
+FORCEINLINE void FSVOLeafNode::MarkSubNodeAsOccluded( const SubNodeIndex index )
+{
+    SubNodes |= 1ULL << index;
+}
+
+FORCEINLINE bool FSVOLeafNode::IsSubNodeOccluded( const MortonCode morton_code ) const
+{
+    return ( SubNodes & 1ULL << morton_code ) != 0;
+}
+
+FORCEINLINE bool FSVOLeafNode::IsCompletelyOccluded() const
+{
+    return SubNodes == -1;
+}
+
+FORCEINLINE bool FSVOLeafNode::IsCompletelyFree() const
+{
+    return SubNodes == 0;
+}
+
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeafNode & data )
+{
+    archive << data.SubNodes;
+    archive << data.Parent;
+    return archive;
+}
+
 struct FSVONode
 {
     FSVONode();
@@ -203,8 +205,8 @@ private:
     void Initialize( float leaf_size );
     void Reset();
     void AllocateLeafNodes( int leaf_count );
-    void AddLeafNode( LeafIndex leaf_index, SubNodeIndex sub_node_index, bool is_occluded );
-    void AddEmptyLeafNode();
+    void AddLeafNode( FSVONodeAddress parent_node_address, LeafIndex leaf_index, SubNodeIndex sub_node_index, bool is_occluded );
+    void AddEmptyLeafNode( FSVONodeAddress parent_node_address );
 
     float LeafNodeSize;
     TArray< FSVOLeafNode > LeafNodes;
