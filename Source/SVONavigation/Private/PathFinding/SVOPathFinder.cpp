@@ -5,7 +5,7 @@
 
 namespace
 {
-    USVOPathFindingAlgorithm * GetPathFindingAlgorithm( const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query )
+    USVOPathFindingAlgorithm * GetPathFindingAlgorithm( const FPathFindingQuery & path_finding_query )
     {
         if ( !ensureAlwaysMsgf( path_finding_query.QueryFilter.IsValid(), TEXT( "The query filter is not valid" ) ) )
         {
@@ -42,7 +42,7 @@ namespace
 
 ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigation_path, const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query )
 {
-    if ( auto * path_finder = GetPathFindingAlgorithm( agent_properties, navigation_data, start_location, end_location, path_finding_query ) )
+    if ( auto * path_finder = GetPathFindingAlgorithm( path_finding_query ) )
     {
         const FSVOPathFindingParameters params( agent_properties, navigation_data, start_location, end_location, path_finding_query );
         return path_finder->GetPath( navigation_path, params );
@@ -53,7 +53,7 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigati
 
 TSharedPtr< FSVOPathFindingAlgorithmStepper > FSVOPathFinder::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query )
 {
-    if ( auto * path_finder = GetPathFindingAlgorithm( agent_properties, navigation_data, start_location, end_location, path_finding_query ) )
+    if ( auto * path_finder = GetPathFindingAlgorithm( path_finding_query ) )
     {
         const FSVOPathFindingParameters params( agent_properties, navigation_data, start_location, end_location, path_finding_query );
         return path_finder->GetDebugPathStepper( debug_infos, params );
