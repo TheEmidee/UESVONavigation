@@ -7,7 +7,7 @@
 
 namespace
 {
-    void BuildPath( FNavigationPath & path, const FSVOPathFindingParameters & params, const TArray< FSVONodeAddress > & node_addresses, const bool add_end_location )
+    void BuildPath( FSVONavigationPath & path, const FSVOPathFindingParameters & params, const TArray< FSVONodeAddress > & node_addresses, const bool add_end_location )
     {
         auto & path_points = path.GetPathPoints();
         const auto path_points_size = node_addresses.Num() + 1;
@@ -36,7 +36,7 @@ FSVOPathFindingAlgorithmObserver::FSVOPathFindingAlgorithmObserver( const FSVOPa
 {
 }
 
-FSVOPathFindingAStarObserver_BuildPath::FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper ) :
+FSVOPathFindingAStarObserver_BuildPath::FSVOPathFindingAStarObserver_BuildPath( FSVONavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper ) :
     FSVOPathFindingAlgorithmObserver( stepper ),
     NavigationPath( navigation_path )
 {

@@ -43,7 +43,7 @@ class SVONAVIGATION_API USVOPathFindingAlgorithmThetaStar final : public USVOPat
     GENERATED_BODY()
 
 public:
-    ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const override;
+    ENavigationQueryResult::Type GetPath( FSVONavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const override;
     TSharedPtr< FSVOPathFindingAlgorithmStepper > GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const override;
 
 private:

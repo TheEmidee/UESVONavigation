@@ -617,18 +617,22 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & age
     FPathFindingResult result( ENavigationQueryResult::Error );
 
     FNavigationPath * navigation_path = path_finding_query.PathInstanceToFill.Get();
-    FNavMeshPath * nav_mesh_path = navigation_path ? navigation_path->CastPath< FNavMeshPath >() : nullptr;
+    FSVONavigationPath * svo_navigation_path = navigation_path != nullptr
+                                                   ? navigation_path->CastPath< FSVONavigationPath >()
+                                                   : nullptr;
 
-    if ( nav_mesh_path != nullptr )
+    if ( svo_navigation_path != nullptr )
     {
         result.Path = path_finding_query.PathInstanceToFill;
-        nav_mesh_path->ResetForRepath();
+        svo_navigation_path->ResetForRepath();
     }
     else
     {
         result.Path = self->CreatePathInstance< FSVONavigationPath >( path_finding_query );
         navigation_path = result.Path.Get();
-        nav_mesh_path = navigation_path ? navigation_path->CastPath< FNavMeshPath >() : nullptr;
+        svo_navigation_path = navigation_path != nullptr
+                                  ? navigation_path->CastPath< FSVONavigationPath >()
+                                  : nullptr;
     }
 
     if ( navigation_path != nullptr )
@@ -644,7 +648,7 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & age
             }
             else
             {
-                result.Result = FSVOPathFinder::GetPath( *result.Path.Get(), *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query.QueryFilter );
+                result.Result = FSVOPathFinder::GetPath( *svo_navigation_path, *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query.QueryFilter );
             }
         }
     }

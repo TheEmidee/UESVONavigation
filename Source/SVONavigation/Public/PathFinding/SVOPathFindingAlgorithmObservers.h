@@ -4,6 +4,7 @@
 
 #include <GraphAStar.h>
 
+struct FSVONavigationPath;
 class FSVOPathFindingAlgorithmStepper;
 struct FSVOPathFinderDebugInfos;
 
@@ -30,12 +31,12 @@ protected:
 class FSVOPathFindingAStarObserver_BuildPath final : public FSVOPathFindingAlgorithmObserver
 {
 public:
-    FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper );
+    FSVOPathFindingAStarObserver_BuildPath( FSVONavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper );
 
     void OnSearchSuccess( const TArray< FSVONodeAddress > & ) override;
 
 private:
-    FNavigationPath & NavigationPath;
+    FSVONavigationPath & NavigationPath;
 };
 
 class FSVOPathFindingAStarObserver_GenerateDebugInfos final : public FSVOPathFindingAlgorithmObserver

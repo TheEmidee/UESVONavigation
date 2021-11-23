@@ -128,7 +128,7 @@ bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVONodeAd
     return !ThetaStarParameters.RayCaster->Trace( Parameters.VolumeNavigationData, from, to );
 }
 
-ENavigationQueryResult::Type USVOPathFindingAlgorithmThetaStar::GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
+ENavigationQueryResult::Type USVOPathFindingAlgorithmThetaStar::GetPath( FSVONavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
 {
     FSVOPathFindingAlgorithmStepper_ThetaStar stepper( params, ThetaStarParameters );
     const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper );

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "SVONavigationPath.h"
 #include "SVONavigationTypes.h"
 #include "SVOPathFindingAlgorithmObservers.h"
 #include "SVOVolumeNavigationData.h"
@@ -9,6 +10,7 @@
 
 #include "SVOPathFindingAlgorithm.generated.h"
 
+struct FSVONavigationPath;
 struct FSVONavigationQueryFilterSettings;
 class FSVONavigationQueryFilterImpl;
 struct FPathFindingQuery;
@@ -61,7 +63,7 @@ struct SVONAVIGATION_API FSVOPathFinderDebugInfos
 
     FSVOPathFinderDebugNodeCost LastProcessedSingleNode;
     TArray< FSVOPathFinderDebugNodeCost > ProcessedNeighbors;
-    FNavigationPath CurrentBestPath;
+    FSVONavigationPath CurrentBestPath;
 
     UPROPERTY( VisibleAnywhere )
     int Iterations;
@@ -166,25 +168,6 @@ class SVONAVIGATION_API USVOPathFindingAlgorithm : public UObject
     GENERATED_BODY()
 
 public:
-    virtual ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const;
+    virtual ENavigationQueryResult::Type GetPath( FSVONavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const;
     virtual TSharedPtr< FSVOPathFindingAlgorithmStepper > GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FSVOPathFindingParameters params ) const;
 };
-
-template < class _ALGO_ >
-ENavigationQueryResult::Type GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params, _ALGO_ * = nullptr )
-{
-    _ALGO_ stepper_a_star( params );
-    const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper_a_star );
-
-    stepper_a_star.AddObserver( path_builder );
-
-    int iterations = 0;
-
-    EGraphAStarResult result = EGraphAStarResult::SearchFail;
-    while ( stepper_a_star.Step( result ) == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
-    {
-        iterations++;
-    }
-
-    return ENavigationQueryResult::Success;
-}

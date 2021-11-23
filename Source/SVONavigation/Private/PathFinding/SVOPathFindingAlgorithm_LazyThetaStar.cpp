@@ -162,7 +162,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
     return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
 }
 
-ENavigationQueryResult::Type USVOPathFindingAlgorithmLazyThetaStar::GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
+ENavigationQueryResult::Type USVOPathFindingAlgorithmLazyThetaStar::GetPath( FSVONavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
 {
     FSVOPathFindingAlgorithmStepper_LazyThetaStar stepper( params, ThetaStarParameters );
     const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper );

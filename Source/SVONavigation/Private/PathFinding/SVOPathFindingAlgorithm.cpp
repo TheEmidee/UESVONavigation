@@ -118,7 +118,7 @@ float FSVOPathFindingAlgorithmStepper::GetTraversalCost( const FSVONodeAddress &
     return Parameters.CostCalculator->GetTraversalCost( Parameters.VolumeNavigationData, from, to );
 }
 
-ENavigationQueryResult::Type USVOPathFindingAlgorithm::GetPath( FNavigationPath & /*navigation_path*/, const FSVOPathFindingParameters & /*params*/ ) const
+ENavigationQueryResult::Type USVOPathFindingAlgorithm::GetPath( FSVONavigationPath & /*navigation_path*/, const FSVOPathFindingParameters & /*params*/ ) const
 {
     return ENavigationQueryResult::Error;
 }

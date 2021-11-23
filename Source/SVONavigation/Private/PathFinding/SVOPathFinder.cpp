@@ -41,7 +41,7 @@ namespace
     }
 }
 
-ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigation_path, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FSharedConstNavQueryFilter & nav_query_filter )
+ENavigationQueryResult::Type FSVOPathFinder::GetPath( FSVONavigationPath & navigation_path, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FSharedConstNavQueryFilter & nav_query_filter )
 {
     if ( const auto * path_finder = GetPathFindingAlgorithm( nav_query_filter ) )
     {

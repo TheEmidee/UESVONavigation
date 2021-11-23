@@ -244,7 +244,7 @@ FSVOPathFindingAlgorithmStepper_AStar::NeighborIndexIncrement::~NeighborIndexInc
     }
 }
 
-ENavigationQueryResult::Type USVOPathFindingAlgorithmAStar::GetPath( FNavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
+ENavigationQueryResult::Type USVOPathFindingAlgorithmAStar::GetPath( FSVONavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
 {
     FSVOPathFindingAlgorithmStepper_AStar stepper( params );
     const auto path_builder = MakeShared< FSVOPathFindingAStarObserver_BuildPath >( navigation_path, stepper );
