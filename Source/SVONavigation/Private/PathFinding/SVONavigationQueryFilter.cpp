@@ -9,5 +9,4 @@ void USVONavigationQueryFilter::InitializeFilter( const ANavigationData & nav_da
     FSVONavigationQueryFilterImpl * filter_impl = static_cast< FSVONavigationQueryFilterImpl * >( filter.GetImplementation() );
 
     filter_impl->QueryFilterSettings = QueryFilterSettings;
-    ;
 }

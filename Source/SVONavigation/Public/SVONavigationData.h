@@ -40,10 +40,10 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
     uint8 bDebugDrawSubNodes : 1;
 
     UPROPERTY( EditInstanceOnly )
-    uint8 DebugDrawOccludedVoxels : 1;
+    uint8 bDebugDrawOccludedVoxels : 1;
 
     UPROPERTY( EditInstanceOnly )
-    uint8 DebugDrawFreeVoxels : 1;
+    uint8 bDebugDrawFreeVoxels : 1;
 };
 
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )

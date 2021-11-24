@@ -149,11 +149,8 @@ FPrimitiveSceneProxy * USVORayCasterRenderingComponent::CreateSceneProxy()
 
     if ( FSVORayCasterSceneProxy * new_scene_proxy = new FSVORayCasterSceneProxy( *this, proxy_data ) )
     {
-        if ( new_scene_proxy != nullptr )
-        {
-            DebugDrawDelegateManager.InitDelegateHelper( new_scene_proxy );
-            DebugDrawDelegateManager.ReregisterDebugDrawDelgate();
-        }
+        DebugDrawDelegateManager.InitDelegateHelper( new_scene_proxy );
+        DebugDrawDelegateManager.ReregisterDebugDrawDelgate();
 
         return new_scene_proxy;
     }
@@ -330,7 +327,7 @@ void ASVORaycasterTest::DoRaycast()
         return;
     }
 
-    if ( UNavigationSystemV1 * navigation_system = UNavigationSystemV1::GetCurrent( this ) )
+    if ( auto * navigation_system = UNavigationSystemV1::GetCurrent( this ) )
     {
         if ( auto * navigation_data = navigation_system->GetNavDataForProps( NavAgentProperties ) )
         {

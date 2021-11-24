@@ -25,8 +25,8 @@ FSVOVolumeNavigationDataDebugInfos::FSVOVolumeNavigationDataDebugInfos() :
     bDebugDrawLayers( false ),
     LayerIndexToDraw( 0 ),
     bDebugDrawSubNodes( false ),
-    DebugDrawOccludedVoxels( true ),
-    DebugDrawFreeVoxels( false )
+    bDebugDrawOccludedVoxels( true ),
+    bDebugDrawFreeVoxels( false )
 {
 }
 
