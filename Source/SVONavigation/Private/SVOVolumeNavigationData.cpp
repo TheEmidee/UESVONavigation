@@ -383,8 +383,6 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
         const auto layer_max_node_count = layer.GetMaxNodeCount();
         const auto layer_node_extent = layer.GetNodeExtent();
 
-        auto & layer_zero = SVOData.GetLayer( 0 );
-
         for ( MortonCode node_index = 0; node_index < layer_max_node_count; ++node_index )
         {
             const auto position = GetNodePositionFromAddress( FSVONodeAddress( 1, node_index ), false );
@@ -435,19 +433,25 @@ void FSVOVolumeNavigationData::RasterizeInitialLayer()
     auto & layer_zero_nodes = layer_zero.GetNodes();
 
     LeafIndex leaf_index = 0;
-
-    const auto layer_one_blocked_node_count = SVOData.GetLayer( 1 ).GetBlockedNodesCount();
+    const auto & layer_zero_blocked_nodes = SVOData.GetLayerBlockedNodes( 0 );
+    const auto layer_one_blocked_node_count = layer_zero_blocked_nodes.Num();
     layer_zero_nodes.Reserve( layer_one_blocked_node_count * 8 );
 
     const auto layer_max_node_count = layer_zero.GetMaxNodeCount();
-    const auto layer_node_extent = layer_zero.GetNodeExtent();
+
+    auto & leaf_nodes = SVOData.GetLeafNodes();
+    const auto leaf_node_extent = leaf_nodes.GetLeafNodeExtent();
+    const auto leaf_node_size = leaf_nodes.GetLeafNodeSize();
+
+    const auto & navigation_bounds = SVOData.GetNavigationBounds();
+    const auto navigation_bounds_center = navigation_bounds.GetCenter();
+    const auto navigation_bounds_extent = navigation_bounds.GetExtent();
 
     for ( NodeIndex node_index = 0; node_index < layer_max_node_count; node_index++ )
     {
         const auto parent_morton_code = FSVOHelpers::GetParentMortonCode( node_index );
         const auto is_blocked = layer_zero_blocked_nodes.Contains( parent_morton_code );
 
-        // If we know this node needs to be added, from the low res first pass
         if ( !is_blocked )
         {
             continue;
@@ -456,20 +460,22 @@ void FSVOVolumeNavigationData::RasterizeInitialLayer()
         auto & layer_zero_node = layer_zero_nodes.Emplace_GetRef();
         layer_zero_node.MortonCode = node_index;
 
-        const auto node_position = GetNodePositionFromAddress( FSVONodeAddress( 0, node_index ) );
-        const FSVONodeAddress leaf_node_parent( 1, parent_morton_code, 0 );
+        const FSVONodeAddress leaf_node_parent_address( 1, parent_morton_code, 0 );
 
-        // Now check if we have any blocking, and search leaf nodes
-        if ( IsPositionOccluded( node_position, layer_node_extent ) )
+        // Compute the leaf node position manually because GetNodePositionFromAddress expects NodeIndex to be the index of the leaf node in the LeafNodes array, when LayerIndex == 0
+        const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( node_index );
+        const auto leaf_node_position = navigation_bounds_center - navigation_bounds_extent + morton_coords * leaf_node_size + leaf_node_extent;
+
+        if ( IsPositionOccluded( leaf_node_position, leaf_node_extent ) )
         {
-            RasterizeLeaf( node_position, leaf_index, leaf_node_parent );
+            RasterizeLeaf( leaf_node_position, leaf_index, leaf_node_parent_address );
             layer_zero_node.FirstChild.LayerIndex = 0;
             layer_zero_node.FirstChild.NodeIndex = leaf_index;
             layer_zero_node.FirstChild.SubNodeIndex = 0;
         }
         else
         {
-            SVOData.GetLeafNodes().AddEmptyLeafNode( leaf_node_parent );
+            leaf_nodes.AddEmptyLeafNode( leaf_node_parent_address );
             layer_zero_node.FirstChild.Invalidate();
         }
 
