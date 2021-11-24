@@ -38,18 +38,19 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
 {
     GENERATED_USTRUCT_BODY()
 
-    FSVOVolumeNavigationDataDebugInfos() :
-        bDebugDrawBounds( false ),
-        bDebugDrawLayers( false ),
-        LayerIndexToDraw( 1 ),
-        bDebugDrawSubNodes( false ),
-        DebugDrawOccludedVoxels( true ),
-        DebugDrawFreeVoxels( false )
-    {
-    }
+    FSVOVolumeNavigationDataDebugInfos();
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawBounds : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawNodeAddress : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawMortonCoords : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawNodeLocation : 1;
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawLayers : 1;

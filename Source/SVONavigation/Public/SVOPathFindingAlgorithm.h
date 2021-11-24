@@ -7,6 +7,7 @@
 
 #include "SVOPathFindingAlgorithm.generated.h"
 
+class USVORayCaster;
 class FSVOVolumeNavigationData;
 class USVOPathTraversalCostCalculator;
 class USVOPathHeuristicCalculator;
@@ -89,7 +90,7 @@ struct FSVOPathFindingParameters
     const FSVONavigationQueryFilterSettings & QueryFilterSettings;
     const USVOPathHeuristicCalculator * HeuristicCalculator;
     const USVOPathTraversalCostCalculator * CostCalculator;
-    const FSVOVolumeNavigationData * BoundsNavigationData;
+    const FSVOVolumeNavigationData * VolumeNavigationData;
     FSVONodeAddress StartNodeAddress;
     FSVONodeAddress EndNodeAddress;
     float VerticalOffset;
@@ -249,20 +250,10 @@ struct SVONAVIGATION_API FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters
 {
     GENERATED_USTRUCT_BODY()
 
-    FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters() :
-        AgentRadiusMultiplier( 0.5f ),
-        bShowLineOfSightTraces( false ),
-        TraceType( ETraceTypeQuery::TraceTypeQuery1 )
-    {}
+    FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters();
 
-    UPROPERTY( EditAnywhere )
-    float AgentRadiusMultiplier;
-
-    UPROPERTY( EditAnywhere )
-    uint8 bShowLineOfSightTraces : 1;
-
-    UPROPERTY( EditAnywhere )
-    TEnumAsByte< ETraceTypeQuery > TraceType;
+    UPROPERTY( Instanced, EditAnywhere )
+    USVORayCaster * RayCaster;
 };
 
 // See https://www.wikiwand.com/en/Theta* or http://idm-lab.org/bib/abstracts/papers/aaai07a.pdf
@@ -277,7 +268,7 @@ protected:
     ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;
     ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
     ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) override;
-    bool HasLineOfSight( FSVONodeAddress from, FSVONodeAddress to );
+    bool HasLineOfSight( FSVONodeAddress from, FSVONodeAddress to ) const;
 
     const FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters & ThetaStarParameters;
 

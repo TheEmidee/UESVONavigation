@@ -24,16 +24,15 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
     DrawType = EDrawType::SolidAndWireMeshes;
 
     RenderingComponent = MakeWeakObjectPtr( const_cast< USVONavDataRenderingComponent * >( Cast< USVONavDataRenderingComponent >( component ) ) );
-    auto * navigation_data = Cast< ASVONavigationData >( RenderingComponent->GetOwner() );
+    NavigationData = MakeWeakObjectPtr( Cast< ASVONavigationData >( RenderingComponent->GetOwner() ) );
 
-    if ( navigation_data == nullptr )
+    if ( NavigationData == nullptr )
     {
         return;
     }
 
-    const auto & debug_infos = navigation_data->GetDebugInfos();
-    //const auto & svo_data = navigation_data->GetSVOData();
-    const auto & all_navigation_bounds_data = navigation_data->GetVolumeNavigationData();
+    const auto & debug_infos = NavigationData->GetDebugInfos();
+    const auto & all_navigation_bounds_data = NavigationData->GetVolumeNavigationData();
 
     for ( const auto & navigation_bounds_data : all_navigation_bounds_data )
     {
@@ -50,15 +49,40 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             Boxes.Emplace( navigation_bounds_data.GetData().GetNavigationBounds(), FColor::White );
         }
 
-        const auto try_add_voxel_to_boxes = [ this, debug_infos ]( const FVector & voxel_location, const float voxel_half_extent, const bool is_occluded ) {
+        const auto try_add_node_text_infos = [ this, &debug_infos, &navigation_bounds_data ]( const MortonCode node_morton_code, const LayerIndex node_layer_index, const FVector & node_position ) {
+            auto vertical_offset = 0.0f;
+            if ( debug_infos.bDebugDrawMortonCoords )
+            {
+                Texts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position, FLinearColor::Black );
+                vertical_offset += 40.0f;
+            }
+            if ( debug_infos.bDebugDrawNodeAddress )
+            {
+                const FIntVector morton_coords = FIntVector( FSVOHelpers::GetVectorFromMortonCode( node_morton_code ) );
+                Texts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
+                vertical_offset += 40.0f;
+            }
+            if ( debug_infos.bDebugDrawNodeLocation )
+            {
+                Texts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
+            }
+        };
+
+        const auto try_add_voxel_to_boxes = [ this, &debug_infos ]( const FVector & voxel_location, const float voxel_half_extent, const bool is_occluded ) {
             if ( debug_infos.DebugDrawFreeVoxels && !is_occluded )
             {
                 Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( voxel_half_extent ) ), FreeVoxelColor );
+
+                return true;
             }
-            else if ( debug_infos.DebugDrawOccludedVoxels && is_occluded )
+            if ( debug_infos.DebugDrawOccludedVoxels && is_occluded )
             {
                 Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( voxel_half_extent ) ), OccludedVoxelColor );
+
+                return true;
             }
+
+            return false;
         };
 
         if ( debug_infos.bDebugDrawLayers )
@@ -69,9 +93,14 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             for ( const auto & node : octree_data.GetLayer( corrected_layer_index ).GetNodes() )
             {
                 const auto code = node.MortonCode;
-                const auto node_position = navigation_bounds_data.GetNodePositionFromAddress( FSVONodeAddress( corrected_layer_index, code ) );
+                const FSVONodeAddress node_address( corrected_layer_index, code );
 
-                try_add_voxel_to_boxes( node_position, half_voxel_size, node.HasChildren() );
+                const auto node_position = navigation_bounds_data.GetNodePositionFromAddress( node_address );
+
+                if ( try_add_voxel_to_boxes( node_position, half_voxel_size, node.HasChildren() ) )
+                {
+                    try_add_node_text_infos( code, corrected_layer_index, node_position );
+                }
             }
         }
 
@@ -79,24 +108,22 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
         {
             const auto & leaf_layer = octree_data.GetLayer( 0 );
             const auto leaf_subnode_half_extent = octree_data.GetLeaves().GetLeafSubNodeHalfExtent();
-            const auto leaf_subnode_extent = octree_data.GetLeaves().GetLeafSubNodeExtent();
-            const auto leaf_voxel_half_extent = leaf_layer.GetVoxelHalfExtent();
 
             for ( const auto & leaf_node : leaf_layer.GetNodes() )
             {
-                const auto leaf_position = navigation_bounds_data.GetNodePositionFromAddress( FSVONodeAddress( 0, leaf_node.MortonCode ) );
-
                 if ( leaf_node.HasChildren() )
                 {
                     const auto & leaf = octree_data.GetLeaves().GetLeaf( leaf_node.FirstChild.NodeIndex );
 
                     for ( SubNodeIndex subnode_index = 0; subnode_index < 64; subnode_index++ )
                     {
-                        const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( subnode_index );
-                        const auto voxel_location = leaf_position - leaf_voxel_half_extent + morton_coords * leaf_subnode_extent + leaf_subnode_half_extent;
+                        const auto subnode_location = navigation_bounds_data.GetSubNodePositionFromAddress( FSVONodeAddress( 0, leaf_node.MortonCode, subnode_index ) );
                         const bool is_subnode_occluded = leaf.IsSubNodeOccluded( subnode_index );
 
-                        try_add_voxel_to_boxes( voxel_location, leaf_subnode_half_extent, is_subnode_occluded );
+                        if ( try_add_voxel_to_boxes( subnode_location, leaf_subnode_half_extent, is_subnode_occluded ) )
+                        {
+                            try_add_node_text_infos( subnode_index, 0, subnode_location );
+                        }
                     }
                 }
             }
@@ -127,6 +154,13 @@ FPrimitiveViewRelevance FSVONavigationMeshSceneProxy::GetViewRelevance( const FS
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 
+void FSVODebugDrawDelegateHelper::InitDelegateHelper( const FSVONavigationMeshSceneProxy * scene_proxy )
+{
+    Super::InitDelegateHelper( scene_proxy );
+
+    NavigationData = scene_proxy->NavigationData;
+}
+
 void FSVODebugDrawDelegateHelper::RegisterDebugDrawDelgate()
 {
     ensureMsgf( State != RegisteredState, TEXT( "RegisterDebugDrawDelgate is already Registered!" ) );
@@ -147,36 +181,6 @@ void FSVODebugDrawDelegateHelper::UnregisterDebugDrawDelgate()
         UDebugDrawService::Unregister( DebugTextDrawingDelegateHandle );
         State = InitializedState;
     }
-}
-
-void FSVODebugDrawDelegateHelper::DrawDebugLabels( UCanvas * Canvas, APlayerController * )
-{
-    if ( Canvas == nullptr )
-    {
-        return;
-    }
-
-    const bool bVisible = ( Canvas->SceneView && !!Canvas->SceneView->Family->EngineShowFlags.Navigation ); // || bForceRendering;
-    if ( !bVisible /*|| bNeedsNewData*/ || DebugLabels.Num() == 0 )
-    {
-        return;
-    }
-
-    const FColor OldDrawColor = Canvas->DrawColor;
-    Canvas->SetDrawColor( FColor::White );
-    const FSceneView * View = Canvas->SceneView;
-    UFont * Font = GEngine->GetSmallFont();
-    const FDebugText * DebugText = DebugLabels.GetData();
-    for ( int32 Idx = 0; Idx < DebugLabels.Num(); ++Idx, ++DebugText )
-    {
-        if ( View->ViewFrustum.IntersectSphere( DebugText->Location, 1.0f ) )
-        {
-            const FVector ScreenLoc = Canvas->Project( DebugText->Location );
-            Canvas->DrawText( Font, DebugText->Text, ScreenLoc.X, ScreenLoc.Y );
-        }
-    }
-
-    Canvas->SetDrawColor( OldDrawColor );
 }
 #endif
 

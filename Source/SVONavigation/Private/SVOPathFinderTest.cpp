@@ -52,7 +52,7 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
             return;
         }
 
-        const auto * bounds_data = proxy_data.Stepper->GetParameters().BoundsNavigationData;
+        const auto * bounds_data = proxy_data.Stepper->GetParameters().VolumeNavigationData;
 
         if ( DebugDrawOptions.bDrawNodes )
         {
@@ -156,41 +156,21 @@ USVOPathFindingRenderingComponent::USVOPathFindingRenderingComponent()
 FPrimitiveSceneProxy * USVOPathFindingRenderingComponent::CreateSceneProxy()
 {
     FSVOPathFindingSceneProxyData proxy_data;
-    GatherData( proxy_data, *GetPathFinderTest() );
+    proxy_data.GatherData( *GetPathFinderTest() );
 
     if ( FSVOPathFindingSceneProxy * new_scene_proxy = new FSVOPathFindingSceneProxy( *this, proxy_data ) )
     {
-        if ( IsInGameThread() )
-        {
-            RenderingDebugDrawDelegateHelper.InitDelegateHelper( *new_scene_proxy );
-            RenderingDebugDrawDelegateHelper.ReregisterDebugDrawDelgate();
-        }
-
         return new_scene_proxy;
     }
 
     return nullptr;
 }
 
-void USVOPathFindingRenderingComponent::CreateRenderState_Concurrent( FRegisterComponentContext * Context )
-{
-    Super::CreateRenderState_Concurrent( Context );
-
-    RenderingDebugDrawDelegateHelper.RegisterDebugDrawDelgate();
-}
-
-void USVOPathFindingRenderingComponent::DestroyRenderState_Concurrent()
-{
-    RenderingDebugDrawDelegateHelper.UnregisterDebugDrawDelgate();
-
-    Super::DestroyRenderState_Concurrent();
-}
-
 FBoxSphereBounds USVOPathFindingRenderingComponent::CalcBounds( const FTransform & local_to_world ) const
 {
     FBoxSphereBounds result;
 
-    if ( auto * owner = Cast< ASVOPathFinderTest >( GetOwner() ) )
+    if (const auto * owner = GetPathFinderTest() )
     {
         FVector center, extent;
         owner->GetActorBounds( false, center, extent );
@@ -200,40 +180,10 @@ FBoxSphereBounds USVOPathFindingRenderingComponent::CalcBounds( const FTransform
     return result;
 }
 
-void USVOPathFindingRenderingComponent::GatherData( FSVOPathFindingSceneProxyData & proxy_data, const ASVOPathFinderTest & path_finder_test )
-{
-    proxy_data.GatherData( path_finder_test );
-}
-
-void FSVOPathFindingRenderingDebugDrawDelegateHelper::InitDelegateHelper( const FSVOPathFindingSceneProxy & InSceneProxy )
-{
-    Super::InitDelegateHelper( &InSceneProxy );
-
-    ActorOwner = InSceneProxy.ActorOwner;
-    //QueryDataSource = InSceneProxy->QueryDataSource;
-    DebugDrawOptions = InSceneProxy.DebugDrawOptions;
-}
-
-void FSVOPathFindingRenderingDebugDrawDelegateHelper::DrawDebugLabels( UCanvas * Canvas, APlayerController * PC )
-{
-    if ( !ActorOwner || ( ActorOwner->IsSelected() == false && DebugDrawOptions.bDrawOnlyWhenSelected == true ) )
-    {
-        return;
-    }
-
-    // little hacky test but it's the only way to remove text rendering from bad worlds, when using UDebugDrawService for it
-    if ( Canvas && Canvas->SceneView && Canvas->SceneView->Family && Canvas->SceneView->Family->Scene && Canvas->SceneView->Family->Scene->GetWorld() != ActorOwner->GetWorld() )
-    {
-        return;
-    }
-
-    FDebugDrawDelegateHelper::DrawDebugLabels( Canvas, PC );
-}
-
 ASVOPathFinderTest::ASVOPathFinderTest()
 {
     PrimaryActorTick.bCanEverTick = false;
-    PrimaryActorTick.bStartWithTickEnabled = true;
+    PrimaryActorTick.bStartWithTickEnabled = false;
 
     SphereComponent = CreateDefaultSubobject< USphereComponent >( TEXT( "SphereComponent" ) );
     RootComponent = SphereComponent;
@@ -246,13 +196,6 @@ ASVOPathFinderTest::ASVOPathFinderTest()
     }
 #endif
 
-#if WITH_EDITOR
-    if ( HasAnyFlags( RF_ClassDefaultObject ) && GetClass() == StaticClass() )
-    {
-        USelection::SelectObjectEvent.AddStatic( &ASVOPathFinderTest::OnEditorSelectionChanged );
-        USelection::SelectionChangedEvent.AddStatic( &ASVOPathFinderTest::OnEditorSelectionChanged );
-    }
-#endif
 
     NavAgentProperties = FNavAgentProperties::DefaultProperties;
     AutoStepTimer = 0.2f;
@@ -478,30 +421,3 @@ void ASVOPathFinderTest::PauseAutoCompletion()
 {
     bAutoComplete = false;
 }
-
-#if WITH_EDITOR
-void ASVOPathFinderTest::OnEditorSelectionChanged( UObject * new_selection )
-{
-    TArray< ASVOPathFinderTest * > selected_test_actors;
-    if ( ASVOPathFinderTest * selected_test_actor = Cast< ASVOPathFinderTest >( new_selection ) )
-    {
-        selected_test_actors.Add( selected_test_actor );
-    }
-    else
-    {
-        if ( USelection * selection = Cast< USelection >( new_selection ) )
-        {
-            selection->GetSelectedObjects< ASVOPathFinderTest >( selected_test_actors );
-        }
-    }
-
-    for ( ASVOPathFinderTest * path_finder_test : selected_test_actors )
-    {
-        /*if ( path_finder_test->QueryTemplate != nullptr && path_finder_test->QueryInstance.IsValid() == false )
-        {
-            path_finder_test->QueryTemplate->CollectQueryParams( *path_finder_test, path_finder_test->QueryConfig );
-            path_finder_test->RunEQSQuery();
-        }*/
-    }
-}
-#endif

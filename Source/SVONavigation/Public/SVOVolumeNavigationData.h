@@ -28,10 +28,12 @@ public:
 
     const FSVOVolumeNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
+    const FBox & GetNavigationBounds() const;
     const FSVOData & GetData() const;
     const FSVONode & GetNodeFromAddress( const FSVONodeAddress & address ) const;
 
-    FVector GetNodePositionFromAddress( const FSVONodeAddress & address ) const;    
+    FVector GetNodePositionFromAddress( const FSVONodeAddress & address ) const;
+    FVector GetSubNodePositionFromAddress( const FSVONodeAddress & address ) const;
     bool GetNodeAddressFromPosition( FSVONodeAddress & node_address, const FVector & position ) const;
     void GetNodeNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & node_address ) const;
     float GetLayerRatio( LayerIndex layer_index ) const;
@@ -49,7 +51,7 @@ private:
     void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index );
     void RasterizeInitialLayer();
     void RasterizeLayer( LayerIndex layer_index );
-    TOptional< NodeIndex > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
+    TOptional< int32 > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
     void BuildNeighborLinks( LayerIndex layer_index );
     bool FindNeighborInDirection( FSVONodeAddress & node_address, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
     void GetLeafNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & leaf_address ) const;
@@ -68,6 +70,11 @@ FORCEINLINE const FSVOVolumeNavigationDataGenerationSettings & FSVOVolumeNavigat
 FORCEINLINE const FBox & FSVOVolumeNavigationData::GetVolumeBounds() const
 {
     return VolumeBounds;
+}
+
+FORCEINLINE const FBox & FSVOVolumeNavigationData::GetNavigationBounds() const
+{
+    return SVOData.GetNavigationBounds();
 }
 
 FORCEINLINE const FSVOData & FSVOVolumeNavigationData::GetData() const

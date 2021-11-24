@@ -62,8 +62,6 @@ struct SVONAVIGATION_API FSVOPathFindingSceneProxyData final : public TSharedFro
 
 class SVONAVIGATION_API FSVOPathFindingSceneProxy final : public FDebugRenderSceneProxy
 {
-    friend class FSVOPathFindingRenderingDebugDrawDelegateHelper;
-
 public:
     FSVOPathFindingSceneProxy( const UPrimitiveComponent & component, const FSVOPathFindingSceneProxyData & proxy_data );
 
@@ -81,32 +79,6 @@ private:
     TArray< TPair< FVector, FVector > > ArrowHeadLocations;
 };
 
-class FSVOPathFindingRenderingDebugDrawDelegateHelper final : public FDebugDrawDelegateHelper
-{
-    typedef FDebugDrawDelegateHelper Super;
-
-public:
-    FSVOPathFindingRenderingDebugDrawDelegateHelper() :
-        ActorOwner( nullptr )
-    {
-    }
-
-    void InitDelegateHelper( const FDebugRenderSceneProxy * InSceneProxy ) override
-    {
-        check( 0 );
-    }
-
-    void InitDelegateHelper( const FSVOPathFindingSceneProxy & InSceneProxy );
-
-protected:
-    SVONAVIGATION_API void DrawDebugLabels( UCanvas * Canvas, APlayerController * ) override;
-
-private:
-    // can be 0
-    AActor * ActorOwner;
-    FSVOPathRenderingDebugDrawOptions DebugDrawOptions;
-};
-
 UCLASS()
 class SVONAVIGATION_API USVOPathFindingRenderingComponent final : public UPrimitiveComponent
 {
@@ -118,14 +90,7 @@ public:
     ASVOPathFinderTest * GetPathFinderTest() const;
     FPrimitiveSceneProxy * CreateSceneProxy() override;
 
-    void CreateRenderState_Concurrent( FRegisterComponentContext * Context ) override;
-    void DestroyRenderState_Concurrent() override;
     FBoxSphereBounds CalcBounds( const FTransform & local_to_world ) const override;
-
-private:
-    void GatherData( FSVOPathFindingSceneProxyData & proxy_data, const ASVOPathFinderTest & path_finder_test );
-
-    FSVOPathFindingRenderingDebugDrawDelegateHelper RenderingDebugDrawDelegateHelper;
 };
 
 FORCEINLINE ASVOPathFinderTest * USVOPathFindingRenderingComponent::GetPathFinderTest() const
@@ -158,10 +123,6 @@ public:
 
 private:
     void UpdateDrawing();
-
-#if WITH_EDITOR
-    static void OnEditorSelectionChanged( UObject * new_selection );
-#endif
 
     UFUNCTION( CallInEditor )
     void InitPathFinding();

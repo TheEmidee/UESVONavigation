@@ -10,30 +10,19 @@
 class ASVONavigationData;
 class USVONavDataRenderingComponent;
 
-struct FDebugText
-{
-    FVector Location;
-    FString Text;
-
-    FDebugText()
-    {}
-    FDebugText( const FVector & InLocation, const FString & InText ) :
-        Location( InLocation ),
-        Text( InText )
-    {}
-};
-
 class SVONAVIGATION_API FSVONavigationMeshSceneProxy final : public FDebugRenderSceneProxy
 {
 public:
+    friend class FSVODebugDrawDelegateHelper;
+
     explicit FSVONavigationMeshSceneProxy( const UPrimitiveComponent * component );
     virtual ~FSVONavigationMeshSceneProxy() override;
 
     SIZE_T GetTypeHash() const override;
-
 protected:
     FPrimitiveViewRelevance GetViewRelevance( const FSceneView * view ) const override;
     TWeakObjectPtr< USVONavDataRenderingComponent > RenderingComponent;
+    TWeakObjectPtr< ASVONavigationData > NavigationData;
 };
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
@@ -49,22 +38,13 @@ public:
         check( 0 );
     }
 
-    void InitDelegateHelper( const FSVONavigationMeshSceneProxy * scene_proxy )
-    {
-        Super::InitDelegateHelper( scene_proxy );
-
-        DebugLabels.Reset();
-        //DebugLabels.Append( scene_proxy->GetDebugTexts() );
-    }
+    void InitDelegateHelper( const FSVONavigationMeshSceneProxy * scene_proxy );
 
     SVONAVIGATION_API void RegisterDebugDrawDelgate() override;
     SVONAVIGATION_API void UnregisterDebugDrawDelgate() override;
 
-protected:
-    SVONAVIGATION_API void DrawDebugLabels( UCanvas * Canvas, APlayerController * ) override;
-
 private:
-    TArray< FDebugText > DebugLabels;
+    TWeakObjectPtr< ASVONavigationData > NavigationData;
 };
 #endif
 
