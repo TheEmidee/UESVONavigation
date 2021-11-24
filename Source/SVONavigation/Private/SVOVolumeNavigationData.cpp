@@ -29,15 +29,42 @@ FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddr
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodePositionFromNodeAddress );
 
+    const auto & navigation_bounds = SVOData.GetNavigationBounds();
+    const auto navigation_bounds_center = navigation_bounds.GetCenter();
+    const auto navigation_bounds_extent = navigation_bounds.GetExtent();
+
+    if ( address.LayerIndex == 0 )
+    {
+        // Leaf nodes don't have the same NodeIndex as other nodes. They map to the index of the array of leaf nodes.
+        // We must then re-construct the leaf node position based on that leaf node parent
+        const auto & leaf_nodes = SVOData.GetLeafNodes();
+        const auto & leaf_node = leaf_nodes.GetLeafNode( address.NodeIndex );        
+        const auto & leaf_node_parent_node = SVOData.GetLayer( 1 ).GetNode( leaf_node.Parent.NodeIndex );
+        
+        const auto child_index_offset = address.NodeIndex - leaf_node_parent_node.FirstChild.NodeIndex;
+        const auto leaf_node_morton_code = FSVOHelpers::GetFirstChildMortonCode( leaf_node_parent_node.MortonCode ) + child_index_offset;
+        const auto leaf_node_extent = leaf_nodes.GetLeafNodeExtent();
+
+        const auto leaf_node_morton_coords = FSVOHelpers::GetVectorFromMortonCode( leaf_node_morton_code );
+        const FVector leaf_node_position = navigation_bounds_center - navigation_bounds_extent + leaf_node_morton_coords * leaf_nodes.GetLeafNodeSize() + leaf_node_extent;
+
+        if ( leaf_node.IsCompletelyFree() || !try_get_sub_node_position )
+        {
+            return leaf_node_position;
+        }
+
+        const auto sub_node_morton_coords = FSVOHelpers::GetVectorFromMortonCode( address.SubNodeIndex );
+        const auto sub_node_position = leaf_node_position - leaf_node_extent + sub_node_morton_coords * leaf_nodes.GetLeafSubNodeSize() + leaf_nodes.GetLeafSubNodeExtent();
+
+        return sub_node_position;
+    }
+
     const auto & layer = SVOData.GetLayer( address.LayerIndex );
 
     const auto layer_node_size = layer.GetNodeSize();
     const auto layer_node_extent = layer.GetNodeExtent();
     const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( address.NodeIndex );
-    const auto & navigation_bounds = SVOData.GetNavigationBounds();
 
-    const auto navigation_bounds_center = navigation_bounds.GetCenter();
-    const auto navigation_bounds_extent = navigation_bounds.GetExtent();
     const auto position = navigation_bounds_center - navigation_bounds_extent + morton_coords * layer_node_size + layer_node_extent;
 
     return position;

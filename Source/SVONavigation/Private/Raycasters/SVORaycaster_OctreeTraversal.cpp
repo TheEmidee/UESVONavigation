@@ -593,20 +593,15 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNode( const FOctreeR
     if ( layer_index == 0 )
     {
         result = DoesRayIntersectOccludedLeaf( ray, node_address, data );
-
-        if ( Observer.IsValid() )
-        {
-            Observer->AddTraversedLeafNode( node_address, result );
-        }
     }
     else
     {
         result = DoesRayIntersectOccludedNormalNode( ray, node_address, data );
+    }
 
-        if ( Observer.IsValid() )
-        {
-            Observer->AddTraversedNode( node_address, result );
-        }
+    if ( Observer.IsValid() )
+    {
+        Observer->AddTraversedNode( node_address, result );
     }
 
     return result;
