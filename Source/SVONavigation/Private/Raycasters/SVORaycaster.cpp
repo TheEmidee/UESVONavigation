@@ -71,3 +71,12 @@ bool USVORayCaster::TraceInternal( const FSVOVolumeNavigationData & volume_navig
 {
     return false;
 }
+
+UWorld * USVORayCaster::GetWorldContext()
+{
+#if WITH_EDITOR
+    return GEditor->GetEditorWorldContext( false ).World();
+#else
+    return GEngine->GetCurrentPlayWorld();
+#endif
+}

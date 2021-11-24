@@ -3,6 +3,8 @@
 #include "SVOHelpers.h"
 #include "SVOVolumeNavigationData.h"
 
+#include <DrawDebugHelpers.h>
+
 /* This is an implementation of An Efficient Parametric Algorithm for Octree Traversal : http://wscg.zcu.cz/wscg2000/Papers_2000/X31.pdf
 Some code examples :
 https://github.com/kwstanths/Ray-traversal/blob/master/TrianglesOctree.hpp
@@ -142,7 +144,14 @@ bool USVORayCaster_OctreeTraversal::TraceInternal( const FSVOVolumeNavigationDat
         return true;
     }
 
-    return DoesRayIntersectOccludedNode( octree_ray, FSVONodeAddress( volume_navigation_data.GetData().GetLayerCount() - 1, 0 ), FSVONodeAddress::InvalidAddress, volume_navigation_data );
+    const auto result = DoesRayIntersectOccludedNode( octree_ray, FSVONodeAddress( volume_navigation_data.GetData().GetLayerCount() - 1, 0 ), FSVONodeAddress::InvalidAddress, volume_navigation_data );
+
+    if ( bShowLineOfSightTraces )
+    {
+        ::DrawDebugLine( GetWorldContext(), from, to, result ? FColor::Red : FColor::Green, false, 5.0f );
+    }
+
+    return result;
 }
 
 USVORayCaster_OctreeTraversal::FOctreeRay::FOctreeRay( const float tx0, const float tx1, const float ty0, const float ty1, const float tz0, const float tz1 ) :
