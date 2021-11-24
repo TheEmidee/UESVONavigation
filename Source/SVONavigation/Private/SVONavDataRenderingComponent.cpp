@@ -85,12 +85,8 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             return false;
         };
 
-        const auto & navigation_bounds = octree_data.GetNavigationBounds();
-        const auto navigation_bounds_center = navigation_bounds.GetCenter();
-        const auto navigation_bounds_extent = navigation_bounds.GetExtent();
         const auto & leaf_nodes = octree_data.GetLeafNodes();
         const auto leaf_node_extent = leaf_nodes.GetLeafNodeExtent();
-        const auto leaf_node_size = leaf_nodes.GetLeafNodeSize();
 
         if ( debug_infos.bDebugDrawLayers )
         {
@@ -103,9 +99,7 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
 
                 if ( corrected_layer_index == 0 )
                 {
-                    // Compute the leaf node position manually because GetNodePositionFromAddress expects NodeIndex to be the index of the leaf node in the LeafNodes array, when LayerIndex == 0
-                    const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( code );
-                    const auto leaf_node_position = navigation_bounds_center - navigation_bounds_extent + morton_coords * leaf_node_size + leaf_node_extent;
+                    const auto leaf_node_position = navigation_bounds_data.GetLeafNodePositionFromMortonCode( code );
 
                     if ( try_add_voxel_to_boxes( leaf_node_position, leaf_node_extent, node.HasChildren() ) )
                     {
@@ -136,12 +130,8 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
                 if ( leaf_node.HasChildren() )
                 {
                     const auto & leaf = octree_data.GetLeafNodes().GetLeafNode( leaf_node.FirstChild.NodeIndex );
-
                     const auto code = leaf_node.MortonCode;
-
-                    // Compute the leaf node position manually because GetNodePositionFromAddress expects NodeIndex to be the index of the leaf node in the LeafNodes array, when LayerIndex == 0
-                    const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( code );
-                    const auto leaf_node_position = navigation_bounds_center - navigation_bounds_extent + morton_coords * leaf_node_size + leaf_node_extent;
+                    const auto leaf_node_position = navigation_bounds_data.GetLeafNodePositionFromMortonCode( code );
 
                     for ( SubNodeIndex sub_node_index = 0; sub_node_index < 64; sub_node_index++ )
                     {
