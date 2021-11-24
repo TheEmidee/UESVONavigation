@@ -269,17 +269,13 @@ public:
     float GetNodeSize() const;
     float GetNodeExtent() const;
     uint32 GetMaxNodeCount() const;
-    uint32 GetBlockedNodesCount() const;
-    const TSet< MortonCode > & GetBlockedNodes() const;
 
     int GetAllocatedSize() const;
 
 private:
     TArray< FSVONode > & GetNodes();
-    void AddBlockedNode( NodeIndex node_index );
 
     TArray< FSVONode > Nodes;
-    TSet< MortonCode > BlockedNodes;
     int MaxNodeCount;
     float NodeSize;
 };
@@ -319,16 +315,6 @@ FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
     return MaxNodeCount;
 }
 
-FORCEINLINE const TSet< MortonCode > & FSVOLayer::GetBlockedNodes() const
-{
-    return BlockedNodes;
-}
-
-FORCEINLINE uint32 FSVOLayer::GetBlockedNodesCount() const
-{
-    return BlockedNodes.Num();
-}
-
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
 {
     archive << layer.Nodes;
@@ -358,7 +344,10 @@ private:
     FSVOLeafNodes & GetLeafNodes();
     bool Initialize( float voxel_size, const FBox & volume_bounds );
     void Reset();
+    void AddBlockedNode( LayerIndex layer_index, NodeIndex node_index );
+    const TArray< NodeIndex > & GetLayerBlockedNodes( LayerIndex layer_index ) const;
 
+    TArray< TArray< NodeIndex > > BlockedNodes;
     TArray< FSVOLayer > Layers;
     FSVOLeafNodes LeafNodes;
     FBox NavigationBounds;
@@ -403,6 +392,11 @@ FORCEINLINE const FBox & FSVOData::GetNavigationBounds() const
 FORCEINLINE bool FSVOData::IsValid() const
 {
     return bIsValid && GetLayerCount() > 0;
+}
+
+FORCEINLINE const TArray< NodeIndex > & FSVOData::GetLayerBlockedNodes( const LayerIndex layer_index ) const
+{
+    return BlockedNodes[ layer_index ];
 }
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOData & data )

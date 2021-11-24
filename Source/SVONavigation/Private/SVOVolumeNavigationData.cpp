@@ -357,7 +357,7 @@ void FSVOVolumeNavigationData::GenerateNavigationData( const FBox & volume_bound
 
     {
         QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_AllocateLeafNodes );
-        const auto leaf_count = SVOData.GetLayer( 0 ).GetBlockedNodesCount() * 8;
+        const auto leaf_count = SVOData.GetLayerBlockedNodes( 0 ).Num() * 8;
         SVOData.GetLeafNodes().AllocateLeafNodes( leaf_count );
     }
 
@@ -409,7 +409,7 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
 
             if ( IsPositionOccluded( position, layer_node_extent ) )
             {
-                layer_zero.AddBlockedNode( node_index );
+                SVOData.AddBlockedNode( 0, node_index );
             }
         }
     }
@@ -417,11 +417,10 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
     {
         for ( int32 layer_index = 1; layer_index < GetLayerCount(); layer_index++ )
         {
-            auto & layer = SVOData.GetLayer( layer_index );
-            auto & parent_layer = SVOData.GetLayer( layer_index - 1 );
-            for (const MortonCode morton_code : parent_layer.GetBlockedNodes() )
+            const auto & parent_layer_blocked_nodes = SVOData.GetLayerBlockedNodes( layer_index - 1 );
+            for ( const MortonCode morton_code : parent_layer_blocked_nodes )
             {
-                layer.AddBlockedNode( FSVOHelpers::GetParentMortonCode( morton_code ) );
+                SVOData.AddBlockedNode( layer_index, FSVOHelpers::GetParentMortonCode( morton_code ) );
             }
         }
     }
@@ -464,7 +463,7 @@ void FSVOVolumeNavigationData::RasterizeInitialLayer()
     for ( NodeIndex node_index = 0; node_index < layer_max_node_count; node_index++ )
     {
         const auto parent_morton_code = FSVOHelpers::GetParentMortonCode( node_index );
-        const auto is_blocked = layer_zero.GetBlockedNodes().Contains( parent_morton_code );
+        const auto is_blocked = layer_zero_blocked_nodes.Contains( parent_morton_code );
 
         // If we know this node needs to be added, from the low res first pass
         if ( !is_blocked )
@@ -502,7 +501,7 @@ void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
 
     auto & layer = SVOData.GetLayer( layer_index );
     auto & layer_nodes = layer.GetNodes();
-    const auto & layer_blocked_nodes = layer.GetBlockedNodes();
+    const auto & layer_blocked_nodes = SVOData.GetLayerBlockedNodes( layer_index );
 
     checkf( layer_index > 0 && layer_index < GetLayerCount(), TEXT( "layer_index is out of bounds" ) );
 

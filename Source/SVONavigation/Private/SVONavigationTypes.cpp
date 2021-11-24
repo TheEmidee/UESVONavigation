@@ -75,11 +75,6 @@ int FSVOLayer::GetAllocatedSize() const
     return Nodes.Num() * sizeof( FSVONode );
 }
 
-void FSVOLayer::AddBlockedNode( const NodeIndex node_index )
-{
-    BlockedNodes.Add( node_index );
-}
-
 bool FSVOData::Initialize( const float voxel_size, const FBox & volume_bounds )
 {
     Reset();
@@ -111,6 +106,8 @@ bool FSVOData::Initialize( const float voxel_size, const FBox & volume_bounds )
 
     NavigationBounds = FBox::BuildAABB( volume_bounds.GetCenter(), FVector( navigation_bounds_size * 0.5f ) );
 
+    BlockedNodes.SetNumZeroed( layer_count + 1 );
+
     return true;
 }
 
@@ -118,6 +115,11 @@ void FSVOData::Reset()
 {
     Layers.Reset();
     LeafNodes.Reset();
+}
+
+void FSVOData::AddBlockedNode( const LayerIndex layer_index, const NodeIndex node_index )
+{
+    BlockedNodes[ layer_index ].Add( node_index );
 }
 
 FSVOData::FSVOData() :
