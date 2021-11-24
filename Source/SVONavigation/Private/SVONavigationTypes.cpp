@@ -14,16 +14,17 @@ void FSVOLeaves::Reset()
     Leaves.Reset();
 }
 
-FSVOVolumeNavigationDataDebugInfos::FSVOVolumeNavigationDataDebugInfos():
-    bDebugDrawBounds( false ),
-    bDebugDrawNodeAddress( false ),
-    bDebugDrawMortonCoords( false ),
-    bDebugDrawNodeLocation( false ),
-    bDebugDrawLayers( false ),
-    LayerIndexToDraw( 1 ),
-    bDebugDrawSubNodes( false ),
-    DebugDrawOccludedVoxels( true ),
-    DebugDrawFreeVoxels( false )
+FSVONode::FSVONode() :
+    MortonCode( 0 ),
+    Parent( FSVONodeAddress::InvalidAddress ),
+    FirstChild( FSVONodeAddress::InvalidAddress )
+{
+}
+
+FSVONode::FSVONode( const ::MortonCode morton_code ) :
+    MortonCode( morton_code ),
+    Parent( FSVONodeAddress::InvalidAddress ),
+    FirstChild( FSVONodeAddress::InvalidAddress )
 {
 }
 

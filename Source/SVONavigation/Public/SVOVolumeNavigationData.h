@@ -51,7 +51,7 @@ private:
     void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index );
     void RasterizeInitialLayer();
     void RasterizeLayer( LayerIndex layer_index );
-    TOptional< int32 > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
+    int32 GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
     void BuildNeighborLinks( LayerIndex layer_index );
     bool FindNeighborInDirection( FSVONodeAddress & node_address, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
     void GetLeafNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & leaf_address ) const;

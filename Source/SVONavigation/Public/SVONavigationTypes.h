@@ -147,23 +147,25 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONodeAddress & data )
 
 struct FSVONode
 {
+    FSVONode();
+    explicit FSVONode( MortonCode morton_code );
+    bool HasChildren() const;
+
     MortonCode MortonCode;
     FSVONodeAddress Parent;
     FSVONodeAddress FirstChild;
     FSVONodeAddress Neighbors[ 6 ];
-
-    FSVONode() :
-        MortonCode( 0 ),
-        Parent( FSVONodeAddress::InvalidAddress ),
-        FirstChild( FSVONodeAddress::InvalidAddress )
-    {
-    }
-
-    bool HasChildren() const
-    {
-        return FirstChild.IsValid();
-    }
 };
+
+FORCEINLINE bool FSVONode::HasChildren() const
+{
+    return FirstChild.IsValid();
+}
+
+FORCEINLINE bool operator<( const FSVONode & left, const FSVONode & right )
+{
+    return left.MortonCode < right.MortonCode;
+}
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONode & data )
 {

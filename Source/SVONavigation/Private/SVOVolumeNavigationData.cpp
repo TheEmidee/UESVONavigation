@@ -7,31 +7,13 @@
 
 #include <ThirdParty/libmorton/morton.h>
 
-static const FIntVector NeighborDirections[ 6 ] = {
+static constexpr FIntVector NeighborDirections[ 6 ] = {
     { 1, 0, 0 },
     { -1, 0, 0 },
     { 0, 1, 0 },
     { 0, -1, 0 },
     { 0, 0, 1 },
     { 0, 0, -1 }
-};
-
-const NodeIndex ChildOffsetsDirections[ 6 ][ 4 ] = {
-    { 0, 4, 2, 6 },
-    { 1, 3, 5, 7 },
-    { 0, 1, 4, 5 },
-    { 2, 3, 6, 7 },
-    { 0, 1, 2, 3 },
-    { 4, 5, 6, 7 }
-};
-
-const NodeIndex LeafChildOffsetsDirections[ 6 ][ 16 ] = {
-    { 0, 2, 16, 18, 4, 6, 20, 22, 32, 34, 48, 50, 36, 38, 52, 54 },
-    { 9, 11, 25, 27, 13, 15, 29, 31, 41, 43, 57, 59, 45, 47, 61, 63 },
-    { 0, 1, 8, 9, 4, 5, 12, 13, 32, 33, 40, 41, 36, 37, 44, 45 },
-    { 18, 19, 26, 27, 22, 23, 30, 31, 50, 51, 58, 59, 54, 55, 62, 63 },
-    { 0, 1, 8, 9, 2, 3, 10, 11, 16, 17, 24, 25, 18, 19, 26, 27 },
-    { 36, 37, 44, 45, 38, 39, 46, 47, 52, 53, 60, 61, 54, 55, 62, 63 }
 };
 
 FSVOVolumeNavigationDataGenerationSettings::FSVOVolumeNavigationDataGenerationSettings() :
@@ -53,22 +35,7 @@ FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddr
 
     const auto navigation_bounds_center = navigation_bounds.GetCenter();
     const auto navigation_bounds_extent = navigation_bounds.GetExtent();
-    auto position = navigation_bounds_center - navigation_bounds_extent + morton_coords * voxel_size + voxel_half_size;
-
-    /* if ( address.LayerIndex == 0 && address.NodeIndex < static_cast< uint_fast32_t >( layer.GetNodeCount() ) )
-    {
-        const auto & node = layer.GetNode( address.NodeIndex );
-
-        if ( node.FirstChild.IsValid() )
-        {
-            const auto & leaves = SVOData.GetLeaves();
-            const auto leaf_extent = leaves.GetLeafExtent();
-            const auto leaf_subnode_extent = SVOData.GetLeaves().GetLeafSubNodeExtent();
-            const auto subnode_morton_coords = FSVOHelpers::GetVectorFromMortonCode( address.SubNodeIndex );
-
-            position += subnode_morton_coords * leaf_subnode_extent - leaf_extent * 0.375f;
-        }
-    }*/
+    const auto position = navigation_bounds_center - navigation_bounds_extent + morton_coords * voxel_size + voxel_half_size;
 
     return position;
 }
@@ -243,6 +210,27 @@ void FSVOVolumeNavigationData::GetNodeNeighbors( TArray< FSVONodeAddress > & nei
 
             if ( this_address.LayerIndex > 0 )
             {
+                /* Morton code node ordering
+                    Z
+                    ^
+                    |          5 --- 7
+                    |        / |   / |
+                    |       4 --- 6  |
+                    |  X    |  1 -|- 3
+                    | /     | /   | /
+                    |/      0 --- 2
+                    +-------------------> Y
+                */
+
+                static constexpr NodeIndex ChildOffsetsDirections[ 6 ][ 4 ] = {
+                    { 0, 4, 2, 6 },
+                    { 1, 3, 5, 7 },
+                    { 0, 1, 4, 5 },
+                    { 2, 3, 6, 7 },
+                    { 0, 1, 2, 3 },
+                    { 4, 5, 6, 7 }
+                };
+
                 // If it's above layer 0, we will need to potentially add 4 children using our offsets
                 for ( const auto & child_index : ChildOffsetsDirections[ neighbor_direction ] )
                 {
@@ -262,6 +250,29 @@ void FSVOVolumeNavigationData::GetNodeNeighbors( TArray< FSVONodeAddress > & nei
             }
             else
             {
+                /*
+                Sub node morton code ordering for the face pointing to neighbor[0], which is (1,0,0)
+                Use the debug draw options of the navigation data in the scene to show all the sub nodes
+                 
+                Z
+                |
+                |   36 38 52 54
+                |   32 34 48 50
+                |   04 06 20 22
+                |   00 02 16 18
+                |
+                ------------------ Y
+                */
+
+                static constexpr NodeIndex LeafChildOffsetsDirections[ 6 ][ 16 ] = {
+                    { 0, 2, 16, 18, 4, 6, 20, 22, 32, 34, 48, 50, 36, 38, 52, 54 },
+                    { 9, 11, 25, 27, 13, 15, 29, 31, 41, 43, 57, 59, 45, 47, 61, 63 },
+                    { 0, 1, 8, 9, 4, 5, 12, 13, 32, 33, 40, 41, 36, 37, 44, 45 },
+                    { 18, 19, 26, 27, 22, 23, 30, 31, 50, 51, 58, 59, 54, 55, 62, 63 },
+                    { 0, 1, 8, 9, 2, 3, 10, 11, 16, 17, 24, 25, 18, 19, 26, 27 },
+                    { 36, 37, 44, 45, 38, 39, 46, 47, 52, 53, 60, 61, 54, 55, 62, 63 }
+                };
+
                 // If this is a leaf layer, then we need to add whichever of the 16 facing leaf nodes aren't blocked
                 for ( const auto & leaf_index : LeafChildOffsetsDirections[ neighbor_direction ] )
                 {
@@ -515,11 +526,11 @@ void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
 
         auto & first_child = layer_node.FirstChild;
 
-        if ( child_index_from_code.IsSet() )
+        if ( child_index_from_code != INDEX_NONE )
         {
             // Set parent->child links
             first_child.LayerIndex = child_layer_index;
-            first_child.NodeIndex = child_index_from_code.GetValue();
+            first_child.NodeIndex = child_index_from_code;
 
             auto & child_layer = SVOData.GetLayer( child_layer_index );
 
@@ -539,35 +550,14 @@ void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
     }
 }
 
-TOptional< int32 > FSVOVolumeNavigationData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
+int32 FSVOVolumeNavigationData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodeIndexFromMortonCode );
 
     const auto & layer_nodes = SVOData.GetLayer( layer_index ).GetNodes();
-    auto start = 0;
-    auto end = layer_nodes.Num() - 1;
-    auto mean = static_cast< int32 >( ( start + end ) * 0.5f );
 
-    // Binary search by Morton code
-    while ( start <= end )
-    {
-        if ( layer_nodes[ mean ].MortonCode < morton_code )
-        {
-            start = mean + 1;
-        }
-        else if ( layer_nodes[ mean ].MortonCode == morton_code )
-        {
-            return mean;
-        }
-        else
-        {
-            end = mean - 1;
-        }
-
-        mean = ( start + end ) * 0.5f;
-    }
-
-    return TOptional< int32 >();
+    // Since nodes are ordered, we can use the binary search
+    return Algo::BinarySearch( layer_nodes, FSVONode( morton_code ) );
 }
 
 void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index )
@@ -599,7 +589,9 @@ void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
                 else
                 {
                     current_layer++;
-                    node_index = GetNodeIndexFromMortonCode( current_layer, FSVOHelpers::GetParentMortonCode( node.MortonCode ) ).Get( 0 );
+                    const auto node_index_from_morton = GetNodeIndexFromMortonCode( current_layer, FSVOHelpers::GetParentMortonCode( node.MortonCode ) );
+                    ensure( node_index_from_morton != INDEX_NONE );
+                    node_index = static_cast< NodeIndex >( node_index_from_morton );
                 }
             }
         }
