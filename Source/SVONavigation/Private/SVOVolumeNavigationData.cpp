@@ -5,34 +5,19 @@
 #include "SVONavigationTypes.h"
 #include "SVOVersion.h"
 
-#include <libmorton/morton.h>
+#include <ThirdParty/libmorton/morton.h>
 
-static const FIntVector NeighborDirections[ 6 ] = {
-    { 1, 0, 0 },
-    { -1, 0, 0 },
-    { 0, 1, 0 },
-    { 0, -1, 0 },
-    { 0, 0, 1 },
-    { 0, 0, -1 }
-};
-
-const NodeIndex ChildOffsetsDirections[ 6 ][ 4 ] = {
-    { 0, 4, 2, 6 },
-    { 1, 3, 5, 7 },
-    { 0, 1, 4, 5 },
-    { 2, 3, 6, 7 },
-    { 0, 1, 2, 3 },
-    { 4, 5, 6, 7 }
-};
-
-const NodeIndex LeafChildOffsetsDirections[ 6 ][ 16 ] = {
-    { 0, 2, 16, 18, 4, 6, 20, 22, 32, 34, 48, 50, 36, 38, 52, 54 },
-    { 9, 11, 25, 27, 13, 15, 29, 31, 41, 43, 57, 59, 45, 47, 61, 63 },
-    { 0, 1, 8, 9, 4, 5, 12, 13, 32, 33, 40, 41, 36, 37, 44, 45 },
-    { 18, 19, 26, 27, 22, 23, 30, 31, 50, 51, 58, 59, 54, 55, 62, 63 },
-    { 0, 1, 8, 9, 2, 3, 10, 11, 16, 17, 24, 25, 18, 19, 26, 27 },
-    { 36, 37, 44, 45, 38, 39, 46, 47, 52, 53, 60, 61, 54, 55, 62, 63 }
-};
+namespace
+{
+    const FIntVector NeighborDirections[ 6 ] = {
+        { 1, 0, 0 },
+        { -1, 0, 0 },
+        { 0, 1, 0 },
+        { 0, -1, 0 },
+        { 0, 0, 1 },
+        { 0, 0, -1 }
+    };
+}
 
 FSVOVolumeNavigationDataGenerationSettings::FSVOVolumeNavigationDataGenerationSettings() :
     VoxelExtent( 0.0f ),
@@ -46,49 +31,34 @@ FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddr
 
     const auto & layer = SVOData.GetLayer( address.LayerIndex );
 
-    const auto voxel_size = layer.GetVoxelExtent();
-    const auto voxel_half_size = layer.GetVoxelHalfExtent();
+    const auto layer_node_size = layer.GetNodeSize();
+    const auto layer_node_extent = layer.GetNodeExtent();
     const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( address.NodeIndex );
     const auto & navigation_bounds = SVOData.GetNavigationBounds();
 
     const auto navigation_bounds_center = navigation_bounds.GetCenter();
     const auto navigation_bounds_extent = navigation_bounds.GetExtent();
-    auto position = navigation_bounds_center - navigation_bounds_extent + morton_coords * voxel_size + voxel_half_size;
-
-   /* if ( address.LayerIndex == 0 && address.NodeIndex < static_cast< uint_fast32_t >( layer.GetNodeCount() ) )
-    {
-        const auto & node = layer.GetNode( address.NodeIndex );
-
-        if ( node.FirstChild.IsValid() )
-        {
-            const auto & leaves = SVOData.GetLeaves();
-            const auto leaf_extent = leaves.GetLeafExtent();
-            const auto leaf_subnode_extent = SVOData.GetLeaves().GetLeafSubNodeExtent();
-            const auto subnode_morton_coords = FSVOHelpers::GetVectorFromMortonCode( address.SubNodeIndex );
-
-            position += subnode_morton_coords * leaf_subnode_extent - leaf_extent * 0.375f;
-        }
-    }*/
+    const auto position = navigation_bounds_center - navigation_bounds_extent + morton_coords * layer_node_size + layer_node_extent;
 
     return position;
 }
 
 FVector FSVOVolumeNavigationData::GetSubNodePositionFromAddress( const FSVONodeAddress & address ) const
 {
-    checkf( address.LayerIndex == 0, TEXT( "To get the position of a node, you must use GetNodePositionFromAddress" ) )
+    checkf( address.LayerIndex == 0, TEXT( "To get the position of a node, you must use GetNodePositionFromAddress" ) );
 
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetSubNodePositionFromAddress );
 
     const auto node_position = GetNodePositionFromAddress( address );
 
     const auto & leaf_layer = SVOData.GetLayer( 0 );
-    const auto leaf_voxel_half_extent = leaf_layer.GetVoxelHalfExtent();
-    const auto & leaves = SVOData.GetLeaves();
-    const auto leaf_subnode_extent = leaves.GetLeafSubNodeExtent();
-    const auto leaf_subnode_half_extent = leaves.GetLeafSubNodeHalfExtent();
+    const auto leaf_node_extent = leaf_layer.GetNodeExtent();
+    const auto & leaf_nodes = SVOData.GetLeafNodes();
+    const auto leaf_sub_node_size = leaf_nodes.GetLeafSubNodeSize();
+    const auto leaf_sub_node_extent = leaf_nodes.GetLeafSubNodeExtent();
 
     const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( address.SubNodeIndex );
-    return node_position - leaf_voxel_half_extent + morton_coords * leaf_subnode_extent + leaf_subnode_half_extent;
+    return node_position - leaf_node_extent + morton_coords * leaf_sub_node_size + leaf_sub_node_extent;
 }
 
 bool FSVOVolumeNavigationData::GetNodeAddressFromPosition( FSVONodeAddress & node_address, const FVector & position ) const
@@ -119,7 +89,7 @@ bool FSVOVolumeNavigationData::GetNodeAddressFromPosition( FSVONodeAddress & nod
     {
         const auto & layer = SVOData.GetLayer( layer_index );
         const auto & layer_nodes = layer.GetNodes();
-        const auto voxel_size = layer.GetVoxelExtent();
+        const auto voxel_size = layer.GetNodeSize();
 
         FIntVector voxel_coords;
         voxel_coords.X = FMath::FloorToInt( local_position.X / voxel_size );
@@ -128,7 +98,7 @@ bool FSVOVolumeNavigationData::GetNodeAddressFromPosition( FSVONodeAddress & nod
 
         // Get the morton code we want for this layer
         const auto code = FSVOHelpers::GetMortonCodeFromVector( voxel_coords );
-        const auto half_voxel_size = layer.GetVoxelHalfExtent();
+        const auto node_extent = layer.GetNodeExtent();
 
         for ( NodeIndex node_index = nodeIndex; node_index < static_cast< uint32 >( layer_nodes.Num() ); node_index++ )
         {
@@ -152,14 +122,14 @@ bool FSVOVolumeNavigationData::GetNodeAddressFromPosition( FSVONodeAddress & nod
             // If this is a leaf node, we need to find our subnode
             if ( layer_index == 0 )
             {
-                const auto & leaves = SVOData.GetLeaves();
-                const auto & leaf = leaves.GetLeaf( node.FirstChild.NodeIndex );
+                const auto & leaf_nodes = SVOData.GetLeafNodes();
+                const auto & leaf = leaf_nodes.GetLeafNode( node.FirstChild.NodeIndex );
 
                 // We need to calculate the node local position to get the morton code for the leaf
                 // The world position of the 0 node
                 const auto node_position = GetNodePositionFromAddress( FSVONodeAddress( layer_index, node.MortonCode ) );
                 // The morton origin of the node
-                const auto node_origin = node_position - FVector( half_voxel_size );
+                const auto node_origin = node_position - FVector( node_extent );
                 // The requested position, relative to the node origin
                 const auto node_local_position = position - node_origin;
                 // Now get our voxel coordinates
@@ -243,6 +213,27 @@ void FSVOVolumeNavigationData::GetNodeNeighbors( TArray< FSVONodeAddress > & nei
 
             if ( this_address.LayerIndex > 0 )
             {
+                /* Morton code node ordering
+                    Z
+                    ^
+                    |          5 --- 7
+                    |        / |   / |
+                    |       4 --- 6  |
+                    |  X    |  1 -|- 3
+                    | /     | /   | /
+                    |/      0 --- 2
+                    +-------------------> Y
+                */
+
+                static constexpr NodeIndex ChildOffsetsDirections[ 6 ][ 4 ] = {
+                    { 0, 4, 2, 6 },
+                    { 1, 3, 5, 7 },
+                    { 0, 1, 4, 5 },
+                    { 2, 3, 6, 7 },
+                    { 0, 1, 2, 3 },
+                    { 4, 5, 6, 7 }
+                };
+
                 // If it's above layer 0, we will need to potentially add 4 children using our offsets
                 for ( const auto & child_index : ChildOffsetsDirections[ neighbor_direction ] )
                 {
@@ -262,12 +253,35 @@ void FSVOVolumeNavigationData::GetNodeNeighbors( TArray< FSVONodeAddress > & nei
             }
             else
             {
+                /*
+                Sub node morton code ordering for the face pointing to neighbor[0], which is (1,0,0)
+                Use the debug draw options of the navigation data in the scene to show all the sub nodes
+                 
+                Z
+                |
+                |   36 38 52 54
+                |   32 34 48 50
+                |   04 06 20 22
+                |   00 02 16 18
+                |
+                ------------------ Y
+                */
+
+                static constexpr NodeIndex LeafChildOffsetsDirections[ 6 ][ 16 ] = {
+                    { 0, 2, 16, 18, 4, 6, 20, 22, 32, 34, 48, 50, 36, 38, 52, 54 },
+                    { 9, 11, 25, 27, 13, 15, 29, 31, 41, 43, 57, 59, 45, 47, 61, 63 },
+                    { 0, 1, 8, 9, 4, 5, 12, 13, 32, 33, 40, 41, 36, 37, 44, 45 },
+                    { 18, 19, 26, 27, 22, 23, 30, 31, 50, 51, 58, 59, 54, 55, 62, 63 },
+                    { 0, 1, 8, 9, 2, 3, 10, 11, 16, 17, 24, 25, 18, 19, 26, 27 },
+                    { 36, 37, 44, 45, 38, 39, 46, 47, 52, 53, 60, 61, 54, 55, 62, 63 }
+                };
+
                 // If this is a leaf layer, then we need to add whichever of the 16 facing leaf nodes aren't blocked
                 for ( const auto & leaf_index : LeafChildOffsetsDirections[ neighbor_direction ] )
                 {
                     // Each of the childnodes
                     auto first_child_address = neighbor.FirstChild;
-                    const auto & leaf_node = SVOData.GetLeaves().GetLeaf( first_child_address.NodeIndex );
+                    const auto & leaf_node = SVOData.GetLeafNodes().GetLeafNode( first_child_address.NodeIndex );
 
                     first_child_address.SubNodeIndex = leaf_index;
 
@@ -291,14 +305,14 @@ float FSVOVolumeNavigationData::GetLayerInverseRatio( const LayerIndex layer_ind
     return 1.0f - GetLayerRatio( layer_index );
 }
 
-float FSVOVolumeNavigationData::GetVoxelHalfExtentFromNodeAddress( const FSVONodeAddress node_address ) const
+float FSVOVolumeNavigationData::GetNodeExtentFromNodeAddress( const FSVONodeAddress node_address ) const
 {
     if ( node_address.LayerIndex == 0 )
     {
-        return SVOData.GetLeaves().GetLeafSubNodeHalfExtent();
+        return SVOData.GetLeafNodes().GetLeafSubNodeExtent();
     }
 
-    return SVOData.GetLayer( node_address.LayerIndex ).GetVoxelHalfExtent();
+    return SVOData.GetLayer( node_address.LayerIndex ).GetNodeExtent();
 }
 
 TOptional< FNavLocation > FSVOVolumeNavigationData::GetRandomPoint() const
@@ -316,9 +330,9 @@ TOptional< FNavLocation > FSVOVolumeNavigationData::GetRandomPoint() const
     const auto random_index = FMath::RandRange( 0, non_occluded_nodes.Num() - 1 );
     const auto random_node = non_occluded_nodes[ random_index ];
     const auto random_node_location = GetNodePositionFromAddress( random_node );
-    const auto random_node_half_extent = GetVoxelHalfExtentFromNodeAddress( random_node );
+    const auto random_node_extent = GetNodeExtentFromNodeAddress( random_node );
 
-    const auto node_bounds = FBox::BuildAABB( random_node_location, FVector( random_node_half_extent ) );
+    const auto node_bounds = FBox::BuildAABB( random_node_location, FVector( random_node_extent ) );
     const auto random_point_in_node = FMath::RandPointInBox( node_bounds );
     return FNavLocation( random_point_in_node, random_node.GetNavNodeRef() );
 }
@@ -344,7 +358,7 @@ void FSVOVolumeNavigationData::GenerateNavigationData( const FBox & volume_bound
     {
         QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_AllocateLeafNodes );
         const auto leaf_count = SVOData.GetLayer( 0 ).GetBlockedNodesCount() * 8;
-        SVOData.GetLeaves().AllocateLeaves( leaf_count );
+        SVOData.GetLeafNodes().AllocateLeafNodes( leaf_count );
     }
 
     RasterizeInitialLayer();
@@ -368,14 +382,14 @@ void FSVOVolumeNavigationData::Serialize( FArchive & archive, const ESVOVersion 
     archive << SVOData;
 }
 
-bool FSVOVolumeNavigationData::IsPositionOccluded( const FVector & position, const float box_half_extent ) const
+bool FSVOVolumeNavigationData::IsPositionOccluded( const FVector & position, const float box_extent ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_IsPositionOccluded );
     return Settings.World->OverlapBlockingTestByChannel(
         position,
         FQuat::Identity,
         Settings.GenerationSettings.CollisionChannel,
-        FCollisionShape::MakeBox( FVector( box_half_extent + Settings.GenerationSettings.Clearance ) ),
+        FCollisionShape::MakeBox( FVector( box_extent + Settings.GenerationSettings.Clearance ) ),
         Settings.GenerationSettings.CollisionQueryParameters );
 }
 
@@ -385,7 +399,7 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
     {
         const auto & layer = SVOData.GetLayer( 1 );
         const auto layer_max_node_count = layer.GetMaxNodeCount();
-        const auto layer_voxel_half_extent = layer.GetVoxelHalfExtent();
+        const auto layer_node_extent = layer.GetNodeExtent();
 
         auto & layer_zero = SVOData.GetLayer( 0 );
 
@@ -393,7 +407,7 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
         {
             const auto position = GetNodePositionFromAddress( FSVONodeAddress( 1, node_index ) );
 
-            if ( IsPositionOccluded( position, layer_voxel_half_extent ) )
+            if ( IsPositionOccluded( position, layer_node_extent ) )
             {
                 layer_zero.AddBlockedNode( node_index );
             }
@@ -405,7 +419,7 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
         {
             auto & layer = SVOData.GetLayer( layer_index );
             auto & parent_layer = SVOData.GetLayer( layer_index - 1 );
-            for ( MortonCode morton_code : parent_layer.GetBlockedNodes() )
+            for (const MortonCode morton_code : parent_layer.GetBlockedNodes() )
             {
                 layer.AddBlockedNode( FSVOHelpers::GetParentMortonCode( morton_code ) );
             }
@@ -417,18 +431,18 @@ void FSVOVolumeNavigationData::RasterizeLeaf( const FVector & node_position, con
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_RasterizeLeaf );
 
-    const auto leaf_half_extent = SVOData.GetLeaves().GetLeafHalfExtent();
-    const auto leaf_subnode_extent = SVOData.GetLeaves().GetLeafSubNodeExtent();
-    const auto leaf_subnode_half_extent = SVOData.GetLeaves().GetLeafSubNodeHalfExtent();
-    const auto location = node_position - leaf_half_extent;
+    const auto leaf_node_extent = SVOData.GetLeafNodes().GetLeafNodeExtent();
+    const auto leaf_sub_node_size = SVOData.GetLeafNodes().GetLeafSubNodeSize();
+    const auto leaf_sub_node_extent = SVOData.GetLeafNodes().GetLeafSubNodeExtent();
+    const auto location = node_position - leaf_node_extent;
 
-    for ( SubNodeIndex subnode_index = 0; subnode_index < 64; subnode_index++ )
+    for ( SubNodeIndex sub_node_index = 0; sub_node_index < 64; sub_node_index++ )
     {
-        const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( subnode_index );
-        const auto voxel_location = location + morton_coords * leaf_subnode_extent + leaf_subnode_half_extent;
-        const bool is_leaf_occluded = IsPositionOccluded( voxel_location, leaf_subnode_half_extent );
+        const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( sub_node_index );
+        const auto leaf_node_location = location + morton_coords * leaf_sub_node_size + leaf_sub_node_extent;
+        const bool is_leaf_occluded = IsPositionOccluded( leaf_node_location, leaf_sub_node_extent );
 
-        SVOData.GetLeaves().AddLeaf( leaf_index, subnode_index, is_leaf_occluded );
+        SVOData.GetLeafNodes().AddLeafNode( leaf_index, sub_node_index, is_leaf_occluded );
     }
 }
 
@@ -445,7 +459,7 @@ void FSVOVolumeNavigationData::RasterizeInitialLayer()
     layer_zero_nodes.Reserve( layer_one_blocked_node_count * 8 );
 
     const auto layer_max_node_count = layer_zero.GetMaxNodeCount();
-    const auto layer_voxel_half_size = layer_zero.GetVoxelHalfExtent();
+    const auto layer_node_extent = layer_zero.GetNodeExtent();
 
     for ( NodeIndex node_index = 0; node_index < layer_max_node_count; node_index++ )
     {
@@ -464,7 +478,7 @@ void FSVOVolumeNavigationData::RasterizeInitialLayer()
         const auto node_position = GetNodePositionFromAddress( FSVONodeAddress( 0, node_index ) );
 
         // Now check if we have any blocking, and search leaf nodes
-        if ( IsPositionOccluded( node_position, layer_voxel_half_size ) )
+        if ( IsPositionOccluded( node_position, layer_node_extent ) )
         {
             RasterizeLeaf( node_position, leaf_index );
             layer_zero_node.FirstChild.LayerIndex = 0;
@@ -473,7 +487,7 @@ void FSVOVolumeNavigationData::RasterizeInitialLayer()
         }
         else
         {
-            SVOData.GetLeaves().AddEmptyLeaf();
+            SVOData.GetLeafNodes().AddEmptyLeafNode();
             layer_zero_node.FirstChild.Invalidate();
         }
 
@@ -515,11 +529,11 @@ void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
 
         auto & first_child = layer_node.FirstChild;
 
-        if ( child_index_from_code.IsSet() )
+        if ( child_index_from_code != INDEX_NONE )
         {
             // Set parent->child links
             first_child.LayerIndex = child_layer_index;
-            first_child.NodeIndex = child_index_from_code.GetValue();
+            first_child.NodeIndex = child_index_from_code;
 
             auto & child_layer = SVOData.GetLayer( child_layer_index );
 
@@ -539,35 +553,14 @@ void FSVOVolumeNavigationData::RasterizeLayer( const LayerIndex layer_index )
     }
 }
 
-TOptional< int32 > FSVOVolumeNavigationData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
+int32 FSVOVolumeNavigationData::GetNodeIndexFromMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodeIndexFromMortonCode );
 
     const auto & layer_nodes = SVOData.GetLayer( layer_index ).GetNodes();
-    auto start = 0;
-    auto end = layer_nodes.Num() - 1;
-    auto mean = static_cast< int32 >( ( start + end ) * 0.5f );
 
-    // Binary search by Morton code
-    while ( start <= end )
-    {
-        if ( layer_nodes[ mean ].MortonCode < morton_code )
-        {
-            start = mean + 1;
-        }
-        else if ( layer_nodes[ mean ].MortonCode == morton_code )
-        {
-            return mean;
-        }
-        else
-        {
-            end = mean - 1;
-        }
-
-        mean = ( start + end ) * 0.5f;
-    }
-
-    return TOptional< int32 >();
+    // Since nodes are ordered, we can use the binary search
+    return Algo::BinarySearch( layer_nodes, FSVONode( morton_code ) );
 }
 
 void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index )
@@ -599,7 +592,9 @@ void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
                 else
                 {
                     current_layer++;
-                    node_index = GetNodeIndexFromMortonCode( current_layer, FSVOHelpers::GetParentMortonCode( node.MortonCode ) ).Get( 0 );
+                    const auto node_index_from_morton = GetNodeIndexFromMortonCode( current_layer, FSVOHelpers::GetParentMortonCode( node.MortonCode ) );
+                    ensure( node_index_from_morton != INDEX_NONE );
+                    node_index = static_cast< NodeIndex >( node_index_from_morton );
                 }
             }
         }
@@ -645,7 +640,7 @@ bool FSVOVolumeNavigationData::FindNeighborInDirection( FSVONodeAddress & node_a
         {
             if ( layer_index == 0 &&
                  node.HasChildren() &&
-                 SVOData.GetLeaves().GetLeaf( node.FirstChild.NodeIndex ).IsCompletelyOccluded() )
+                 SVOData.GetLeafNodes().GetLeafNode( node.FirstChild.NodeIndex ).IsCompletelyOccluded() )
             {
                 node_address.Invalidate();
                 return true;
@@ -678,7 +673,7 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVONodeAddress > & nei
 
     const MortonCode leaf_index = leaf_address.SubNodeIndex;
     const FSVONode & node = GetNodeFromAddress( leaf_address );
-    const FSVOLeaf & leaf = SVOData.GetLeaves().GetLeaf( node.FirstChild.NodeIndex );
+    const FSVOLeafNode & leaf = SVOData.GetLeafNodes().GetLeafNode( node.FirstChild.NodeIndex );
 
     uint_fast32_t x = 0, y = 0, z = 0;
     morton3D_64_decode( leaf_index, x, y, z );
@@ -691,11 +686,11 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVONodeAddress > & nei
         // If the neighbor is in bounds of this leaf node
         if ( neighbor_coords.X >= 0 && neighbor_coords.X < 4 && neighbor_coords.Y >= 0 && neighbor_coords.Y < 4 && neighbor_coords.Z >= 0 && neighbor_coords.Z < 4 )
         {
-            const MortonCode subnode_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
+            const MortonCode sub_node_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
             // If this node is not blocked, this is a valid address, add it
-            if ( !leaf.IsSubNodeOccluded( subnode_index ) )
+            if ( !leaf.IsSubNodeOccluded( sub_node_index ) )
             {
-                neighbors.Emplace( FSVONodeAddress( 0, leaf_address.NodeIndex, subnode_index ) );
+                neighbors.Emplace( FSVONodeAddress( 0, leaf_address.NodeIndex, sub_node_index ) );
             }
         }
         else // the neighbor is out of bounds, we need to find our neighbor
@@ -710,7 +705,7 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVONodeAddress > & nei
                 continue;
             }
 
-            const FSVOLeaf & leaf_node = SVOData.GetLeaves().GetLeaf( neighbor_node.FirstChild.NodeIndex );
+            const FSVOLeafNode & leaf_node = SVOData.GetLeafNodes().GetLeafNode( neighbor_node.FirstChild.NodeIndex );
 
             // leaf not occluded. Find the correct subnode
             if ( !leaf_node.IsCompletelyOccluded() )
@@ -740,12 +735,12 @@ void FSVOVolumeNavigationData::GetLeafNeighbors( TArray< FSVONodeAddress > & nei
                     neighbor_coords.Z = 0;
                 }
 
-                const MortonCode subnode_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
+                const MortonCode sub_node_index = FSVOHelpers::GetMortonCodeFromVector( neighbor_coords );
 
                 // Only return the neighbor if it isn't blocked!
-                if ( !leaf_node.IsSubNodeOccluded( subnode_index ) )
+                if ( !leaf_node.IsSubNodeOccluded( sub_node_index ) )
                 {
-                    neighbors.Emplace( FSVONodeAddress( 0, neighbor_node.FirstChild.NodeIndex, subnode_index ) );
+                    neighbors.Emplace( FSVONodeAddress( 0, neighbor_node.FirstChild.NodeIndex, sub_node_index ) );
                 }
             }
             // else the leaf node is completely blocked, we don't return it
@@ -760,7 +755,7 @@ void FSVOVolumeNavigationData::GetFreeNodesFromNodeAddress( const FSVONodeAddres
 
     if ( layer_index == 0 )
     {
-        const auto & leaf_node = SVOData.Leaves.GetLeaf( node_index );
+        const auto & leaf_node = SVOData.LeafNodes.GetLeafNode( node_index );
 
         if ( leaf_node.IsCompletelyOccluded() )
         {

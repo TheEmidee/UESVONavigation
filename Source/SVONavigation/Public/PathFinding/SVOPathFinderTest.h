@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SVOPathFindingAlgorithm.h"
+#include "PathFinding/SVOPathFindingAlgorithm.h"
 
 #include <CoreMinimal.h>
 #include <DebugRenderSceneProxy.h>

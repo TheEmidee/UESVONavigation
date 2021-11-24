@@ -1,8 +1,8 @@
-#include "SVOPathFinderTest.h"
+#include "PathFinding/SVOPathFinderTest.h"
 
 #include "SVONavigationData.h"
-#include "SVOPathFinder.h"
-#include "SVOPathFindingAlgorithm.h"
+#include "PathFinding/SVOPathFinder.h"
+#include "PathFinding/SVOPathFindingAlgorithm.h"
 
 #include <Components/SphereComponent.h>
 #include <Engine/Canvas.h>
@@ -56,11 +56,11 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
 
         if ( DebugDrawOptions.bDrawNodes )
         {
-            const auto from_voxel_half_extent = bounds_data->GetVoxelHalfExtentFromNodeAddress( debug_node_cost.From.NodeAddress );
-            Boxes.Emplace( FBox::BuildAABB( debug_node_cost.From.Location, FVector( from_voxel_half_extent ) ), color );
+            const auto from_node_extent = bounds_data->GetNodeExtentFromNodeAddress( debug_node_cost.From.NodeAddress );
+            Boxes.Emplace( FBox::BuildAABB( debug_node_cost.From.Location, FVector( from_node_extent ) ), color );
 
-            const auto to_voxel_half_extent = bounds_data->GetVoxelHalfExtentFromNodeAddress( debug_node_cost.To.NodeAddress );
-            Boxes.Emplace( FBox::BuildAABB( debug_node_cost.To.Location, FVector( to_voxel_half_extent ) ), color );
+            const auto to_node_extent = bounds_data->GetNodeExtentFromNodeAddress( debug_node_cost.To.NodeAddress );
+            Boxes.Emplace( FBox::BuildAABB( debug_node_cost.To.Location, FVector( to_node_extent ) ), color );
         }
 
         Lines.Emplace( FDebugLine( debug_node_cost.From.Location, debug_node_cost.To.Location, FColor::Blue, 2.0f ) );

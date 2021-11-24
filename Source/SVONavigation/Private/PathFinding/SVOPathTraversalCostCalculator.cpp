@@ -1,4 +1,4 @@
-#include "SVOPathTraversalCostCalculator.h"
+#include "PathFinding/SVOPathTraversalCostCalculator.h"
 
 #include "SVOVolumeNavigationData.h"
 

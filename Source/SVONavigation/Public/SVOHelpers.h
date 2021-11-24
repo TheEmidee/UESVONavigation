@@ -1,16 +1,15 @@
 #pragma once
 
-#include <CoreMinimal.h>
-
-#include <libmorton/morton.h>
-
 #include "SVONavigationTypes.h"
+
+#include <CoreMinimal.h>
+#include <GraphAStar.h>
+#include <ThirdParty/libmorton/morton.h>
 
 class SVONAVIGATION_API FSVOHelpers
 {
 public:
-
-    template< typename _VECTOR_ >
+    template < typename _VECTOR_ >
     FORCEINLINE static MortonCode GetMortonCodeFromVector( const _VECTOR_ & vector )
     {
         return morton3D_64_encode( vector.X, vector.Y, vector.Z );
@@ -32,5 +31,17 @@ public:
     FORCEINLINE static MortonCode GetFirstChildMortonCode( const MortonCode parent_morton_code )
     {
         return parent_morton_code << 3;
+    }
+
+    FORCEINLINE static ENavigationQueryResult::Type GraphAStarResultToNavigationTypeResult( const EGraphAStarResult result )
+    {
+        constexpr ENavigationQueryResult::Type result_conversion_table[] = {
+            ENavigationQueryResult::Fail,
+            ENavigationQueryResult::Success,
+            ENavigationQueryResult::Fail,
+            ENavigationQueryResult::Fail
+        };
+
+        return result_conversion_table[ static_cast< int >( result ) ];
     }
 };

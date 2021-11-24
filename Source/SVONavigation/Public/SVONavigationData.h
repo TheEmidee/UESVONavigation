@@ -1,7 +1,7 @@
 #pragma once
 
-#include "SVOVolumeNavigationData.h"
 #include "SVONavigationTypes.h"
+#include "SVOVolumeNavigationData.h"
 
 #include <CoreMinimal.h>
 #include <NavigationData.h>
@@ -10,6 +10,41 @@
 
 class USVONavDataRenderingComponent;
 struct FSVONavigationBounds;
+
+USTRUCT()
+struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
+{
+    GENERATED_USTRUCT_BODY()
+
+    FSVOVolumeNavigationDataDebugInfos();
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawBounds : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawNodeAddress : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawMortonCoords : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawNodeLocation : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawLayers : 1;
+
+    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawLayers", ClampMin = "0", UIMin = "0" ) )
+    uint8 LayerIndexToDraw;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawSubNodes : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 DebugDrawOccludedVoxels : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 DebugDrawFreeVoxels : 1;
+};
 
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
 class SVONAVIGATION_API ASVONavigationData final : public ANavigationData

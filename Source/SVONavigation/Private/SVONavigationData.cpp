@@ -1,12 +1,12 @@
 #include "SVONavigationData.h"
 
+#include "PathFinding/SVONavigationPath.h"
+#include "PathFinding/SVONavigationQueryFilterImpl.h"
+#include "PathFinding/SVOPathFinder.h"
+#include "PathFinding/SVOPathFindingAlgorithm.h"
 #include "SVONavDataRenderingComponent.h"
 #include "SVONavigationDataGenerator.h"
-#include "SVONavigationPath.h"
-#include "SVONavigationQueryFilterImpl.h"
 #include "SVONavigationSettings.h"
-#include "SVOPathFinder.h"
-#include "SVOPathFindingAlgorithm.h"
 #include "SVOVersion.h"
 
 #include <AI/NavDataGenerator.h>
@@ -16,6 +16,19 @@
 #if WITH_EDITOR
 #include <ObjectEditorUtils.h>
 #endif
+
+FSVOVolumeNavigationDataDebugInfos::FSVOVolumeNavigationDataDebugInfos() :
+    bDebugDrawBounds( false ),
+    bDebugDrawNodeAddress( false ),
+    bDebugDrawMortonCoords( false ),
+    bDebugDrawNodeLocation( false ),
+    bDebugDrawLayers( false ),
+    LayerIndexToDraw( 1 ),
+    bDebugDrawSubNodes( false ),
+    DebugDrawOccludedVoxels( true ),
+    DebugDrawFreeVoxels( false )
+{
+}
 
 ASVONavigationData::ASVONavigationData() :
     Version( ESVOVersion::Latest )

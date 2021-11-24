@@ -1,6 +1,6 @@
-#include "SVONavigationQueryFilter.h"
+#include "Pathfinding/SVONavigationQueryFilter.h"
 
-#include "SVONavigationQueryFilterImpl.h"
+#include "PathFinding/SVONavigationQueryFilterImpl.h"
 
 void USVONavigationQueryFilter::InitializeFilter( const ANavigationData & nav_data, const UObject * querier, FNavigationQueryFilter & filter ) const
 {
@@ -8,5 +8,6 @@ void USVONavigationQueryFilter::InitializeFilter( const ANavigationData & nav_da
 
     FSVONavigationQueryFilterImpl * filter_impl = static_cast< FSVONavigationQueryFilterImpl * >( filter.GetImplementation() );
 
-    filter_impl->QueryFilterSettings = QueryFilterSettings;;
+    filter_impl->QueryFilterSettings = QueryFilterSettings;
+    ;
 }

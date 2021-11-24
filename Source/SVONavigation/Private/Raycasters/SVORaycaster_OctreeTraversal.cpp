@@ -81,8 +81,8 @@ bool USVORayCaster_OctreeTraversal::TraceInternal( UObject * world_context, cons
 {
     const auto & navigation_bounds = volume_navigation_data.GetNavigationBounds();
     FVector volume_center;
-    FVector volume_half_extent;
-    navigation_bounds.GetCenterAndExtents( volume_center, volume_half_extent );
+    FVector volume_extent;
+    navigation_bounds.GetCenterAndExtents( volume_center, volume_extent );
 
     const FVector from_to( to - from );
     FRay ray( from, from_to );
@@ -241,7 +241,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
         return false;
     }
 
-    const auto & leaf_node = data.GetData().GetLeaves().GetLeaf( node_address.NodeIndex );
+    const auto & leaf_node = data.GetData().GetLeafNodes().GetLeafNode( node_address.NodeIndex );
     int32 current_child_idx = GetFirstNodeIndex( FOctreeRay( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tz0, ray.tzm ) );
 
     bool result = false;
@@ -377,7 +377,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
 bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedLeaf( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & data ) const
 {
     const auto node_index = node_address.NodeIndex;
-    const FSVOLeaf & leaf_node = data.GetData().GetLeaves().GetLeaf( node_index );
+    const FSVOLeafNode & leaf_node = data.GetData().GetLeafNodes().GetLeafNode( node_index );
 
     if ( leaf_node.IsCompletelyFree() )
     {

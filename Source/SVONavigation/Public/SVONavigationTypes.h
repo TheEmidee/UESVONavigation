@@ -15,59 +15,6 @@ typedef uint8 NeighborDirection;
 
 DECLARE_DELEGATE_ThreeParams( FSVONavigationPathQueryDelegate, uint32, ENavigationQueryResult::Type, FNavPathSharedPtr );
 
-struct FSVOPathFindingResult
-{
-    FNavPathSharedPtr Path;
-    ENavigationQueryResult::Type Result;
-
-    explicit FSVOPathFindingResult( ENavigationQueryResult::Type result = ENavigationQueryResult::Invalid ) :
-        Result( result )
-    {
-    }
-
-    bool IsSuccessful() const;
-};
-
-FORCEINLINE bool FSVOPathFindingResult::IsSuccessful() const
-{
-    return Result == ENavigationQueryResult::Success;
-}
-
-USTRUCT()
-struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
-{
-    GENERATED_USTRUCT_BODY()
-
-    FSVOVolumeNavigationDataDebugInfos();
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawBounds : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawNodeAddress : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawMortonCoords : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawNodeLocation : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawLayers : 1;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawLayers", ClampMin = "0", UIMin = "0" ) )
-    uint8 LayerIndexToDraw;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawSubNodes : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 DebugDrawOccludedVoxels : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 DebugDrawFreeVoxels : 1;
-};
-
 USTRUCT()
 struct FSVODataGenerationSettings
 {
@@ -92,7 +39,7 @@ struct FSVODataGenerationSettings
     FCollisionQueryParams CollisionQueryParameters;
 };
 
-struct FSVOLeaf
+struct FSVOLeafNode
 {
     void MarkSubNodeAsOccluded( const SubNodeIndex index );
     bool IsSubNodeOccluded( const MortonCode morton_code ) const;
@@ -102,27 +49,27 @@ struct FSVOLeaf
     uint_fast64_t SubNodes = 0;
 };
 
-FORCEINLINE void FSVOLeaf::MarkSubNodeAsOccluded( const SubNodeIndex index )
+FORCEINLINE void FSVOLeafNode::MarkSubNodeAsOccluded( const SubNodeIndex index )
 {
     SubNodes |= 1ULL << index;
 }
 
-FORCEINLINE bool FSVOLeaf::IsSubNodeOccluded( const MortonCode morton_code ) const
+FORCEINLINE bool FSVOLeafNode::IsSubNodeOccluded( const MortonCode morton_code ) const
 {
     return ( SubNodes & 1ULL << morton_code ) != 0;
 }
 
-FORCEINLINE bool FSVOLeaf::IsCompletelyOccluded() const
+FORCEINLINE bool FSVOLeafNode::IsCompletelyOccluded() const
 {
     return SubNodes == -1;
 }
 
-FORCEINLINE bool FSVOLeaf::IsCompletelyFree() const
+FORCEINLINE bool FSVOLeafNode::IsCompletelyFree() const
 {
     return SubNodes == 0;
 }
 
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeaf & data )
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeafNode & data )
 {
     archive << data.SubNodes;
     return archive;
@@ -200,23 +147,25 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONodeAddress & data )
 
 struct FSVONode
 {
+    FSVONode();
+    explicit FSVONode( MortonCode morton_code );
+    bool HasChildren() const;
+
     MortonCode MortonCode;
     FSVONodeAddress Parent;
     FSVONodeAddress FirstChild;
     FSVONodeAddress Neighbors[ 6 ];
-
-    FSVONode() :
-        MortonCode( 0 ),
-        Parent( FSVONodeAddress::InvalidAddress ),
-        FirstChild( FSVONodeAddress::InvalidAddress )
-    {
-    }
-
-    bool HasChildren() const
-    {
-        return FirstChild.IsValid();
-    }
 };
+
+FORCEINLINE bool FSVONode::HasChildren() const
+{
+    return FirstChild.IsValid();
+}
+
+FORCEINLINE bool operator<( const FSVONode & left, const FSVONode & right )
+{
+    return left.MortonCode < right.MortonCode;
+}
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONode & data )
 {
@@ -232,74 +181,74 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONode & data )
     return archive;
 }
 
-class FSVOLeaves
+class FSVOLeafNodes
 {
 public:
-    friend FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves );
+    friend FArchive & operator<<( FArchive & archive, FSVOLeafNodes & leaf_nodes );
     friend class FSVOVolumeNavigationData;
     friend class FSVOData;
 
-    const FSVOLeaf & GetLeaf( const LeafIndex leaf_index ) const;
-    const TArray< FSVOLeaf > & GetLeaves() const;
-    float GetLeafExtent() const;
-    float GetLeafHalfExtent() const;
+    const FSVOLeafNode & GetLeafNode( const LeafIndex leaf_index ) const;
+    const TArray< FSVOLeafNode > & GetLeafNodes() const;
+    float GetLeafNodeSize() const;
+    float GetLeafNodeExtent() const;
+    float GetLeafSubNodeSize() const;
     float GetLeafSubNodeExtent() const;
-    float GetLeafSubNodeHalfExtent() const;
 
     int GetAllocatedSize() const;
 
 private:
-    FSVOLeaf GetLeaf( const LeafIndex leaf_index );
+    FSVOLeafNode GetLeafNode( const LeafIndex leaf_index );
 
-    void Initialize( float leaf_extent );
+    void Initialize( float leaf_size );
     void Reset();
-    void AllocateLeaves( int leaf_count );
-    void AddLeaf( LeafIndex leaf_index, SubNodeIndex subnode_index, bool is_occluded );
-    void AddEmptyLeaf();
+    void AllocateLeafNodes( int leaf_count );
+    void AddLeafNode( LeafIndex leaf_index, SubNodeIndex sub_node_index, bool is_occluded );
+    void AddEmptyLeafNode();
 
-    float LeafExtent;
-    TArray< FSVOLeaf > Leaves;
+    float LeafNodeSize;
+    TArray< FSVOLeafNode > LeafNodes;
 };
 
-FORCEINLINE const FSVOLeaf & FSVOLeaves::GetLeaf( const LeafIndex leaf_index ) const
+FORCEINLINE const FSVOLeafNode & FSVOLeafNodes::GetLeafNode( const LeafIndex leaf_index ) const
 {
-    return Leaves[ leaf_index ];
+    return LeafNodes[ leaf_index ];
 }
 
-FORCEINLINE const TArray< FSVOLeaf > & FSVOLeaves::GetLeaves() const
+FORCEINLINE const TArray< FSVOLeafNode > & FSVOLeafNodes::GetLeafNodes() const
 {
-    return Leaves;
+    return LeafNodes;
 }
 
-FORCEINLINE float FSVOLeaves::GetLeafExtent() const
+FORCEINLINE float FSVOLeafNodes::GetLeafNodeSize() const
 {
-    return LeafExtent;
+    return LeafNodeSize;
 }
 
-FORCEINLINE float FSVOLeaves::GetLeafHalfExtent() const
+FORCEINLINE float FSVOLeafNodes::GetLeafNodeExtent() const
 {
-    return GetLeafExtent() * 0.5f;
+    return GetLeafNodeSize() * 0.5f;
 }
 
-FORCEINLINE float FSVOLeaves::GetLeafSubNodeExtent() const
+FORCEINLINE float FSVOLeafNodes::GetLeafSubNodeSize() const
 {
-    return GetLeafExtent() * 0.25f;
+    return GetLeafNodeSize() * 0.25f;
 }
 
-FORCEINLINE float FSVOLeaves::GetLeafSubNodeHalfExtent() const
+FORCEINLINE float FSVOLeafNodes::GetLeafSubNodeExtent() const
 {
-    return GetLeafSubNodeExtent() * 0.5f;
+    return GetLeafSubNodeSize() * 0.5f;
 }
 
-FORCEINLINE FSVOLeaf FSVOLeaves::GetLeaf( const LeafIndex leaf_index )
+FORCEINLINE FSVOLeafNode FSVOLeafNodes::GetLeafNode( const LeafIndex leaf_index )
 {
-    return Leaves[ leaf_index ];
+    return LeafNodes[ leaf_index ];
 }
 
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeaves & leaves )
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeafNodes & leaf_nodes )
 {
-    archive << leaves.Leaves;
-    archive << leaves.LeafExtent;
+    archive << leaf_nodes.LeafNodes;
+    archive << leaf_nodes.LeafNodeSize;
     return archive;
 }
 
@@ -310,13 +259,13 @@ public:
     friend class FSVOVolumeNavigationData;
 
     FSVOLayer();
-    FSVOLayer( int max_node_count, float voxel_extent );
+    FSVOLayer( int max_node_count, float node_size );
 
     const TArray< FSVONode > & GetNodes() const;
     int32 GetNodeCount() const;
     const FSVONode & GetNode( NodeIndex node_index ) const;
-    float GetVoxelExtent() const;
-    float GetVoxelHalfExtent() const;
+    float GetNodeSize() const;
+    float GetNodeExtent() const;
     uint32 GetMaxNodeCount() const;
     uint32 GetBlockedNodesCount() const;
     const TSet< MortonCode > & GetBlockedNodes() const;
@@ -330,7 +279,7 @@ private:
     TArray< FSVONode > Nodes;
     TSet< MortonCode > BlockedNodes;
     int MaxNodeCount;
-    float VoxelExtent;
+    float NodeSize;
 };
 
 FORCEINLINE const TArray< FSVONode > & FSVOLayer::GetNodes() const
@@ -353,14 +302,14 @@ FORCEINLINE const FSVONode & FSVOLayer::GetNode( const NodeIndex node_index ) co
     return Nodes[ node_index ];
 }
 
-FORCEINLINE float FSVOLayer::GetVoxelExtent() const
+FORCEINLINE float FSVOLayer::GetNodeSize() const
 {
-    return VoxelExtent;
+    return NodeSize;
 }
 
-FORCEINLINE float FSVOLayer::GetVoxelHalfExtent() const
+FORCEINLINE float FSVOLayer::GetNodeExtent() const
 {
-    return GetVoxelExtent() * 0.5f;
+    return GetNodeSize() * 0.5f;
 }
 
 FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
@@ -381,7 +330,7 @@ FORCEINLINE uint32 FSVOLayer::GetBlockedNodesCount() const
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
 {
     archive << layer.Nodes;
-    archive << layer.VoxelExtent;
+    archive << layer.NodeSize;
     return archive;
 }
 
@@ -396,7 +345,7 @@ public:
     int GetLayerCount() const;
     const FSVOLayer & GetLayer( LayerIndex layer_index ) const;
     const FSVOLayer & GetLastLayer() const;
-    const FSVOLeaves & GetLeaves() const;
+    const FSVOLeafNodes & GetLeafNodes() const;
     const FBox & GetNavigationBounds() const;
     bool IsValid() const;
 
@@ -404,12 +353,12 @@ public:
 
 private:
     FSVOLayer & GetLayer( LayerIndex layer_index );
-    FSVOLeaves & GetLeaves();
-    bool Initialize( float voxel_extent, const FBox & volume_bounds );
+    FSVOLeafNodes & GetLeafNodes();
+    bool Initialize( float voxel_size, const FBox & volume_bounds );
     void Reset();
 
     TArray< FSVOLayer > Layers;
-    FSVOLeaves Leaves;
+    FSVOLeafNodes LeafNodes;
     FBox NavigationBounds;
     uint8 bIsValid : 1;
 };
@@ -434,14 +383,14 @@ FORCEINLINE const FSVOLayer & FSVOData::GetLastLayer() const
     return Layers.Last();
 }
 
-FORCEINLINE const FSVOLeaves & FSVOData::GetLeaves() const
+FORCEINLINE const FSVOLeafNodes & FSVOData::GetLeafNodes() const
 {
-    return Leaves;
+    return LeafNodes;
 }
 
-FORCEINLINE FSVOLeaves & FSVOData::GetLeaves()
+FORCEINLINE FSVOLeafNodes & FSVOData::GetLeafNodes()
 {
-    return Leaves;
+    return LeafNodes;
 }
 
 FORCEINLINE const FBox & FSVOData::GetNavigationBounds() const
@@ -457,7 +406,7 @@ FORCEINLINE bool FSVOData::IsValid() const
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOData & data )
 {
     archive << data.Layers;
-    archive << data.Leaves;
+    archive << data.LeafNodes;
     archive << data.NavigationBounds;
 
     if ( archive.IsLoading() )
@@ -472,30 +421,3 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOData & data )
 
     return archive;
 }
-
-USTRUCT()
-struct SVONAVIGATION_API FSVONavigationQueryFilterSettings
-{
-    GENERATED_USTRUCT_BODY()
-
-    FSVONavigationQueryFilterSettings();
-
-    UPROPERTY( EditAnywhere, Instanced )
-    USVOPathFindingAlgorithm * PathFinder;
-
-    UPROPERTY( EditAnywhere, Instanced )
-    USVOPathTraversalCostCalculator * TraversalCostCalculator;
-
-    UPROPERTY( EditAnywhere, Instanced )
-    USVOPathHeuristicCalculator * HeuristicCalculator;
-
-    UPROPERTY( EditDefaultsOnly )
-    float HeuristicScale;
-
-    // If set to true, this will lower the cost of traversing bigger nodes, and make the pathfinding more favorable traversing them
-    UPROPERTY( EditDefaultsOnly )
-    uint8 bUseNodeSizeCompensation : 1;
-
-    UPROPERTY( EditDefaultsOnly )
-    uint8 bOffsetPathVerticallyByAgentRadius : 1;
-};

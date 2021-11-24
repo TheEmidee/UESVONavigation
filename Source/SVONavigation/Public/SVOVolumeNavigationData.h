@@ -38,7 +38,7 @@ public:
     void GetNodeNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & node_address ) const;
     float GetLayerRatio( LayerIndex layer_index ) const;
     float GetLayerInverseRatio( LayerIndex layer_index ) const;
-    float GetVoxelHalfExtentFromNodeAddress( FSVONodeAddress node_address ) const;
+    float GetNodeExtentFromNodeAddress( FSVONodeAddress node_address ) const;
     TOptional< FNavLocation > GetRandomPoint() const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings );
@@ -46,12 +46,12 @@ public:
 
 private:
     int GetLayerCount() const;
-    bool IsPositionOccluded( const FVector & position, float box_half_extent ) const;
+    bool IsPositionOccluded( const FVector & position, float box_extent ) const;
     void FirstPassRasterization();
     void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index );
     void RasterizeInitialLayer();
     void RasterizeLayer( LayerIndex layer_index );
-    TOptional< int32 > GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
+    int32 GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
     void BuildNeighborLinks( LayerIndex layer_index );
     bool FindNeighborInDirection( FSVONodeAddress & node_address, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
     void GetLeafNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & leaf_address ) const;
