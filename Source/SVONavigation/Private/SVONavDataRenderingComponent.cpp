@@ -95,7 +95,7 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
                 const auto code = node.MortonCode;
                 const FSVONodeAddress node_address( corrected_layer_index, code );
 
-                const auto node_position = navigation_bounds_data.GetNodePositionFromAddress( node_address );
+                const auto node_position = navigation_bounds_data.GetNodePositionFromAddress( node_address, false );
 
                 if ( try_add_voxel_to_boxes( node_position, node_extent, node.HasChildren() ) )
                 {
@@ -117,7 +117,7 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
 
                     for ( SubNodeIndex sub_node_index = 0; sub_node_index < 64; sub_node_index++ )
                     {
-                        const auto sub_node_location = navigation_bounds_data.GetSubNodePositionFromAddress( FSVONodeAddress( 0, leaf_node.MortonCode, sub_node_index ) );
+                        const auto sub_node_location = navigation_bounds_data.GetNodePositionFromAddress( FSVONodeAddress( 0, leaf_node.MortonCode, sub_node_index ), true );
                         const bool is_sub_node_occluded = leaf.IsSubNodeOccluded( sub_node_index );
 
                         if ( try_add_voxel_to_boxes( sub_node_location, sub_node_extent, is_sub_node_occluded ) )

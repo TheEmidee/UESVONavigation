@@ -25,7 +25,7 @@ FSVOVolumeNavigationDataGenerationSettings::FSVOVolumeNavigationDataGenerationSe
 {
 }
 
-FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddress & address ) const
+FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddress & address, const bool try_get_sub_node_position ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetNodePositionFromNodeAddress );
 
@@ -41,24 +41,6 @@ FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddr
     const auto position = navigation_bounds_center - navigation_bounds_extent + morton_coords * layer_node_size + layer_node_extent;
 
     return position;
-}
-
-FVector FSVOVolumeNavigationData::GetSubNodePositionFromAddress( const FSVONodeAddress & address ) const
-{
-    checkf( address.LayerIndex == 0, TEXT( "To get the position of a node, you must use GetNodePositionFromAddress" ) );
-
-    QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GetSubNodePositionFromAddress );
-
-    const auto node_position = GetNodePositionFromAddress( address );
-
-    const auto & leaf_layer = SVOData.GetLayer( 0 );
-    const auto leaf_node_extent = leaf_layer.GetNodeExtent();
-    const auto & leaf_nodes = SVOData.GetLeafNodes();
-    const auto leaf_sub_node_size = leaf_nodes.GetLeafSubNodeSize();
-    const auto leaf_sub_node_extent = leaf_nodes.GetLeafSubNodeExtent();
-
-    const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( address.SubNodeIndex );
-    return node_position - leaf_node_extent + morton_coords * leaf_sub_node_size + leaf_sub_node_extent;
 }
 
 bool FSVOVolumeNavigationData::GetNodeAddressFromPosition( FSVONodeAddress & node_address, const FVector & position ) const
@@ -127,7 +109,7 @@ bool FSVOVolumeNavigationData::GetNodeAddressFromPosition( FSVONodeAddress & nod
 
                 // We need to calculate the node local position to get the morton code for the leaf
                 // The world position of the 0 node
-                const auto node_position = GetNodePositionFromAddress( FSVONodeAddress( layer_index, node.MortonCode ) );
+                const auto node_position = GetNodePositionFromAddress( FSVONodeAddress( layer_index, node.MortonCode ), false );
                 // The morton origin of the node
                 const auto node_origin = node_position - FVector( node_extent );
                 // The requested position, relative to the node origin
@@ -329,7 +311,7 @@ TOptional< FNavLocation > FSVOVolumeNavigationData::GetRandomPoint() const
 
     const auto random_index = FMath::RandRange( 0, non_occluded_nodes.Num() - 1 );
     const auto random_node = non_occluded_nodes[ random_index ];
-    const auto random_node_location = GetNodePositionFromAddress( random_node );
+    const auto random_node_location = GetNodePositionFromAddress( random_node, true );
     const auto random_node_extent = GetNodeExtentFromNodeAddress( random_node );
 
     const auto node_bounds = FBox::BuildAABB( random_node_location, FVector( random_node_extent ) );
@@ -405,7 +387,7 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
 
         for ( MortonCode node_index = 0; node_index < layer_max_node_count; ++node_index )
         {
-            const auto position = GetNodePositionFromAddress( FSVONodeAddress( 1, node_index ) );
+            const auto position = GetNodePositionFromAddress( FSVONodeAddress( 1, node_index ), false );
 
             if ( IsPositionOccluded( position, layer_node_extent ) )
             {

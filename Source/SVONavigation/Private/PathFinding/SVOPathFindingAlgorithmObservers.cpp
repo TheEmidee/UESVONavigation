@@ -24,7 +24,7 @@ namespace
         for ( auto index = 0; index < node_addresses.Num() - 1; index++ )
         {
             const auto address_with_cost = node_addresses[ index ];
-            path_points.Emplace( bounds_data.GetNodePositionFromAddress( address_with_cost.NodeAddress ) );
+            path_points.Emplace( bounds_data.GetNodePositionFromAddress( address_with_cost.NodeAddress, true ) );
             path_point_costs.Add( address_with_cost.Cost );
         }
 

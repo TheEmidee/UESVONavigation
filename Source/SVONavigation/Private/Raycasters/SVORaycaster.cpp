@@ -61,8 +61,8 @@ void FSVORayCasterObserver_GenerateDebugInfos::AddTraversedLeafSubNode( FSVONode
 
 bool USVORayCaster::Trace( const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to ) const
 {
-    const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from );
-    const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to );
+    const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from, true );
+    const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to, true );
 
     return Trace( volume_navigation_data, from_position, to_position );
 }

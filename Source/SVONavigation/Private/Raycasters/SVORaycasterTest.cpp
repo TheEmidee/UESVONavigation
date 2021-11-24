@@ -69,7 +69,7 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
                 {
                     const FSVONodeAddress node_address( 0, morton_code );
 
-                    const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( node_address );
+                    const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( node_address, true );
                     const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( node_address.LayerIndex ).GetNodeExtent();
 
                     Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_leaf_node.bIsOccluded ? FColor::Orange : FColor::Green );
@@ -86,7 +86,7 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
                     continue;
                 }
 
-                const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( traversed_node.NodeAddress );
+                const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( traversed_node.NodeAddress, true );
                 const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( traversed_node.NodeAddress.LayerIndex ).GetNodeExtent();
 
                 Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_node.bIsOccluded ? FColor::Orange : FColor::Green );
@@ -104,7 +104,7 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
             if ( get_leaf_morton_coords_from_leaf_index( morton_code, FSVONodeAddress( 0, traversed_leaf_sub_node.NodeAddress.NodeIndex, 0 ) ) )
             {
                 const auto sub_node_address = FSVONodeAddress( 0, morton_code, traversed_leaf_sub_node.NodeAddress.SubNodeIndex );
-                const auto node_position = proxy_data.DebugInfos.NavigationData->GetSubNodePositionFromAddress( sub_node_address );
+                const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( sub_node_address, true );
                 const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLeafNodes().GetLeafSubNodeExtent();
 
                 Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_leaf_sub_node.bIsOccluded ? FColor::Orange : FColor::Green );

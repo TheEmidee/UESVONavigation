@@ -4,8 +4,8 @@
 
 float USVOPathCostCalculator_Distance::GetTraversalCost( const FSVOVolumeNavigationData & bounds_data, const FSVONodeAddress & start, const FSVONodeAddress & end ) const
 {
-    const auto start_location = bounds_data.GetNodePositionFromAddress( start );
-    const auto end_location = bounds_data.GetNodePositionFromAddress( end );
+    const auto start_location = bounds_data.GetNodePositionFromAddress( start, true );
+    const auto end_location = bounds_data.GetNodePositionFromAddress( end, true );
     const auto cost = ( start_location - end_location ).Size();
 
     return cost;

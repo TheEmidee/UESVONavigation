@@ -11,7 +11,7 @@ FSVONodeAddressWithLocation::FSVONodeAddressWithLocation( const FSVONodeAddress 
 
 FSVONodeAddressWithLocation::FSVONodeAddressWithLocation( const FSVONodeAddress & node_address, const FSVOVolumeNavigationData & bounds_navigation_data ) :
     NodeAddress( node_address ),
-    Location( bounds_navigation_data.GetNodePositionFromAddress( node_address ) )
+    Location( bounds_navigation_data.GetNodePositionFromAddress( node_address, true ) )
 {}
 
 FSVOPathFinderDebugNodeCost::FSVOPathFinderDebugNodeCost( const FSVONodeAddressWithLocation & from, const FSVONodeAddressWithLocation & to, const float cost, const bool is_closed ) :
