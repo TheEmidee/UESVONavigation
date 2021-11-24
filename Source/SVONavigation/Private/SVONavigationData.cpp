@@ -498,6 +498,11 @@ const FSVOVolumeNavigationData * ASVONavigationData::GetVolumeNavigationDataCont
     } );
 }
 
+void ASVONavigationData::UpdateNavVersion()
+{
+    Version = ESVOVersion::Latest;
+}
+
 void ASVONavigationData::RecreateDefaultFilter() const
 {
     DefaultQueryFilter->SetFilterType< FSVONavigationQueryFilterImpl >();

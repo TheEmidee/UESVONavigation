@@ -68,6 +68,8 @@ void FSVONavigationDataGenerator::Init()
 
 bool FSVONavigationDataGenerator::RebuildAll()
 {
+    NavigationData.UpdateNavVersion();
+
     UpdateNavigationBounds();
 
     TArray< FNavigationDirtyArea > dirty_areas;

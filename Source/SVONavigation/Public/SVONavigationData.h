@@ -104,6 +104,7 @@ public:
     void RemoveDataInBounds( const FBox & bounds );
     void AddVolumeNavigationData( FSVOVolumeNavigationData data );
     const FSVOVolumeNavigationData * GetVolumeNavigationDataContainingPoints( const TArray< FVector > & points ) const;
+    void UpdateNavVersion();
 
 private:
     void RecreateDefaultFilter() const;
