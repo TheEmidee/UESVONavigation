@@ -70,9 +70,9 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
                     const FSVONodeAddress node_address( 0, morton_code );
 
                     const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( node_address );
-                    const auto node_half_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( node_address.LayerIndex ).GetVoxelHalfExtent();
+                    const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( node_address.LayerIndex ).GetNodeExtent();
 
-                    Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_half_extent ) ), traversed_leaf_node.bIsOccluded ? FColor::Orange : FColor::Green );
+                    Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_leaf_node.bIsOccluded ? FColor::Orange : FColor::Green );
                     draw_morton_coords( node_position, node_address );
                 }
             }
@@ -87,9 +87,9 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
                 }
 
                 const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( traversed_node.NodeAddress );
-                const auto node_half_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( traversed_node.NodeAddress.LayerIndex ).GetVoxelHalfExtent();
+                const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( traversed_node.NodeAddress.LayerIndex ).GetNodeExtent();
 
-                Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_half_extent ) ), traversed_node.bIsOccluded ? FColor::Orange : FColor::Green );
+                Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_node.bIsOccluded ? FColor::Orange : FColor::Green );
                 draw_morton_coords( node_position, traversed_node.NodeAddress );
             }
         }
@@ -99,16 +99,16 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
     {
         for ( const auto & traversed_leaf_sub_node : proxy_data.DebugInfos.TraversedLeafSubNodes )
         {
-            // traversed_leaf_sub_node.NodeAddress.NodeIndex is the index of the leaf in the Leaves array. We need to get the associated morton coords from that in the nodes of layer 0
+            // traversed_leaf_sub_node.NodeAddress.NodeIndex is the index of the leaf in the LeafNodes array. We need to get the associated morton coords from that in the nodes of layer 0
             MortonCode morton_code;
             if ( get_leaf_morton_coords_from_leaf_index( morton_code, FSVONodeAddress( 0, traversed_leaf_sub_node.NodeAddress.NodeIndex, 0 ) ) )
             {
-                const auto subnode_address = FSVONodeAddress( 0, morton_code, traversed_leaf_sub_node.NodeAddress.SubNodeIndex );
-                const auto node_position = proxy_data.DebugInfos.NavigationData->GetSubNodePositionFromAddress( subnode_address );
-                const auto node_half_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLeaves().GetLeafSubNodeHalfExtent();
+                const auto sub_node_address = FSVONodeAddress( 0, morton_code, traversed_leaf_sub_node.NodeAddress.SubNodeIndex );
+                const auto node_position = proxy_data.DebugInfos.NavigationData->GetSubNodePositionFromAddress( sub_node_address );
+                const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLeafNodes().GetLeafSubNodeExtent();
 
-                Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_half_extent ) ), traversed_leaf_sub_node.bIsOccluded ? FColor::Orange : FColor::Green );
-                draw_morton_coords( node_position, subnode_address );
+                Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_leaf_sub_node.bIsOccluded ? FColor::Orange : FColor::Green );
+                draw_morton_coords( node_position, sub_node_address );
             }
         }
     }
