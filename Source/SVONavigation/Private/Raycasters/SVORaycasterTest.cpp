@@ -36,21 +36,6 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
     const auto layer_count = proxy_data.DebugInfos.NavigationData->GetData().GetLayerCount();
     const auto corrected_layer_index = FMath::Clamp( static_cast< int >( debug_draw_options.LayerIndexToDraw ), 0, layer_count - 1 );
 
-    const auto get_leaf_morton_coords_from_leaf_index = [ &proxy_data ]( MortonCode & morton_code, const FSVONodeAddress leaf_node_address ) {
-        const auto & layer_zero = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( 0 );
-        const auto & layer_zero_nodes = layer_zero.GetNodes();
-
-        if ( const auto * node_ptr = layer_zero_nodes.FindByPredicate( [ node_address = leaf_node_address ]( const FSVONode & layer_zero_node ) {
-                 return layer_zero_node.FirstChild == node_address;
-             } ) )
-        {
-            morton_code = node_ptr->MortonCode;
-            return true;
-        }
-
-        return false;
-    };
-
     const auto draw_morton_coords = [ &debug_draw_options, this ]( const FVector & location, const FSVONodeAddress node_address ) {
         if ( debug_draw_options.bDrawMortonCode )
         {
