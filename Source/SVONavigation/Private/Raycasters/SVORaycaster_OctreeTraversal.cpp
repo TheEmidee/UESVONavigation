@@ -90,6 +90,7 @@ bool USVORayCaster_OctreeTraversal::TraceInternal( const FSVOVolumeNavigationDat
     FRay ray( from, from_to );
 
     a = 0;
+    RaySize = from_to.Size();
 
     if ( FMath::IsNearlyZero( ray.Direction.X ) )
     {
@@ -172,9 +173,14 @@ bool USVORayCaster_OctreeTraversal::FOctreeRay::Intersects() const
     return FMath::Max3( tx0, ty0, tz0 ) < FMath::Min3( tx1, ty1, tz1 );
 }
 
-bool USVORayCaster_OctreeTraversal::FOctreeRay::IsInRange() const
+bool USVORayCaster_OctreeTraversal::FOctreeRay::IsInRange( const float max_size ) const
 {
-    return tx1 >= 0.0f && ty1 >= 0.0f && tz1 >= 0.0f;
+    return tx1 >= 0.0f
+        && ty1 >= 0.0f
+        && tz1 >= 0.0f
+        && tx0 <= max_size
+        && ty0 <= max_size
+        && tz0 <= max_size;
 }
 
 uint8 USVORayCaster_OctreeTraversal::GetFirstNodeIndex( const FOctreeRay & ray )
@@ -245,7 +251,7 @@ uint8 USVORayCaster_OctreeTraversal::GetNextNodeIndex( const float txm, const in
 
 bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const NodeIndex leaf_sub_node_index, const FSVOVolumeNavigationData & data ) const
 {
-    if ( !ray.IsInRange() )
+    if ( !ray.IsInRange( RaySize ) )
     {
         return false;
     }
@@ -265,7 +271,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
             case 0:
             {
                 FOctreeRay sub_node_ray( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tz0, ray.tzm );
-                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                if ( sub_node_ray.IsInRange( RaySize ) && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
                 {
                     result = true;
                 }
@@ -278,7 +284,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
             case 1:
             {
                 FOctreeRay sub_node_ray( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tz0, ray.tzm );
-                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                if ( sub_node_ray.IsInRange( RaySize ) && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
                 {
                     result = true;
                 }
@@ -291,7 +297,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
             case 2:
             {
                 FOctreeRay sub_node_ray( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tz0, ray.tzm );
-                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                if ( sub_node_ray.IsInRange( RaySize ) && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
                 {
                     result = true;
                 }
@@ -304,7 +310,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
             case 3:
             {
                 FOctreeRay sub_node_ray( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tz0, ray.tzm );
-                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                if ( sub_node_ray.IsInRange( RaySize ) && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
                 {
                     result = true;
                 }
@@ -317,7 +323,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
             case 4:
             {
                 FOctreeRay sub_node_ray( ray.tx0, ray.txm, ray.ty0, ray.tym, ray.tzm, ray.tz1 );
-                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                if ( sub_node_ray.IsInRange( RaySize ) && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
                 {
                     result = true;
                 }
@@ -330,7 +336,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
             case 5:
             {
                 FOctreeRay sub_node_ray( ray.txm, ray.tx1, ray.ty0, ray.tym, ray.tzm, ray.tz1 );
-                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                if ( sub_node_ray.IsInRange( RaySize ) && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
                 {
                     result = true;
                 }
@@ -343,7 +349,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
             case 6:
             {
                 FOctreeRay sub_node_ray( ray.tx0, ray.txm, ray.tym, ray.ty1, ray.tzm, ray.tz1 );
-                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                if ( sub_node_ray.IsInRange( RaySize ) && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
                 {
                     result = true;
                 }
@@ -356,7 +362,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedSubNode( const FOctr
             case 7:
             {
                 FOctreeRay sub_node_ray( ray.txm, ray.tx1, ray.tym, ray.ty1, ray.tzm, ray.tz1 );
-                if ( sub_node_ray.IsInRange() && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
+                if ( sub_node_ray.IsInRange( RaySize ) && leaf_node.IsSubNodeOccluded( sub_node_idx ) && sub_node_ray.Intersects() )
                 {
                     result = true;
                 }
@@ -591,7 +597,7 @@ bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNormalNode( const FO
 
 bool USVORayCaster_OctreeTraversal::DoesRayIntersectOccludedNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const
 {
-    if ( !ray.IsInRange() )
+    if ( !ray.IsInRange( RaySize ) )
     {
         return false;
     }

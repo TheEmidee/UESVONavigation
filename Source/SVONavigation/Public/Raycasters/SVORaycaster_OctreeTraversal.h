@@ -21,7 +21,7 @@ private:
     {
         FOctreeRay( float tx0, float tx1, float ty0, float ty1, float tz0, float tz1 );
         bool Intersects() const;
-        bool IsInRange() const;
+        bool IsInRange( float max_size ) const;
 
         float tx0;
         float tx1;
@@ -43,4 +43,5 @@ private:
     bool DoesRayIntersectOccludedNode( const FOctreeRay & ray, const FSVONodeAddress & node_address, const FSVONodeAddress & parent_node_address, const FSVOVolumeNavigationData & data ) const;
 
     mutable uint8 a = 0;
+    mutable float RaySize = 0.0f;
 };
