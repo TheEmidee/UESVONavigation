@@ -10,6 +10,13 @@ FSVOPathFindingAlgorithmStepper_LazyThetaStar::FSVOPathFindingAlgorithmStepper_L
 
 ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaStar::ProcessSingleNode( EGraphAStarResult & result )
 {
+    if ( Graph.OpenList.Num() == 0 )
+    {
+        State = ESVOPathFindingAlgorithmState::Ended;
+        result = SearchFail;
+        return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
+    }
+
     ConsideredNodeIndex = Graph.OpenList.PopIndex();
 
     // Take a pointer and not a ref because we may re-assign the current node below if there's no LOS and we add a neighbor to the node pool
