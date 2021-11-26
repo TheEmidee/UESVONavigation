@@ -149,7 +149,7 @@ bool USVORayCaster_OctreeTraversal::TraceInternal( const FSVOVolumeNavigationDat
 
     if ( bShowLineOfSightTraces )
     {
-        ::DrawDebugLine( GetWorldContext(), from, to, result ? FColor::Red : FColor::Green, false, 5.0f );
+        DrawDebugLine( GetWorldContext(), from, to, result ? FColor::Red : FColor::Green, false, 5.0f );
     }
 
     return result;
