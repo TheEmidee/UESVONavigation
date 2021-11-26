@@ -32,8 +32,8 @@ public:
     const FSVOData & GetData() const;
     const FSVONode & GetNodeFromAddress( const FSVONodeAddress & address ) const;
 
-    FVector GetNodePositionFromAddress( const FSVONodeAddress & address ) const;
-    FVector GetSubNodePositionFromAddress( const FSVONodeAddress & address ) const;
+    FVector GetNodePositionFromAddress( const FSVONodeAddress & address, bool try_get_sub_node_position ) const;
+    FVector GetLeafNodePositionFromMortonCode( MortonCode morton_code ) const;
     bool GetNodeAddressFromPosition( FSVONodeAddress & node_address, const FVector & position ) const;
     void GetNodeNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & node_address ) const;
     float GetLayerRatio( LayerIndex layer_index ) const;
@@ -48,12 +48,12 @@ private:
     int GetLayerCount() const;
     bool IsPositionOccluded( const FVector & position, float box_extent ) const;
     void FirstPassRasterization();
-    void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index );
+    void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index, FSVONodeAddress leaf_node_parent );
     void RasterizeInitialLayer();
     void RasterizeLayer( LayerIndex layer_index );
     int32 GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
     void BuildNeighborLinks( LayerIndex layer_index );
-    bool FindNeighborInDirection( FSVONodeAddress & node_address, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction, const FVector & node_position );
+    bool FindNeighborInDirection( FSVONodeAddress & node_address, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction );
     void GetLeafNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & leaf_address ) const;
     void GetFreeNodesFromNodeAddress( FSVONodeAddress node_address, TArray< FSVONodeAddress > & free_nodes ) const;
 

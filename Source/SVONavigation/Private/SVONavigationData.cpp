@@ -23,7 +23,7 @@ FSVOVolumeNavigationDataDebugInfos::FSVOVolumeNavigationDataDebugInfos() :
     bDebugDrawMortonCoords( false ),
     bDebugDrawNodeLocation( false ),
     bDebugDrawLayers( false ),
-    LayerIndexToDraw( 1 ),
+    LayerIndexToDraw( 0 ),
     bDebugDrawSubNodes( false ),
     DebugDrawOccludedVoxels( true ),
     DebugDrawFreeVoxels( false )

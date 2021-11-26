@@ -4,7 +4,8 @@ enum class ESVOVersion : uint8
 {
     Initial = 1,
     NoVoxelExponent = 2,
+    LeafNodeParent = 3,
 
-    MinCompatible = NoVoxelExponent,
-    Latest = NoVoxelExponent
+    MinCompatible = LeafNodeParent,
+    Latest = LeafNodeParent
 };

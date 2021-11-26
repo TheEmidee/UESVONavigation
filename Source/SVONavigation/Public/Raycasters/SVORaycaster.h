@@ -38,7 +38,6 @@ public:
     virtual void Initialize( const FSVOVolumeNavigationData * navigation_data, const FVector from, const FVector to ) {}
     virtual void SetResult( bool result ) {}
     virtual void AddTraversedNode( FSVONodeAddress node_address, bool is_occluded ) {}
-    virtual void AddTraversedLeafNode( FSVONodeAddress node_address, bool is_occluded ) {}
     virtual void AddTraversedLeafSubNode( FSVONodeAddress node_address, bool is_occluded ) {}
 };
 
@@ -50,7 +49,6 @@ public:
     void Initialize( const FSVOVolumeNavigationData * navigation_data, const FVector from, const FVector to ) override;
     void SetResult( bool result ) override;
     void AddTraversedNode( FSVONodeAddress node_address, bool is_occluded ) override;
-    void AddTraversedLeafNode( FSVONodeAddress node_address, bool is_occluded ) override;
     void AddTraversedLeafSubNode( FSVONodeAddress node_address, bool is_occluded ) override;
 
 private:

@@ -39,42 +39,6 @@ struct FSVODataGenerationSettings
     FCollisionQueryParams CollisionQueryParameters;
 };
 
-struct FSVOLeafNode
-{
-    void MarkSubNodeAsOccluded( const SubNodeIndex index );
-    bool IsSubNodeOccluded( const MortonCode morton_code ) const;
-    bool IsCompletelyOccluded() const;
-    bool IsCompletelyFree() const;
-
-    uint_fast64_t SubNodes = 0;
-};
-
-FORCEINLINE void FSVOLeafNode::MarkSubNodeAsOccluded( const SubNodeIndex index )
-{
-    SubNodes |= 1ULL << index;
-}
-
-FORCEINLINE bool FSVOLeafNode::IsSubNodeOccluded( const MortonCode morton_code ) const
-{
-    return ( SubNodes & 1ULL << morton_code ) != 0;
-}
-
-FORCEINLINE bool FSVOLeafNode::IsCompletelyOccluded() const
-{
-    return SubNodes == -1;
-}
-
-FORCEINLINE bool FSVOLeafNode::IsCompletelyFree() const
-{
-    return SubNodes == 0;
-}
-
-FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeafNode & data )
-{
-    archive << data.SubNodes;
-    return archive;
-}
-
 struct FSVONodeAddress
 {
     FSVONodeAddress() :
@@ -145,6 +109,44 @@ FORCEINLINE FArchive & operator<<( FArchive & archive, FSVONodeAddress & data )
     return archive;
 }
 
+struct FSVOLeafNode
+{
+    void MarkSubNodeAsOccluded( const SubNodeIndex index );
+    bool IsSubNodeOccluded( const MortonCode morton_code ) const;
+    bool IsCompletelyOccluded() const;
+    bool IsCompletelyFree() const;
+
+    uint_fast64_t SubNodes = 0;
+    FSVONodeAddress Parent;
+};
+
+FORCEINLINE void FSVOLeafNode::MarkSubNodeAsOccluded( const SubNodeIndex index )
+{
+    SubNodes |= 1ULL << index;
+}
+
+FORCEINLINE bool FSVOLeafNode::IsSubNodeOccluded( const MortonCode morton_code ) const
+{
+    return ( SubNodes & 1ULL << morton_code ) != 0;
+}
+
+FORCEINLINE bool FSVOLeafNode::IsCompletelyOccluded() const
+{
+    return SubNodes == -1;
+}
+
+FORCEINLINE bool FSVOLeafNode::IsCompletelyFree() const
+{
+    return SubNodes == 0;
+}
+
+FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLeafNode & data )
+{
+    archive << data.SubNodes;
+    archive << data.Parent;
+    return archive;
+}
+
 struct FSVONode
 {
     FSVONode();
@@ -203,8 +205,8 @@ private:
     void Initialize( float leaf_size );
     void Reset();
     void AllocateLeafNodes( int leaf_count );
-    void AddLeafNode( LeafIndex leaf_index, SubNodeIndex sub_node_index, bool is_occluded );
-    void AddEmptyLeafNode();
+    void AddLeafNode( FSVONodeAddress parent_node_address, LeafIndex leaf_index, SubNodeIndex sub_node_index, bool is_occluded );
+    void AddEmptyLeafNode( FSVONodeAddress parent_node_address );
 
     float LeafNodeSize;
     TArray< FSVOLeafNode > LeafNodes;
@@ -267,17 +269,13 @@ public:
     float GetNodeSize() const;
     float GetNodeExtent() const;
     uint32 GetMaxNodeCount() const;
-    uint32 GetBlockedNodesCount() const;
-    const TSet< MortonCode > & GetBlockedNodes() const;
 
     int GetAllocatedSize() const;
 
 private:
     TArray< FSVONode > & GetNodes();
-    void AddBlockedNode( NodeIndex node_index );
 
     TArray< FSVONode > Nodes;
-    TSet< MortonCode > BlockedNodes;
     int MaxNodeCount;
     float NodeSize;
 };
@@ -317,16 +315,6 @@ FORCEINLINE uint32 FSVOLayer::GetMaxNodeCount() const
     return MaxNodeCount;
 }
 
-FORCEINLINE const TSet< MortonCode > & FSVOLayer::GetBlockedNodes() const
-{
-    return BlockedNodes;
-}
-
-FORCEINLINE uint32 FSVOLayer::GetBlockedNodesCount() const
-{
-    return BlockedNodes.Num();
-}
-
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOLayer & layer )
 {
     archive << layer.Nodes;
@@ -356,7 +344,10 @@ private:
     FSVOLeafNodes & GetLeafNodes();
     bool Initialize( float voxel_size, const FBox & volume_bounds );
     void Reset();
+    void AddBlockedNode( LayerIndex layer_index, NodeIndex node_index );
+    const TArray< NodeIndex > & GetLayerBlockedNodes( LayerIndex layer_index ) const;
 
+    TArray< TArray< NodeIndex > > BlockedNodes;
     TArray< FSVOLayer > Layers;
     FSVOLeafNodes LeafNodes;
     FBox NavigationBounds;
@@ -401,6 +392,11 @@ FORCEINLINE const FBox & FSVOData::GetNavigationBounds() const
 FORCEINLINE bool FSVOData::IsValid() const
 {
     return bIsValid && GetLayerCount() > 0;
+}
+
+FORCEINLINE const TArray< NodeIndex > & FSVOData::GetLayerBlockedNodes( const LayerIndex layer_index ) const
+{
+    return BlockedNodes[ layer_index ];
 }
 
 FORCEINLINE FArchive & operator<<( FArchive & archive, FSVOData & data )

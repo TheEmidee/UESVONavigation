@@ -36,21 +36,6 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
     const auto layer_count = proxy_data.DebugInfos.NavigationData->GetData().GetLayerCount();
     const auto corrected_layer_index = FMath::Clamp( static_cast< int >( debug_draw_options.LayerIndexToDraw ), 0, layer_count - 1 );
 
-    const auto get_leaf_morton_coords_from_leaf_index = [ &proxy_data ]( MortonCode & morton_code, const FSVONodeAddress leaf_node_address ) {
-        const auto & layer_zero = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( 0 );
-        const auto & layer_zero_nodes = layer_zero.GetNodes();
-
-        if ( const auto * node_ptr = layer_zero_nodes.FindByPredicate( [ node_address = leaf_node_address ]( const FSVONode & layer_zero_node ) {
-                 return layer_zero_node.FirstChild == node_address;
-             } ) )
-        {
-            morton_code = node_ptr->MortonCode;
-            return true;
-        }
-
-        return false;
-    };
-
     const auto draw_morton_coords = [ &debug_draw_options, this ]( const FVector & location, const FSVONodeAddress node_address ) {
         if ( debug_draw_options.bDrawMortonCode )
         {
@@ -60,38 +45,18 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
 
     if ( debug_draw_options.bDrawLayerNodes )
     {
-        if ( corrected_layer_index == 0 )
+        for ( const auto & traversed_node : proxy_data.DebugInfos.TraversedNodes )
         {
-            for ( const auto & traversed_leaf_node : proxy_data.DebugInfos.TraversedLeafNodes )
+            if ( traversed_node.NodeAddress.LayerIndex != corrected_layer_index )
             {
-                MortonCode morton_code;
-                if ( get_leaf_morton_coords_from_leaf_index( morton_code, traversed_leaf_node.NodeAddress ) )
-                {
-                    const FSVONodeAddress node_address( 0, morton_code );
-
-                    const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( node_address );
-                    const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( node_address.LayerIndex ).GetNodeExtent();
-
-                    Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_leaf_node.bIsOccluded ? FColor::Orange : FColor::Green );
-                    draw_morton_coords( node_position, node_address );
-                }
+                continue;
             }
-        }
-        else
-        {
-            for ( const auto & traversed_node : proxy_data.DebugInfos.TraversedNodes )
-            {
-                if ( traversed_node.NodeAddress.LayerIndex != corrected_layer_index )
-                {
-                    continue;
-                }
 
-                const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( traversed_node.NodeAddress );
-                const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( traversed_node.NodeAddress.LayerIndex ).GetNodeExtent();
+            const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( traversed_node.NodeAddress, false );
+            const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLayer( traversed_node.NodeAddress.LayerIndex ).GetNodeExtent();
 
-                Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_node.bIsOccluded ? FColor::Orange : FColor::Green );
-                draw_morton_coords( node_position, traversed_node.NodeAddress );
-            }
+            Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_node.bIsOccluded ? FColor::Orange : FColor::Green );
+            draw_morton_coords( node_position, traversed_node.NodeAddress );
         }
     }
 
@@ -99,17 +64,11 @@ FSVORayCasterSceneProxy::FSVORayCasterSceneProxy( const UPrimitiveComponent & co
     {
         for ( const auto & traversed_leaf_sub_node : proxy_data.DebugInfos.TraversedLeafSubNodes )
         {
-            // traversed_leaf_sub_node.NodeAddress.NodeIndex is the index of the leaf in the LeafNodes array. We need to get the associated morton coords from that in the nodes of layer 0
-            MortonCode morton_code;
-            if ( get_leaf_morton_coords_from_leaf_index( morton_code, FSVONodeAddress( 0, traversed_leaf_sub_node.NodeAddress.NodeIndex, 0 ) ) )
-            {
-                const auto sub_node_address = FSVONodeAddress( 0, morton_code, traversed_leaf_sub_node.NodeAddress.SubNodeIndex );
-                const auto node_position = proxy_data.DebugInfos.NavigationData->GetSubNodePositionFromAddress( sub_node_address );
-                const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLeafNodes().GetLeafSubNodeExtent();
+            const auto node_position = proxy_data.DebugInfos.NavigationData->GetNodePositionFromAddress( traversed_leaf_sub_node.NodeAddress, true );
+            const auto node_extent = proxy_data.DebugInfos.NavigationData->GetData().GetLeafNodes().GetLeafSubNodeExtent();
 
-                Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_leaf_sub_node.bIsOccluded ? FColor::Orange : FColor::Green );
-                draw_morton_coords( node_position, sub_node_address );
-            }
+            Boxes.Emplace( FBox::BuildAABB( node_position, FVector( node_extent ) ), traversed_leaf_sub_node.bIsOccluded ? FColor::Orange : FColor::Green );
+            draw_morton_coords( node_position, traversed_leaf_sub_node.NodeAddress );
         }
     }
 }

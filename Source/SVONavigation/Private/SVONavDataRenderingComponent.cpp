@@ -85,6 +85,9 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             return false;
         };
 
+        const auto & leaf_nodes = octree_data.GetLeafNodes();
+        const auto leaf_node_extent = leaf_nodes.GetLeafNodeExtent();
+
         if ( debug_infos.bDebugDrawLayers )
         {
             const auto corrected_layer_index = FMath::Clamp( static_cast< int >( debug_infos.LayerIndexToDraw ), 0, layer_count - 1 );
@@ -93,13 +96,25 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             for ( const auto & node : octree_data.GetLayer( corrected_layer_index ).GetNodes() )
             {
                 const auto code = node.MortonCode;
-                const FSVONodeAddress node_address( corrected_layer_index, code );
 
-                const auto node_position = navigation_bounds_data.GetNodePositionFromAddress( node_address );
-
-                if ( try_add_voxel_to_boxes( node_position, node_extent, node.HasChildren() ) )
+                if ( corrected_layer_index == 0 )
                 {
-                    try_add_node_text_infos( code, corrected_layer_index, node_position );
+                    const auto leaf_node_position = navigation_bounds_data.GetLeafNodePositionFromMortonCode( code );
+
+                    if ( try_add_voxel_to_boxes( leaf_node_position, leaf_node_extent, node.HasChildren() ) )
+                    {
+                        try_add_node_text_infos( code, 0, leaf_node_position );
+                    }
+                }
+                else
+                {
+                    const FSVONodeAddress node_address( corrected_layer_index, code );
+                    const auto node_position = navigation_bounds_data.GetNodePositionFromAddress( node_address, false );
+
+                    if ( try_add_voxel_to_boxes( node_position, node_extent, node.HasChildren() ) )
+                    {
+                        try_add_node_text_infos( code, corrected_layer_index, node_position );
+                    }
                 }
             }
         }
@@ -107,20 +122,24 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
         if ( debug_infos.bDebugDrawSubNodes )
         {
             const auto & leaf_layer = octree_data.GetLayer( 0 );
-            const auto sub_node_extent = octree_data.GetLeafNodes().GetLeafSubNodeExtent();
+            const auto leaf_sub_node_size = leaf_nodes.GetLeafSubNodeSize();
+            const auto leaf_sub_node_extent = leaf_nodes.GetLeafSubNodeExtent();
 
             for ( const auto & leaf_node : leaf_layer.GetNodes() )
             {
                 if ( leaf_node.HasChildren() )
                 {
                     const auto & leaf = octree_data.GetLeafNodes().GetLeafNode( leaf_node.FirstChild.NodeIndex );
+                    const auto code = leaf_node.MortonCode;
+                    const auto leaf_node_position = navigation_bounds_data.GetLeafNodePositionFromMortonCode( code );
 
                     for ( SubNodeIndex sub_node_index = 0; sub_node_index < 64; sub_node_index++ )
                     {
-                        const auto sub_node_location = navigation_bounds_data.GetSubNodePositionFromAddress( FSVONodeAddress( 0, leaf_node.MortonCode, sub_node_index ) );
+                        const auto sub_node_morton_coords = FSVOHelpers::GetVectorFromMortonCode( sub_node_index );
+                        const auto sub_node_location = leaf_node_position - leaf_node_extent + sub_node_morton_coords * leaf_sub_node_size + leaf_sub_node_extent;
                         const bool is_sub_node_occluded = leaf.IsSubNodeOccluded( sub_node_index );
 
-                        if ( try_add_voxel_to_boxes( sub_node_location, sub_node_extent, is_sub_node_occluded ) )
+                        if ( try_add_voxel_to_boxes( sub_node_location, leaf_sub_node_extent, is_sub_node_occluded ) )
                         {
                             try_add_node_text_infos( sub_node_index, 0, sub_node_location );
                         }
