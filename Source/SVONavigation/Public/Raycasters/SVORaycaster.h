@@ -69,5 +69,10 @@ public:
 protected:
     virtual bool TraceInternal( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to ) const;
 
+    static UWorld * GetWorldContext();
+
     TSharedPtr< FSVORayCasterObserver > Observer;
+
+    UPROPERTY( EditAnywhere )
+    uint8 bShowLineOfSightTraces : 1;
 };

@@ -16,10 +16,6 @@ protected:
     bool TraceInternal( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to ) const override;
 
     virtual bool TracePhysicsInternal( const FVector & from, const FVector & to ) const;
-    static UWorld * GetWorldContext();
-
-    UPROPERTY( EditAnywhere )
-    uint8 bShowLineOfSightTraces : 1;
 
     UPROPERTY( EditAnywhere )
     TEnumAsByte< ETraceTypeQuery > TraceType;

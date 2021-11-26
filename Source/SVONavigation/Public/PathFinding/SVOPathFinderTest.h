@@ -24,6 +24,7 @@ struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
     FSVOPathRenderingDebugDrawOptions() :
         bDrawOnlyWhenSelected( false ),
         bDrawNodes( true ),
+        bDrawConnections( true ),
         bDrawCosts( false ),
         bDrawLastProcessedNode( true ),
         bDrawLastProcessedNeighbors( true ),
@@ -35,6 +36,9 @@ struct SVONAVIGATION_API FSVOPathRenderingDebugDrawOptions
 
     UPROPERTY( EditAnywhere )
     uint8 bDrawNodes : 1;
+
+    UPROPERTY( EditAnywhere )
+    uint8 bDrawConnections : 1;
 
     UPROPERTY( EditAnywhere )
     uint8 bDrawCosts : 1;

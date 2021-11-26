@@ -63,7 +63,10 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
             Boxes.Emplace( FBox::BuildAABB( debug_node_cost.To.Location, FVector( to_node_extent ) ), color );
         }
 
-        Lines.Emplace( FDebugLine( debug_node_cost.From.Location, debug_node_cost.To.Location, FColor::Blue, 2.0f ) );
+        if ( DebugDrawOptions.bDrawConnections )
+        {
+            Lines.Emplace( FDebugLine( debug_node_cost.From.Location, debug_node_cost.To.Location, FColor::Blue, 2.0f ) );
+        }
 
         if ( DebugDrawOptions.bDrawCosts )
         {

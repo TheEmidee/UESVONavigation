@@ -64,6 +64,7 @@ struct SVONAVIGATION_API FSVOPathFinderDebugInfos
 
     FSVOPathFinderDebugNodeCost LastProcessedSingleNode;
     TArray< FSVOPathFinderDebugNodeCost > ProcessedNeighbors;
+
     FSVONavigationPath CurrentBestPath;
 
     UPROPERTY( VisibleAnywhere )

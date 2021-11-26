@@ -330,7 +330,14 @@ float FSVOVolumeNavigationData::GetNodeExtentFromNodeAddress( const FSVONodeAddr
 {
     if ( node_address.LayerIndex == 0 )
     {
-        return SVOData.GetLeafNodes().GetLeafSubNodeExtent();
+        const auto & leaf_nodes = SVOData.GetLeafNodes();
+        const auto & leaf_node = leaf_nodes.GetLeafNode( node_address.NodeIndex );
+        if ( leaf_node.IsCompletelyFree() )
+        {
+            return leaf_nodes.GetLeafNodeExtent();
+        }
+
+        return leaf_nodes.GetLeafSubNodeExtent();
     }
 
     return SVOData.GetLayer( node_address.LayerIndex ).GetNodeExtent();

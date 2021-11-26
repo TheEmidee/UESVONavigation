@@ -14,15 +14,6 @@ bool USVORayCaster_PhysicsBase::TracePhysicsInternal( const FVector & from, cons
     return false;
 }
 
-UWorld * USVORayCaster_PhysicsBase::GetWorldContext()
-{
-#if WITH_EDITOR
-    return GEditor->GetEditorWorldContext( false ).World();
-#else
-    return GEngine->GetCurrentPlayWorld();
-#endif
-}
-
 bool USVORayCaster_Ray::TracePhysicsInternal( const FVector & from, const FVector & to ) const
 {
     FHitResult hit_result;
@@ -37,9 +28,9 @@ bool USVORayCaster_Ray::TracePhysicsInternal( const FVector & from, const FVecto
         bShowLineOfSightTraces ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None,
         hit_result,
         false,
-        FLinearColor::Red,
         FLinearColor::Green,
-        0.1f );
+        FLinearColor::Red,
+        5.0f );
 }
 
 USVORayCaster_Sphere::USVORayCaster_Sphere()

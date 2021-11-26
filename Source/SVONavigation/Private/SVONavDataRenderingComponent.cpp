@@ -69,13 +69,13 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
         };
 
         const auto try_add_voxel_to_boxes = [ this, &debug_infos ]( const FVector & voxel_location, const float node_extent, const bool is_occluded ) {
-            if ( debug_infos.DebugDrawFreeVoxels && !is_occluded )
+            if ( debug_infos.bDebugDrawFreeVoxels && !is_occluded )
             {
                 Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( node_extent ) ), FreeVoxelColor );
 
                 return true;
             }
-            if ( debug_infos.DebugDrawOccludedVoxels && is_occluded )
+            if ( debug_infos.bDebugDrawOccludedVoxels && is_occluded )
             {
                 Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( node_extent ) ), OccludedVoxelColor );
 

@@ -111,6 +111,13 @@ float FSVOPathFindingAlgorithmStepper_AStar::AdjustTotalCostWithNodeSizeCompensa
 
 ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::ProcessSingleNode( EGraphAStarResult & result )
 {
+    if ( Graph.OpenList.Num() == 0 )
+    {
+        State = ESVOPathFindingAlgorithmState::Ended;
+        result = SearchFail;
+        return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
+    }
+
     ConsideredNodeIndex = Graph.OpenList.PopIndex();
     auto & considered_node_unsafe = Graph.NodePool[ ConsideredNodeIndex ];
     considered_node_unsafe.MarkClosed();
