@@ -4,22 +4,31 @@
 
 #include <Kismet/KismetSystemLibrary.h>
 
-bool USVORayCaster_PhysicsBase::TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_PhysicsBase::TraceInternal( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to ) const
 {
-    return TracePhysicsInternal( world_context, from, to, nav_agent_properties );
+    return TracePhysicsInternal( from, to );
 }
 
-bool USVORayCaster_PhysicsBase::TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster_PhysicsBase::TracePhysicsInternal( const FVector & from, const FVector & to ) const
 {
     return false;
 }
 
-bool USVORayCaster_Ray::TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+UWorld * USVORayCaster_PhysicsBase::GetWorldContext()
+{
+#if WITH_EDITOR
+    return GEditor->GetEditorWorldContext( false ).World();
+#else
+    return GEngine->GetCurrentPlayWorld();
+#endif
+}
+
+bool USVORayCaster_Ray::TracePhysicsInternal( const FVector & from, const FVector & to ) const
 {
     FHitResult hit_result;
 
     return UKismetSystemLibrary::LineTraceSingle(
-        world_context,
+        GetWorldContext(),
         from,
         to,
         TraceType,
@@ -33,15 +42,20 @@ bool USVORayCaster_Ray::TracePhysicsInternal( UObject * world_context, const FVe
         0.1f );
 }
 
-bool USVORayCaster_Sphere::TracePhysicsInternal( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+USVORayCaster_Sphere::USVORayCaster_Sphere()
+{
+    Radius = 50.0f;
+}
+
+bool USVORayCaster_Sphere::TracePhysicsInternal( const FVector & from, const FVector & to ) const
 {
     FHitResult hit_result;
 
     return UKismetSystemLibrary::SphereTraceSingle(
-        world_context,
+        GetWorldContext(),
         from,
         to,
-        nav_agent_properties.AgentRadius * AgentRadiusMultiplier,
+        Radius,
         TraceType,
         false,
         TArray< AActor * >(),

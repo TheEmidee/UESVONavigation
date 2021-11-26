@@ -170,7 +170,7 @@ private:
     UPROPERTY( EditInstanceOnly )
     ASVOPathFinderTest * OtherActor;
 
-    FNavigationPath NavigationPath;
+    FSVONavigationPath NavigationPath;
 
     UPROPERTY( VisibleInstanceOnly, AdvancedDisplay )
     FSVOPathFinderDebugInfos PathFinderDebugInfos;

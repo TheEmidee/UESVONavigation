@@ -266,25 +266,46 @@ void ASVONavigationData::BatchProjectPoints( TArray< FNavigationProjectionWork >
     ensure( false );
 }
 
-ENavigationQueryResult::Type ASVONavigationData::CalcPathCost( const FVector & path_start, const FVector & path_end, float & out_path_cost, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+ENavigationQueryResult::Type ASVONavigationData::CalcPathCost( const FVector & path_start, const FVector & path_end, float & out_path_cost, const FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
-    // :TODO:
-    ensure( false );
-    return ENavigationQueryResult::Error;
+    float path_length = 0.f;
+    return CalcPathLengthAndCost( path_start, path_end, path_length, out_path_cost, filter, querier );
 }
 
-ENavigationQueryResult::Type ASVONavigationData::CalcPathLength( const FVector & path_start, const FVector & path_end, float & out_path_length, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+ENavigationQueryResult::Type ASVONavigationData::CalcPathLength( const FVector & path_start, const FVector & path_end, float & out_path_length, const FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
-    // :TODO:
-    ensure( false );
-    return ENavigationQueryResult::Error;
+    float path_cost = 0.f;
+    return CalcPathLengthAndCost( path_start, path_end, out_path_length, path_cost, filter, querier );
 }
 
 ENavigationQueryResult::Type ASVONavigationData::CalcPathLengthAndCost( const FVector & path_start, const FVector & path_end, float & out_path_length, float & out_path_cost, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
-    // :TODO:
-    ensure( false );
-    return ENavigationQueryResult::Error;
+    ENavigationQueryResult::Type result = ENavigationQueryResult::Invalid;
+
+    if ( ( path_start - path_end ).IsNearlyZero() )
+    {
+        out_path_length = 0.f;
+        return ENavigationQueryResult::Success;
+    }
+
+    auto * volume_navigation_data = GetVolumeNavigationDataContainingPoints( { path_start, path_end } );
+
+    if ( volume_navigation_data == nullptr )
+    {
+        return ENavigationQueryResult::Error;
+    }
+
+    const TSharedRef< FSVONavigationPath > navigation_path = MakeShareable( new FSVONavigationPath() );
+
+    result = FSVOPathFinder::GetPath( navigation_path.Get(), *this, path_start, path_end, filter );
+
+    if ( result == ENavigationQueryResult::Success || ( result == ENavigationQueryResult::Fail && navigation_path->IsPartial() ) )
+    {
+        out_path_length = navigation_path->GetLength();
+        out_path_cost = navigation_path->GetCost();
+    }
+
+    return result;
 }
 
 bool ASVONavigationData::DoesNodeContainLocation( NavNodeRef node_ref, const FVector & world_space_location ) const
@@ -412,7 +433,7 @@ void ASVONavigationData::ConditionalConstructGenerator()
     }
 }
 
-void ASVONavigationData::RequestDrawingUpdate( bool force )
+void ASVONavigationData::RequestDrawingUpdate( const bool force )
 {
 #if !UE_BUILD_SHIPPING
     if ( force || USVONavDataRenderingComponent::IsNavigationShowFlagSet( GetWorld() ) )
@@ -581,7 +602,7 @@ void ASVONavigationData::InvalidateAffectedPaths( const TArray< FBox > & updated
     }
 }
 
-FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query )
+FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*agent_properties*/, const FPathFindingQuery & path_finding_query )
 {
     const auto * self = Cast< ASVONavigationData >( path_finding_query.NavData.Get() );
 
@@ -593,23 +614,27 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & age
     FPathFindingResult result( ENavigationQueryResult::Error );
 
     FNavigationPath * navigation_path = path_finding_query.PathInstanceToFill.Get();
-    FNavMeshPath * nav_mesh_path = navigation_path ? navigation_path->CastPath< FNavMeshPath >() : nullptr;
+    FSVONavigationPath * svo_navigation_path = navigation_path != nullptr
+                                                   ? navigation_path->CastPath< FSVONavigationPath >()
+                                                   : nullptr;
 
-    if ( nav_mesh_path != nullptr )
+    if ( svo_navigation_path != nullptr )
     {
         result.Path = path_finding_query.PathInstanceToFill;
-        nav_mesh_path->ResetForRepath();
+        svo_navigation_path->ResetForRepath();
     }
     else
     {
         result.Path = self->CreatePathInstance< FSVONavigationPath >( path_finding_query );
         navigation_path = result.Path.Get();
-        nav_mesh_path = navigation_path ? navigation_path->CastPath< FNavMeshPath >() : nullptr;
+        svo_navigation_path = navigation_path != nullptr
+                                  ? navigation_path->CastPath< FSVONavigationPath >()
+                                  : nullptr;
     }
 
     if ( navigation_path != nullptr )
     {
-        if ( const FNavigationQueryFilter * navigation_filter = path_finding_query.QueryFilter.Get() )
+        if ( path_finding_query.QueryFilter.IsValid() )
         {
             const FVector adjusted_end_location = path_finding_query.EndLocation; // navigation_filter->GetAdjustedEndLocation( path_finding_query.EndLocation );
             if ( ( path_finding_query.StartLocation - adjusted_end_location ).IsNearlyZero() )
@@ -620,7 +645,7 @@ FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & age
             }
             else
             {
-                result.Result = FSVOPathFinder::GetPath( *result.Path.Get(), agent_properties, *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query );
+                result.Result = FSVOPathFinder::GetPath( *svo_navigation_path, *self, path_finding_query.StartLocation, adjusted_end_location, path_finding_query.QueryFilter );
             }
         }
     }

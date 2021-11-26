@@ -7,31 +7,25 @@
 
 namespace
 {
-    void ApplyVerticalOffset( FNavigationPath & path, const float vertical_offset )
+    void BuildPath( FSVONavigationPath & path, const FSVOPathFindingParameters & params, const TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses, const bool add_end_location )
     {
         auto & path_points = path.GetPathPoints();
+        auto & path_point_costs = path.GetPathPointCosts();
 
-        for ( auto & path_point : path_points )
-        {
-            path_point.Location.Z += vertical_offset;
-        }
-    }
-
-    void BuildPath( FNavigationPath & path, const FSVOPathFindingParameters & params, const TArray< FSVONodeAddress > & node_addresses, const bool add_end_location )
-    {
-        auto & path_points = path.GetPathPoints();
         const auto path_points_size = node_addresses.Num() + 1;
 
         path_points.Reset( path_points_size );
-
         path_points.Emplace( params.StartLocation );
 
-        const auto & bounds_data = *params.VolumeNavigationData;
+        path_point_costs.Reset( path_points_size );
+
+        const auto & bounds_data = params.VolumeNavigationData;
 
         for ( auto index = 0; index < node_addresses.Num() - 1; index++ )
         {
-            const auto address = node_addresses[ index ];
-            path_points.Emplace( bounds_data.GetNodePositionFromAddress( address ) );
+            const auto address_with_cost = node_addresses[ index ];
+            path_points.Emplace( bounds_data.GetNodePositionFromAddress( address_with_cost.NodeAddress ) );
+            path_point_costs.Add( address_with_cost.Cost );
         }
 
         if ( add_end_location )
@@ -46,22 +40,17 @@ FSVOPathFindingAlgorithmObserver::FSVOPathFindingAlgorithmObserver( const FSVOPa
 {
 }
 
-FSVOPathFindingAStarObserver_BuildPath::FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper ) :
+FSVOPathFindingAStarObserver_BuildPath::FSVOPathFindingAStarObserver_BuildPath( FSVONavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper ) :
     FSVOPathFindingAlgorithmObserver( stepper ),
     NavigationPath( navigation_path )
 {
 }
 
-void FSVOPathFindingAStarObserver_BuildPath::OnSearchSuccess( const TArray< FSVONodeAddress > & node_addresses )
+void FSVOPathFindingAStarObserver_BuildPath::OnSearchSuccess( const TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses )
 {
     const auto & params = Stepper.GetParameters();
 
     BuildPath( NavigationPath, params, node_addresses, true );
-
-    if ( params.VerticalOffset != 0.0f )
-    {
-        ApplyVerticalOffset( NavigationPath, params.VerticalOffset );
-    }
 
     NavigationPath.MarkReady();
 }
@@ -76,21 +65,21 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
 {
     if ( node.ParentRef.IsValid() )
     {
-        DebugInfos.LastProcessedSingleNode.From = FSVONodeAddressWithLocation( node.ParentRef, *Stepper.GetParameters().VolumeNavigationData );
+        DebugInfos.LastProcessedSingleNode.From = FSVONodeAddressWithLocation( node.ParentRef, Stepper.GetParameters().VolumeNavigationData );
     }
     else
     {
         DebugInfos.LastProcessedSingleNode.From = FSVONodeAddressWithLocation( FSVONodeAddress::InvalidAddress, Stepper.GetParameters().StartLocation );
     }
 
-    DebugInfos.LastProcessedSingleNode.To = FSVONodeAddressWithLocation( node.NodeRef, *Stepper.GetParameters().VolumeNavigationData );
+    DebugInfos.LastProcessedSingleNode.To = FSVONodeAddressWithLocation( node.NodeRef, Stepper.GetParameters().VolumeNavigationData );
     DebugInfos.LastProcessedSingleNode.Cost = node.TotalCost;
 
     DebugInfos.ProcessedNeighbors.Reset();
 
     DebugInfos.Iterations++;
 
-    TArray< FSVONodeAddress > node_addresses;
+    TArray< FSVOPathFinderNodeAddressWithCost > node_addresses;
     Stepper.FillNodeAddresses( node_addresses );
 
     // Fill DebugInfos.CurrentBestPath
@@ -99,17 +88,17 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
 
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & parent, const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor, const float cost )
 {
-    DebugInfos.ProcessedNeighbors.Emplace( FSVONodeAddressWithLocation( parent.NodeRef, *Stepper.GetParameters().VolumeNavigationData ), FSVONodeAddressWithLocation( neighbor.NodeRef, *Stepper.GetParameters().VolumeNavigationData ), cost, true );
+    DebugInfos.ProcessedNeighbors.Emplace( FSVONodeAddressWithLocation( parent.NodeRef, Stepper.GetParameters().VolumeNavigationData ), FSVONodeAddressWithLocation( neighbor.NodeRef, Stepper.GetParameters().VolumeNavigationData ), cost, true );
     DebugInfos.VisitedNodes++;
 }
 
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor )
 {
-    DebugInfos.ProcessedNeighbors.Emplace( FSVONodeAddressWithLocation( neighbor.ParentRef, *Stepper.GetParameters().VolumeNavigationData ), FSVONodeAddressWithLocation( neighbor.NodeRef, *Stepper.GetParameters().VolumeNavigationData ), neighbor.TotalCost, false );
+    DebugInfos.ProcessedNeighbors.Emplace( FSVONodeAddressWithLocation( neighbor.ParentRef, Stepper.GetParameters().VolumeNavigationData ), FSVONodeAddressWithLocation( neighbor.NodeRef, Stepper.GetParameters().VolumeNavigationData ), neighbor.TotalCost, false );
     DebugInfos.VisitedNodes++;
 }
 
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const TArray< FSVONodeAddress > & node_addresses )
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const ::TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses )
 {
     FillCurrentBestPath( node_addresses, true );
 
@@ -127,18 +116,13 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const TAr
     DebugInfos.PathLength = path_length;
 }
 
-void FSVOPathFindingAStarObserver_GenerateDebugInfos::FillCurrentBestPath( const TArray< FSVONodeAddress > & node_addresses, const bool add_end_location ) const
+void FSVOPathFindingAStarObserver_GenerateDebugInfos::FillCurrentBestPath( const TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses, const bool add_end_location ) const
 {
     DebugInfos.CurrentBestPath.ResetForRepath();
 
     const auto & params = Stepper.GetParameters();
 
     BuildPath( DebugInfos.CurrentBestPath, params, node_addresses, add_end_location );
-
-    if ( params.VerticalOffset != 0.0f )
-    {
-        ApplyVerticalOffset( DebugInfos.CurrentBestPath, params.VerticalOffset );
-    }
 
     DebugInfos.CurrentBestPath.MarkReady();
 }

@@ -59,41 +59,22 @@ void FSVORayCasterObserver_GenerateDebugInfos::AddTraversedLeafSubNode( FSVONode
     DebugInfos.TraversedLeafSubNodes.Emplace( node_address, is_occluded );
 }
 
-bool USVORayCaster::Trace( UObject * world_context, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
-{
-    if ( UNavigationSystemV1 * navigation_system = UNavigationSystemV1::GetCurrent( world_context->GetWorld() ) )
-    {
-        if ( auto * navigation_data = navigation_system->GetNavDataForProps( nav_agent_properties ) )
-        {
-            if ( const auto * svo_navigation_data = Cast< ASVONavigationData >( navigation_data ) )
-            {
-                if ( const auto * volume_navigation_data = svo_navigation_data->GetVolumeNavigationDataContainingPoints( { from, to } ) )
-                {
-                    return Trace( world_context, *volume_navigation_data, from, to, nav_agent_properties );
-                }
-            }
-        }
-    }
-
-    return false;
-}
-
-bool USVORayCaster::Trace( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster::Trace( const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to ) const
 {
     const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from );
     const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to );
 
-    return Trace( world_context, volume_navigation_data, from_position, to_position, nav_agent_properties );
+    return Trace( volume_navigation_data, from_position, to_position );
 }
 
-bool USVORayCaster::Trace( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster::Trace( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to ) const
 {
     if ( Observer.IsValid() )
     {
         Observer->Initialize( &volume_navigation_data, from, to );
     }
 
-    const auto result = TraceInternal( world_context, volume_navigation_data, from, to, nav_agent_properties );
+    const auto result = TraceInternal( volume_navigation_data, from, to );
 
     if ( Observer.IsValid() )
     {
@@ -108,7 +89,7 @@ void USVORayCaster::SetObserver( const TSharedPtr< FSVORayCasterObserver > obser
     Observer = observer;
 }
 
-bool USVORayCaster::TraceInternal( UObject * world_context, const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to, const FNavAgentProperties & nav_agent_properties ) const
+bool USVORayCaster::TraceInternal( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to ) const
 {
     return false;
 }

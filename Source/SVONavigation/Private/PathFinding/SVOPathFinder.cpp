@@ -1,18 +1,19 @@
 #include "PathFinding/SVOPathFinder.h"
 
+#include "SVONavigationData.h"
 #include "PathFinding/SVOPathFindingAlgorithm.h"
 #include "Pathfinding/SVONavigationQueryFilterImpl.h"
 
 namespace
 {
-    USVOPathFindingAlgorithm * GetPathFindingAlgorithm( const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query )
+    USVOPathFindingAlgorithm * GetPathFindingAlgorithm( const FSharedConstNavQueryFilter & nav_query_filter )
     {
-        if ( !ensureAlwaysMsgf( path_finding_query.QueryFilter.IsValid(), TEXT( "The query filter is not valid" ) ) )
+        if ( !ensureAlwaysMsgf( nav_query_filter.IsValid(), TEXT( "The query filter is not valid" ) ) )
         {
             return nullptr;
         }
 
-        const FSVONavigationQueryFilterImpl * query_filter_implementation = static_cast< const FSVONavigationQueryFilterImpl * >( path_finding_query.QueryFilter->GetImplementation() );
+        const FSVONavigationQueryFilterImpl * query_filter_implementation = static_cast< const FSVONavigationQueryFilterImpl * >( nav_query_filter->GetImplementation() );
 
         if ( !ensureAlwaysMsgf( query_filter_implementation != nullptr, TEXT( "The query filter implementation is not valid" ) ) )
         {
@@ -40,23 +41,29 @@ namespace
     }
 }
 
-ENavigationQueryResult::Type FSVOPathFinder::GetPath( FNavigationPath & navigation_path, const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query )
+ENavigationQueryResult::Type FSVOPathFinder::GetPath( FSVONavigationPath & navigation_path, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FSharedConstNavQueryFilter & nav_query_filter )
 {
-    if ( auto * path_finder = GetPathFindingAlgorithm( agent_properties, navigation_data, start_location, end_location, path_finding_query ) )
+    if ( const auto * path_finder = GetPathFindingAlgorithm( nav_query_filter ) )
     {
-        const FSVOPathFindingParameters params( agent_properties, navigation_data, start_location, end_location, path_finding_query );
-        return path_finder->GetPath( navigation_path, params );
+        if ( const auto * volume_navigation_data = navigation_data.GetVolumeNavigationDataContainingPoints( { start_location, end_location } ) )
+        {
+            const FSVOPathFindingParameters params( *volume_navigation_data, start_location, end_location, *nav_query_filter );
+            return path_finder->GetPath( navigation_path, params );
+        }
     }
 
     return ENavigationQueryResult::Fail;
 }
 
-TSharedPtr< FSVOPathFindingAlgorithmStepper > FSVOPathFinder::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const FNavAgentProperties & agent_properties, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FPathFindingQuery & path_finding_query )
+TSharedPtr< FSVOPathFindingAlgorithmStepper > FSVOPathFinder::GetDebugPathStepper( FSVOPathFinderDebugInfos & debug_infos, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FSharedConstNavQueryFilter & nav_query_filter )
 {
-    if ( auto * path_finder = GetPathFindingAlgorithm( agent_properties, navigation_data, start_location, end_location, path_finding_query ) )
+    if ( const auto * path_finder = GetPathFindingAlgorithm( nav_query_filter ) )
     {
-        const FSVOPathFindingParameters params( agent_properties, navigation_data, start_location, end_location, path_finding_query );
-        return path_finder->GetDebugPathStepper( debug_infos, params );
+        if ( const auto * volume_navigation_data = navigation_data.GetVolumeNavigationDataContainingPoints( { start_location, end_location } ) )
+        {
+            const FSVOPathFindingParameters params( *volume_navigation_data, start_location, end_location, *nav_query_filter );
+            return path_finder->GetDebugPathStepper( debug_infos, params );
+        }
     }
 
     return nullptr;

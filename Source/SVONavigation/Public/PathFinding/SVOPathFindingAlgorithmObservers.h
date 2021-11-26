@@ -1,9 +1,11 @@
 #pragma once
 
-#include "SVONavigationTypes.h"
+#include "SVOPathFindingAlgorithmTypes.h"
+#include "SVOVolumeNavigationData.h"
 
 #include <GraphAStar.h>
 
+struct FSVONavigationPath;
 class FSVOPathFindingAlgorithmStepper;
 struct FSVOPathFinderDebugInfos;
 
@@ -20,7 +22,7 @@ public:
     {}
     virtual void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor )
     {}
-    virtual void OnSearchSuccess( const TArray< FSVONodeAddress > & node_addresses )
+    virtual void OnSearchSuccess( const TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses )
     {}
 
 protected:
@@ -30,12 +32,12 @@ protected:
 class FSVOPathFindingAStarObserver_BuildPath final : public FSVOPathFindingAlgorithmObserver
 {
 public:
-    FSVOPathFindingAStarObserver_BuildPath( FNavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper );
+    FSVOPathFindingAStarObserver_BuildPath( FSVONavigationPath & navigation_path, const FSVOPathFindingAlgorithmStepper & stepper );
 
-    void OnSearchSuccess( const TArray< FSVONodeAddress > & ) override;
+    void OnSearchSuccess( const ::TArray< FSVOPathFinderNodeAddressWithCost > & ) override;
 
 private:
-    FNavigationPath & NavigationPath;
+    FSVONavigationPath & NavigationPath;
 };
 
 class FSVOPathFindingAStarObserver_GenerateDebugInfos final : public FSVOPathFindingAlgorithmObserver
@@ -46,9 +48,9 @@ public:
     void OnProcessSingleNode( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & node ) override;
     void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & parent, const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor, const float cost ) override;
     void OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor ) override;
-    void OnSearchSuccess( const TArray< FSVONodeAddress > & ) override;
+    void OnSearchSuccess( const TArray< FSVOPathFinderNodeAddressWithCost > & ) override;
 
 private:
-    void FillCurrentBestPath( const TArray< FSVONodeAddress > & node_addresses, bool add_end_location ) const;
+    void FillCurrentBestPath( const TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses, bool add_end_location ) const;
     FSVOPathFinderDebugInfos & DebugInfos;
 };

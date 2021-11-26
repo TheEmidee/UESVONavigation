@@ -1,6 +1,6 @@
 #pragma once
 
-#include "SVONavigationTypes.h"
+#include "SVONavigationQueryFilterSettings.h"
 
 #include <AI/Navigation/NavQueryFilter.h>
 
