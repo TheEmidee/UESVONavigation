@@ -10,6 +10,7 @@
 #include "SVOVersion.h"
 
 #include <AI/NavDataGenerator.h>
+#include <DrawDebugHelpers.h>
 #include <NavMesh/NavMeshPath.h>
 #include <NavigationSystem.h>
 
@@ -26,14 +27,14 @@ FSVOVolumeNavigationDataDebugInfos::FSVOVolumeNavigationDataDebugInfos() :
     LayerIndexToDraw( 0 ),
     bDebugDrawSubNodes( false ),
     bDebugDrawOccludedVoxels( true ),
-    bDebugDrawFreeVoxels( false )
+    bDebugDrawFreeVoxels( false ),
+    bDebugDrawActivePaths( false )
 {
 }
 
 ASVONavigationData::ASVONavigationData() :
     Version( ESVOVersion::Latest )
 {
-    PrimaryActorTick.bCanEverTick = false;
     MaxSimultaneousBoxGenerationJobsCount = 1024;
 
     if ( !HasAnyFlags( RF_ClassDefaultObject ) )
@@ -353,6 +354,32 @@ int32 ASVONavigationData::GetMaxSupportedAreas() const
 bool ASVONavigationData::IsNodeRefValid( const NavNodeRef node_ref ) const
 {
     return FSVONodeAddress( node_ref ).IsValid();
+}
+
+void ASVONavigationData::TickActor( const float delta_time, const ELevelTick tick, FActorTickFunction & this_tick_function )
+{
+    Super::TickActor( delta_time, tick, this_tick_function );
+
+    if ( bEnableDrawing && DebugInfos.bDebugDrawActivePaths )
+    {
+        for ( auto active_path : ActivePaths )
+        {
+            if ( active_path.IsValid() )
+            {
+                const TSharedPtr< FNavigationPath, ESPMode::ThreadSafe > active_path_ptr = active_path.Pin();
+                const auto & path_points = active_path_ptr->GetPathPoints();
+
+                for ( auto path_point_index = 1; path_point_index < path_points.Num(); ++path_point_index )
+                {
+                    const auto & from = path_points[ path_point_index - 1 ].Location;
+                    const auto & to = path_points[ path_point_index ].Location;
+
+                    DrawDebugLine( GetWorld(), from, to, FColor::Red, false, -1, SDPG_World, 5.0f );
+                    DrawDebugCone( GetWorld(), to, from - to, 50.0f, 0.25f, 0.25f, 16, FColor::Red, false, -1, SDPG_World, 5.0f );
+                }
+            }
+        }
+    }
 }
 
 #if WITH_EDITOR

@@ -44,6 +44,9 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawFreeVoxels : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawActivePaths : 1;
 };
 
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
@@ -87,6 +90,7 @@ public:
     int32 GetNewAreaID( const UClass * nav_area_class ) const override;
     int32 GetMaxSupportedAreas() const override;
     bool IsNodeRefValid( NavNodeRef node_ref ) const override;
+    void TickActor( float delta_time, ELevelTick tick_type, FActorTickFunction & this_tick_function ) override;
 
 #if WITH_EDITOR
     void PostEditChangeProperty( FPropertyChangedEvent & property_changed_event ) override;
