@@ -200,13 +200,13 @@ public:
     int GetAllocatedSize() const;
 
 private:
-    FSVOLeafNode GetLeafNode( const LeafIndex leaf_index );
+    FSVOLeafNode & GetLeafNode( const LeafIndex leaf_index );
 
     void Initialize( float leaf_size );
     void Reset();
     void AllocateLeafNodes( int leaf_count );
-    void AddLeafNode( FSVONodeAddress parent_node_address, LeafIndex leaf_index, SubNodeIndex sub_node_index, bool is_occluded );
-    void AddEmptyLeafNode( FSVONodeAddress parent_node_address );
+    void AddLeafNode( LeafIndex leaf_index, SubNodeIndex sub_node_index, bool is_occluded );
+    void AddEmptyLeafNode();
 
     float LeafNodeSize;
     TArray< FSVOLeafNode > LeafNodes;
@@ -242,7 +242,7 @@ FORCEINLINE float FSVOLeafNodes::GetLeafSubNodeExtent() const
     return GetLeafSubNodeSize() * 0.5f;
 }
 
-FORCEINLINE FSVOLeafNode FSVOLeafNodes::GetLeafNode( const LeafIndex leaf_index )
+FORCEINLINE FSVOLeafNode & FSVOLeafNodes::GetLeafNode( const LeafIndex leaf_index )
 {
     return LeafNodes[ leaf_index ];
 }

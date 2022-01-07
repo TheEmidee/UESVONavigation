@@ -48,14 +48,15 @@ private:
     int GetLayerCount() const;
     bool IsPositionOccluded( const FVector & position, float box_extent ) const;
     void FirstPassRasterization();
-    void RasterizeLeaf( const FVector & node_position, LeafIndex leaf_index, FSVONodeAddress leaf_node_parent );
-    void RasterizeInitialLayer();
+    void RasterizeLeaf( const FVector & node_position, const LeafIndex leaf_index );
+    void RasterizeInitialLayer( TMap< LeafIndex, MortonCode > & leaf_index_to_layer_one_node_index_map );
     void RasterizeLayer( LayerIndex layer_index );
     int32 GetNodeIndexFromMortonCode( LayerIndex layer_index, MortonCode morton_code ) const;
     void BuildNeighborLinks( LayerIndex layer_index );
     bool FindNeighborInDirection( FSVONodeAddress & node_address, const LayerIndex layer_index, const NodeIndex node_index, const NeighborDirection direction );
     void GetLeafNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & leaf_address ) const;
     void GetFreeNodesFromNodeAddress( FSVONodeAddress node_address, TArray< FSVONodeAddress > & free_nodes ) const;
+    void BuildParentLinkForLeafNodes( const TMap< LeafIndex, MortonCode > & leaf_index_to_parent_morton_code_map );
 
     FSVOVolumeNavigationDataGenerationSettings Settings;
     FBox VolumeBounds;

@@ -389,12 +389,15 @@ void FSVOVolumeNavigationData::GenerateNavigationData( const FBox & volume_bound
         SVOData.GetLeafNodes().AllocateLeafNodes( leaf_count );
     }
 
-    RasterizeInitialLayer();
+    TMap< LeafIndex, MortonCode > leaf_index_to_parent_morton_code;
+    RasterizeInitialLayer( leaf_index_to_parent_morton_code );
 
     for ( LayerIndex layer_index = 1; layer_index < layer_count; ++layer_index )
     {
         RasterizeLayer( layer_index );
     }
+
+    BuildParentLinkForLeafNodes( leaf_index_to_parent_morton_code );
 
     for ( LayerIndex layer_index = layer_count - 2; layer_index != static_cast< LayerIndex >( -1 ); --layer_index )
     {
@@ -452,7 +455,7 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
     }
 }
 
-void FSVOVolumeNavigationData::RasterizeLeaf( const FVector & node_position, const LeafIndex leaf_index, const FSVONodeAddress leaf_node_parent )
+void FSVOVolumeNavigationData::RasterizeLeaf( const FVector & node_position, const LeafIndex leaf_index )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_RasterizeLeaf );
 
@@ -467,11 +470,11 @@ void FSVOVolumeNavigationData::RasterizeLeaf( const FVector & node_position, con
         const auto leaf_node_location = location + morton_coords * leaf_sub_node_size + leaf_sub_node_extent;
         const bool is_leaf_occluded = IsPositionOccluded( leaf_node_location, leaf_sub_node_extent );
 
-        SVOData.GetLeafNodes().AddLeafNode( leaf_node_parent, leaf_index, sub_node_index, is_leaf_occluded );
+        SVOData.GetLeafNodes().AddLeafNode( leaf_index, sub_node_index, is_leaf_occluded );
     }
 }
 
-void FSVOVolumeNavigationData::RasterizeInitialLayer()
+void FSVOVolumeNavigationData::RasterizeInitialLayer( TMap< LeafIndex, MortonCode > & leaf_index_to_layer_one_node_index_map )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_RasterizeInitialLayer );
 
@@ -501,19 +504,20 @@ void FSVOVolumeNavigationData::RasterizeInitialLayer()
         auto & layer_zero_node = layer_zero_nodes.Emplace_GetRef();
         layer_zero_node.MortonCode = node_index;
 
-        const FSVONodeAddress leaf_node_parent_address( 1, parent_morton_code, 0 );
         const auto leaf_node_position = GetLeafNodePositionFromMortonCode( layer_zero_node.MortonCode );
+
+        leaf_index_to_layer_one_node_index_map.Add( leaf_index, parent_morton_code );
 
         if ( IsPositionOccluded( leaf_node_position, leaf_node_extent ) )
         {
-            RasterizeLeaf( leaf_node_position, leaf_index, leaf_node_parent_address );
+            RasterizeLeaf( leaf_node_position, leaf_index );
             layer_zero_node.FirstChild.LayerIndex = 0;
             layer_zero_node.FirstChild.NodeIndex = leaf_index;
             layer_zero_node.FirstChild.SubNodeIndex = 0;
         }
         else
         {
-            leaf_nodes.AddEmptyLeafNode( leaf_node_parent_address );
+            leaf_nodes.AddEmptyLeafNode();
             layer_zero_node.FirstChild.Invalidate();
         }
 
@@ -618,7 +622,7 @@ void FSVOVolumeNavigationData::BuildNeighborLinks( const LayerIndex layer_index 
                 {
                     current_layer++;
                     const auto node_index_from_morton = GetNodeIndexFromMortonCode( current_layer, FSVOHelpers::GetParentMortonCode( node.MortonCode ) );
-                    ensure( node_index_from_morton != INDEX_NONE );
+                    check( node_index_from_morton != INDEX_NONE );
                     node_index = static_cast< NodeIndex >( node_index_from_morton );
                 }
             }
@@ -821,5 +825,19 @@ void FSVOVolumeNavigationData::GetFreeNodesFromNodeAddress( const FSVONodeAddres
                 GetFreeNodesFromNodeAddress( FSVONodeAddress( child_layer_index, child_node.MortonCode, 0 ), free_nodes );
             }
         }
+    }
+}
+
+void FSVOVolumeNavigationData::BuildParentLinkForLeafNodes( const TMap<LeafIndex, MortonCode> & leaf_index_to_parent_morton_code_map )
+{
+    for ( const auto & key_pair : leaf_index_to_parent_morton_code_map )
+    {
+        auto & leaf_node = SVOData.GetLeafNodes().GetLeafNode( key_pair.Key );
+        leaf_node.Parent.LayerIndex = 1;
+
+        const auto node_index = GetNodeIndexFromMortonCode( 1, key_pair.Value );
+        check( node_index != INDEX_NONE );
+
+        leaf_node.Parent.NodeIndex = node_index;
     }
 }

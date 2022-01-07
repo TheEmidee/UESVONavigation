@@ -38,11 +38,11 @@ void FSVOLeafNodes::AllocateLeafNodes( const int leaf_count )
     LeafNodes.Reserve( leaf_count );
 }
 
-void FSVOLeafNodes::AddLeafNode( const FSVONodeAddress parent_node_address, const LeafIndex leaf_index, const SubNodeIndex sub_node_index, const bool is_occluded )
+void FSVOLeafNodes::AddLeafNode( const LeafIndex leaf_index, const SubNodeIndex sub_node_index, const bool is_occluded )
 {
     if ( leaf_index > LeafNodes.Num() - 1 )
     {
-        AddEmptyLeafNode( parent_node_address );
+        AddEmptyLeafNode();
     }
 
     if ( is_occluded )
@@ -51,11 +51,9 @@ void FSVOLeafNodes::AddLeafNode( const FSVONodeAddress parent_node_address, cons
     }
 }
 
-void FSVOLeafNodes::AddEmptyLeafNode( const FSVONodeAddress parent_node_address )
+void FSVOLeafNodes::AddEmptyLeafNode()
 {
-    check( parent_node_address.LayerIndex == 1 );
-    auto & leaf_node = LeafNodes.AddDefaulted_GetRef();
-    leaf_node.Parent = parent_node_address;
+    LeafNodes.AddDefaulted();
 }
 
 FSVOLayer::FSVOLayer() :
