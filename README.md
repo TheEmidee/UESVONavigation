@@ -223,16 +223,22 @@ To compare the performance of the different pathfinding algorithms, you can use 
 
 For example, here are 3 benchmarks with various settinsgs for the Lazy Theta*:
 
+```
 Traversal Cost:  Distance
 Heuristic Cost: Manhattan
+```
 ![PathFinderTest - Result1](Docs/pathfindertest_result1.png)
 
+```
 Traversal Cost:  Fixed
 Heuristic Cost: Manhattan
+```
 ![PathFinderTest - Result2](Docs/pathfindertest_result2.png)
 
+```
 Traversal Cost:  Fixed
 Heuristic Cost: Distance
+```
 ![PathFinderTest - Result3](Docs/pathfindertest_result3.png)
 
 ## Console commands
