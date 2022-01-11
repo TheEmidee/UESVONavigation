@@ -119,9 +119,11 @@ The first option is the path finder class. You can choose between 3 options:
 Theta* and Lazy Theta* both use Line of sight checks to shorten the path. The plug-in proposes 3 different methods to compute those LoS.
 
 * Octree Traversal : this is a numeric algorithm based on the academic paper [An Efficient Parametric Algorithm for Octree Traversal](http://wscg.zcu.cz/wscg2000/Papers_2000/X31.pdf). This is the fastest of all 3 functions, and is the default.
+
 ![Octree Traversal](Docs/navigationqueryfilter_thetastar_octreetraversal.png)
 
 * Physics ray / sphere casts : this function uses the physics engine built-in RayCast / Sphere cast functions. It's less precise than the octree traversal function, but since it was implemented first, it was kept in case it's useful to anyone.
+
 ![Ray Cast](Docs/navigationqueryfilter_thetastar_raycast_ray.png)
 ![Sphere Cast](Docs/navigationqueryfilter_thetastar_raycast_sphere.png)
 
