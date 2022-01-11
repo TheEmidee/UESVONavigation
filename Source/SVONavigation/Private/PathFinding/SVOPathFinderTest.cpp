@@ -359,9 +359,29 @@ void ASVOPathFinderTest::InitPathFinding()
     ensureAlwaysMsgf( false, TEXT( "Impossible to get the SVO navigation data. Check your NavAgentProperties" ) );
 }
 
+void ASVOPathFinderTest::InitPathFindingIfNotDone()
+{
+    if ( Stepper.IsValid() )
+    {
+        return;
+    }
+
+    InitPathFinding();
+}
+
+void ASVOPathFinderTest::ResetPathFinding()
+{
+    InitPathFinding();
+}
+
 void ASVOPathFinderTest::Step()
 {
-    if ( Stepper.IsValid() && LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
+    if ( !Stepper.IsValid() )
+    {
+        return;
+    }
+
+    if ( LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
     {
         LastStatus = Stepper->Step( PathFindingResult );
         if ( LastStatus == ESVOPathFindingAlgorithmStepperStatus::MustContinue )
@@ -386,13 +406,16 @@ void ASVOPathFinderTest::Step()
 
 void ASVOPathFinderTest::AutoCompleteStepByStep()
 {
+    InitPathFinding();
     bAutoComplete = true;
     Step();
 }
 
 void ASVOPathFinderTest::AutoCompleteUntilNextNode()
 {
-    if ( Stepper.IsValid() && LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
+    InitPathFindingIfNotDone();
+
+    if ( LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
     {
         do
         {
@@ -407,7 +430,9 @@ void ASVOPathFinderTest::AutoCompleteUntilNextNode()
 
 void ASVOPathFinderTest::AutoCompleteInstantly()
 {
-    if ( Stepper.IsValid() && LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
+    InitPathFindingIfNotDone();
+
+    if ( LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
     {
         do
         {

@@ -127,9 +127,11 @@ public:
 
 private:
     void UpdateDrawing();
+    void InitPathFinding();
+    void InitPathFindingIfNotDone();
 
     UFUNCTION( CallInEditor )
-    void InitPathFinding();
+    void ResetPathFinding();
 
     UFUNCTION( CallInEditor )
     void Step();
