@@ -26,14 +26,14 @@ Debug visualization options which allow you to draw the different layers of the 
 
 ## Pathfinder Helper Actor
 
-There is a Pathfinding helper actor which adds visualizations of the steps used by the pathfinding algorithm in the navigation data. That helps to understand all the paths the algorithm explore before reaching the destination. It also prints out informations about the path, such as the number of visited nodes, to help you choose the best options.
+There is a Pathfinding helper actor which adds visualizations of the steps used by the pathfinding algorithm in the navigation data. That helps to understand all the paths the algorithm explores before reaching the destination. It also prints out informations about the path, such as the number of visited nodes, to help you choose the best options.
 
 # Limitations
 
 There are currently a few limitations to the plug-in which may be addressed in the future:
 
 * Although the navigation data is generated asynchronously, it's done on one thread only. Given the nature of the data (in an octree), it is possible to split the workload in 8.
-* No support of level streaming. It's supported in the navigation system and with the 2d navmesh, but not in this plugin currently. Though there are plans to support it, it won't be possible to connect multiple octrees together to make an actor move from one to another.
+* No support for level streaming. It's supported in the navigation system and with the 2d navmesh, but not in this plugin currently. Though there are plans to support it, it won't be possible to connect multiple octrees together to make an actor move from one to another.
 * No smoothing of the generated paths by the pathfinding algorithms. It should be possible to use an algorithm such as [Centripetal Catmull–Rom spline](https://www.wikiwand.com/en/Centripetal_Catmull%E2%80%93Rom_spline).
 * Detection of the occluded voxels is currently done using the physics engine overlap detection. It should be possible to do this asynchronously, or do like with the Recast implementation: store a representation of all the triangles in the scene in a buffer, and check overlap collisions on the CPU in one of the threads generating the data.
 
@@ -73,7 +73,7 @@ You can use the `Collision Channel` setting to change the channel used by the ph
 
 The `Clearance` option allows you to add an extra offset to the boxes used to test overlap. For example, if the agent radius is 100 units, then the smallest voxel size will be 200. If the clearance is set to 10, the size of the smallest voxels will be 210.
 
-Explanations of the `Debug Infos` section are lower in this document, but you can `Enable Drawing` and check `Debug Draw Layers` to make sure the data has been generated. If you moved and resized the `Nav Mesh Bounds Volume` to encompass some geometry, you should see some big yellow cubes in the viewport.
+Explanations of the `Debug Infos` section are further down this document, but you can `Enable Drawing` and check `Debug Draw Layers` to make sure the data has been generated. If you moved and resized the `Nav Mesh Bounds Volume` to encompass some geometry, you should see some big yellow cubes in the viewport.
 
 ## AI Controller
 
