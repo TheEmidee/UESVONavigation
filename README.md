@@ -6,7 +6,7 @@ The original implementation of the algorithm comes from https://github.com/midge
 
 ## Seamless integration with UE's built-in navigation system. 
  
-You don't have to use specific `MoveTo` functions in your code, but only the regular nodes nodes you're already used to use for your 2D pathfinding queries.
+You don't have to use specific `MoveTo` functions in your code, but only the regular nodes you're already used to use for your 2D pathfinding queries.
 
 Pathfinding queries are automatically executed asynchronously.
 
