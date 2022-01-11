@@ -14,9 +14,11 @@ Regeneration of the navigation data is automatically done whenever you move obje
 
 ## Different pathfinding algorithms
 
-* A-Star: The fastest one, but this produces very jaggy paths.
-* Theta-Star: The slowest one. It uses line-of-sight checks to remove un-necessary steps from the path.
-* Lazy-Theta-Star: The default one. It's faster than Theta-Star as it generates way more line of sight checks, but the produced path is slightly less optimal.
+* A-Star
+* Theta-Star
+* Lazy-Theta-Star
+
+You'll find more informations about pathfinding below.
 
 ## Debug visualizations
 
@@ -77,19 +79,19 @@ Explanations of the `Debug Infos` section are lower in this document, but you ca
 
 The last step is to setup the flying actors. 
 
-You need to have an actor which inherit from `ACharacter`. You then need to update its `Agent Properties` to select `SVONavigationData` as their `Preferred Nav Data` class.
+The easiest is to have an actor which inherit from `ACharacter`. You then need to select the character movement component, head to the `Nav Movement` section, and select `SVONavigationData` as their `Preferred Nav Data` class.
 
-SCREENSHOT NEEDED
+![Navigation Query Filter](Docs/charactermovement_navmovementcapabilities.png)
 
-You need to create a blueprint from the class `SVONavigationQueryFilter`.
+The next step is to create a blueprint from the class `SVONavigationQueryFilter`.
 
 ![Navigation Query Filter](Docs/navigationqueryfilter.png)
 
-That class defines the options to use by the pathfinder. Each option may lead to more options to set up.
+That class defines the options to use by the pathfinder. You can find the explanations of the various options below.
 
 You can set this asset as the `Default Nav Filter Class` of the `AIController` of your flying actor.
 
-SCREENSHOT NEEDED
+![Navigation Query Filter](Docs/aicontroller_defaultnavfilterclass.png)
 
 When it's done, you can for example use a behavior tree to move your actor, such as the following one:
 
@@ -101,12 +103,135 @@ You can visualize the paths used by your flying agents by checking `Enable Drawi
 
 # Pathfinding options
 
+As explained before, the navigation query filter allows you to define the pathfinding algorithm and options to use for your flying actor.
+
+The first option is the path finder class. You can choose between 3 options:
+
+* [A*](https://www.wikiwand.com/en/A*_search_algorithm) : this is a well known algorithm which is very fast to compute a path, but has the downside of producing very jaggy paths, as the path points will all be the centers of the voxels.
+![A*](Docs/navigationqueryfilter_astar.png)
+
+* [Theta*](https://www.wikiwand.com/en/Theta*): this algorithm uses A* as a base, but adds line-of-sight checks to allow the path to take shortcuts between points. It produces the most accurate paths of the 3, but is also the more expensive to compute.
+![Theta*](Docs/navigationqueryfilter_thetastar.png)
+
+* [Lazy Theta*](http://idm-lab.org/bib/abstracts/papers/aaai10b.pdf): this is the default algorithm of the plug-in. It's a variation of Theta* which produces slightly less optimal paths, but is much less expensive as it generates much less line-of-sight checks.
+![Lazy Theta*](Docs/navigationqueryfilter_lazythetastar.png)
+
+Theta* and Lazy Theta* both use Line of sight checks to shorten the path. The plug-in proposes 3 different methods to compute those LoS.
+
+* Octree Traversal : this is a numeric algorithm based on the academic paper [An Efficient Parametric Algorithm for Octree Traversal](http://wscg.zcu.cz/wscg2000/Papers_2000/X31.pdf). This is the fastest of all 3 functions, and is the default.
+![Octree Traversal](Docs/navigationqueryfilter_thetastar_octreetraversal.png)
+
+* Physics ray / sphere casts : this function uses the physics engine built-in RayCast / Sphere cast functions. It's less precise than the octree traversal function, but since it was implemented first, it was kept in case it's useful to anyone.
+![Ray Cast](Docs/navigationqueryfilter_thetastar_raycast_ray.png)
+![Sphere Cast](Docs/navigationqueryfilter_thetastar_raycast_sphere.png)
+
+The next option of the query filter is `Traversal Cost Calculator`.
+
+This option allows you to define how the path finder will compute how much it costs to go from a position to another. There are 2 options:
+
+* Distance: this will simply return the distance between the 2 positions.
+* Fixed: this will always return the same cost. From the Game AI Pro 3 article linked in the introduction, `This means that no matter how big the node is, traveling through it has the same cost. This effectively biases the search even more toward exploring through large nodes.`
+
+The next options are for the heuristic cost.
+
+`Heuristic Calculator` allows you to define how the path finder will compute how much it costs to go from a position to the target destination. You can choose between 2 options:
+
+* Euclidean: this will simply return the distance between a position and the target destination.
+* Manhattan: this will return the distance between the 2 positions using [taxicab geometry](https://www.wikiwand.com/en/Taxicab_geometry).
+
+`Heuristic Scale` can be used to force the algorithm to prefer exploring nodes that it thinks are closer to the goal.
+
+The last option, `Use Node Size Compensation`, is another optimization suggested by the paper. If enabled, both the traversal cost and the heuristic cost will be adjusted so that it's cheaper to go through big nodes than through small ones.
+
+You can easily see the impact of all those options on the pathfinding computation by using the path finder test actor. See below for informations.
+
 # Debugging
+
+The plug-in comes with lots of visualization options to help you understand how the data is structured, and how to best set up the pathfinding.
 
 ## SVO Data Visualization
 
+To see these visualizations, you first need to enable the `Navigation` visualization in the viewport.
+
+![Navigation Flag](Docs/viewport_show_navigation.png)
+
+Then you need to select the SVONavigationData actor in the world outliner and check the `Enable Drawing` flag.
+
+* `Debug Draw Bounds` : displays a white cube which represents the real size of the navigation data.
+
+![Navigation Data Bounds](Docs/viewport_bounds.png)
+
+* `Debug Draw Occluded Voxels` and `Debug Draw Free Voxels` will display yellow cubes for the occluded voxels and green cubes for the free voxels, if you choose to draw the layers or the sub nodes.
+
+* `Debug Draw Layers`: displays the intermediate layers of the octree, down to layer 0, which is the leaf nodes layer.
+
+Layer 3
+![Layer 3 - Occluded Voxels](Docs/viewport_layer3.png)
+
+Layer 2
+![Layer 2 - Occluded Voxels](Docs/viewport_layer2.png)
+
+Layer 1
+![Layer 1 - Occluded Voxels](Docs/viewport_layer1.png)
+![Layer 1 - Occluded Voxels](Docs/viewport_layer1_withfreevoxels.png)
+
+Layer 0
+![Layer 0 - Occluded Voxels](Docs/viewport_layer0.png)
+![Layer 0 - Occluded Voxels](Docs/viewport_layer0_withfreevoxels.png)
+
+SubNodes
+![SubNodes - Occluded Voxels](Docs/viewport_subnodes.png)
+![SubNodes - Occluded Voxels](Docs/viewport_subnodes_withfreevoxels.png)
+
+* `Debug Draw Node Address` will display the coordinates of each voxel in the layer you selected, or the subnodes.
+
+![Draw Node Address](Docs/viewport_viewnodeaddresses.png)
+
+* `Debug Draw Morton Code` will display the morton code of each voxel in the layer you selected, or the subnodes.
+
+![Draw Morton Codes](Docs/viewport_viewmortoncodes.png)
+
+* `Debug Draw Active Paths` can be used while the game is running in the editor, and will display all the paths being used by your actors in the navigation data bounds.
+
+![Draw Active Paths](Docs/viewport_viewactivepaths.png)
+
 ## Pathfinding Visualization
 
-## Console commands (???)
+To test the pathfinding options, you can drag'n drop 2 actors of type `SVOPathFinderTest` in your world. 
 
-To display the mem used for ex
+Then select one of them, and set the other one as the `Other Actor`.
+
+You can then set the `Preferred Nav Data` to `SVONavigationData` and the `Navigation Query Filter` to the blueprint class you created earlier.
+
+![PathFinderTest](Docs/pathfindertest.png)
+
+From there, you can use the buttons from one of the actors to initiate a pathfinding computation.
+
+* `Auto Complete Instantly` will generate the path as soon as you click the button, and will display the result in the viewport
+
+![PathFinderTest - Complete Instantly](Docs/pathfindertest_completeinstantly.png)
+
+* `Auto Complete Step by Step` will show the algorithm working by processing each node one after each other after a small delay (which is configurable using the option `Auto Step Timer`). You can pause the execution with the button `Pause Auto Completion`.
+
+![PathFinderTest - Step by Step](Docs/pathfindertest_stepbystep.gif)
+
+* `Auto Complete Until Next Node` will process one node at a time, with all its neighbors, until a new node is pushed on the stack of nodes to process.
+
+To compare the performance of the different pathfinding algorithms, you can use the `Path Finder Debug Infos` section which is filled with interesting informations after a path has been found.
+
+For example, here are 3 benchmarks with various settinsgs for the Lazy Theta*:
+
+Traversal Costs by distance, Heuristic cost by manhattan
+![PathFinderTest - Result1](Docs/pathfindertest_result1.png)
+
+Traversal Costs fixed, Heuristic cost by manhattan
+![PathFinderTest - Result2](Docs/pathfindertest_result2.png)
+
+Traversal Costs by distance, Heuristic cost by distance
+![PathFinderTest - Result3](Docs/pathfindertest_result3.png)
+
+## Console commands
+
+You can use the console command `CountNavMem` to display in the `OutputLog` the memory used by the navigation data.
+
+![CountNavMem](Docs/countnavmem.png)
