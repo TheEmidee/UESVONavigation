@@ -1,4 +1,6 @@
-This plug-in brings 3D navigation to Unreal Engine. It's based off of this [GDC talk](https://www.gdcvault.com/play/1022016/Getting-off-the-NavMesh-Navigating), and this associated chapter in [Game AI Pro 3](https://www.gameaipro.com/GameAIPro3/GameAIPro3_Chapter21_3D_Flight_Navigation_Using_Sparse_Voxel_Octrees.pdf).
+This plug-in brings 3D navigation to Unreal Engine. 
+
+It's based off of this [GDC talk](https://www.gdcvault.com/play/1022016/Getting-off-the-NavMesh-Navigating), and this associated chapter in [Game AI Pro 3](https://www.gameaipro.com/GameAIPro3/GameAIPro3_Chapter21_3D_Flight_Navigation_Using_Sparse_Voxel_Octrees.pdf).
 
 The original implementation of the algorithm comes from https://github.com/midgen/uesvon, and was heavily refactored, improved, and integrated into UE's navigation system.
 
