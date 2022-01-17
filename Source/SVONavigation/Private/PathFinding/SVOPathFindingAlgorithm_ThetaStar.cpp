@@ -130,7 +130,7 @@ bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVONodeAd
 
     if ( ray_caster == nullptr )
     {
-        ray_caster = GetDefault< USVONavigationSettings >()->DefaultLineOfSightClass->GetDefaultObject< USVORayCaster >();
+        ray_caster = GetDefault< USVONavigationSettings >()->DefaultRaycasterClass->GetDefaultObject< USVORayCaster >();
     }
 
     return !ray_caster->Trace( Parameters.VolumeNavigationData, from, to );

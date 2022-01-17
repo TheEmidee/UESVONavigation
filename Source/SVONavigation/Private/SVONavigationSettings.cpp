@@ -5,5 +5,5 @@
 USVONavigationSettings::USVONavigationSettings()
 {
     bNavigationAutoUpdateEnabled = true;
-    DefaultLineOfSightClass = USVORayCaster_OctreeTraversal::StaticClass();
+    DefaultRaycasterClass = USVORayCaster_OctreeTraversal::StaticClass();
 }

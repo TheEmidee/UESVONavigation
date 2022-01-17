@@ -49,9 +49,9 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FSVONavigationPath & navig
     {
         if ( auto * settings = GetDefault< USVONavigationSettings >() )
         {
-            if ( settings->DefaultLineOfSightClass != nullptr )
+            if ( settings->DefaultRaycasterClass != nullptr )
             {
-                if ( !settings->DefaultLineOfSightClass->GetDefaultObject< USVORayCaster >()->Trace( *volume_navigation_data, start_location, end_location ) )
+                if ( !settings->DefaultRaycasterClass->GetDefaultObject< USVORayCaster >()->Trace( *volume_navigation_data, start_location, end_location ) )
                 {
                     auto & path_points = navigation_path.GetPathPoints();
                     path_points.Emplace( start_location );

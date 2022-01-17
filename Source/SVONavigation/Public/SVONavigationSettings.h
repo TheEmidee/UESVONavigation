@@ -24,5 +24,5 @@ public:
     // Otherwise the pathfinding algorithm will be executed.
     // If that option is not set, the pathfinding will be always executed.
     UPROPERTY( config, EditAnywhere, Category = "PathFinding" )
-    TSubclassOf< USVORayCaster > DefaultLineOfSightClass;
+    TSubclassOf< USVORayCaster > DefaultRaycasterClass;
 };
