@@ -15,11 +15,9 @@ public:
 
     USVONavigationSettings();
 
+    // Set to false to not rebuild the navigation data automatically
     UPROPERTY( config, EditAnywhere, Category = "SVO Navigation" )
-    uint8 ShouldDiscardSubLevelNavigationData : 1;
-
-    UPROPERTY( config, EditAnywhere, Category = "SVO Navigation" )
-    uint8 NavigationAutoUpdateEnabled : 1;
+    uint8 bNavigationAutoUpdateEnabled : 1;
 
     // The algorithm to use to detect if there's a direct line of sight between the start of tha path and the target
     // If there's a direct LoS, the generated path will be a straight line from start to target.

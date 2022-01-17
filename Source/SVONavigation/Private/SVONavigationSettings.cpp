@@ -4,7 +4,6 @@
 
 USVONavigationSettings::USVONavigationSettings()
 {
-    ShouldDiscardSubLevelNavigationData = true;
-    NavigationAutoUpdateEnabled = true;
+    bNavigationAutoUpdateEnabled = true;
     DefaultLineOfSightClass = USVORayCaster_OctreeTraversal::StaticClass();
 }
