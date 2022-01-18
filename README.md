@@ -103,6 +103,28 @@ To move the actor, you just need to use the `Move To` default node, and not forg
 
 You can visualize the paths used by your flying agents by checking `Enable Drawing` on the SVO navigation data actor, and checking `Debug Draw Active Paths`.
 
+# Module Settings
+
+You can access the module settings by opening the `Project Settings`, heading to the `Engine` section on the left, and clicking on the `SVONavigation System` item.
+
+![Module Settings](Docs/modulesettings.png)
+
+The option `Navigation Auto Update Enabled` allows you to auto-rebuild the navigation data when you update the scene.
+
+The option `Default RayCaster Class` allows you to define how you want the module to perform line of sight checks in the world.
+
+Line of sight checks are performed in 2 occasions:
+
+1. Before computing a path, we check if there's a LoS between the start and end locations. If there is no obstacle, the resulting navigation path will be a straight line between the 2 points.
+2. Some algorithms used by the pathfinding require a LoS check to return a shorter path. See below for more explanations.
+
+At the moment, you can choose between 3 raycast options:
+
+* Octree Traversal : this is a numeric algorithm based on the academic paper [An Efficient Parametric Algorithm for Octree Traversal](http://wscg.zcu.cz/wscg2000/Papers_2000/X31.pdf). This is the fastest of all 3 functions, and is the default.
+
+* Physics ray / sphere casts : this function uses the physics engine built-in RayCast / Sphere cast functions. It's less precise than the octree traversal function, but since it was implemented first, it was kept in case it's useful to anyone.
+
+
 # Pathfinding options
 
 As explained before, the navigation query filter allows you to define the pathfinding algorithm and options to use for your flying actor.
@@ -118,14 +140,9 @@ The first option is the path finder class. You can choose between 3 options:
 * [Lazy Theta*](http://idm-lab.org/bib/abstracts/papers/aaai10b.pdf): this is the default algorithm of the plug-in. It's a variation of Theta* which produces slightly less optimal paths, but is much less expensive as it generates much less line-of-sight checks.
 ![Lazy Theta*](Docs/navigationqueryfilter_lazythetastar.png)
 
-Theta* and Lazy Theta* both use Line of sight checks to shorten the path. The plug-in proposes 3 different methods to compute those LoS.
-
-* Octree Traversal : this is a numeric algorithm based on the academic paper [An Efficient Parametric Algorithm for Octree Traversal](http://wscg.zcu.cz/wscg2000/Papers_2000/X31.pdf). This is the fastest of all 3 functions, and is the default.
+Theta* and Lazy Theta* both use Line of sight checks to shorten the path. As explained before, you can choose between 3 modes: Octree Traversal, physics ray cast, physics sphere cast.
 
 ![Octree Traversal](Docs/navigationqueryfilter_thetastar_octreetraversal.png)
-
-* Physics ray / sphere casts : this function uses the physics engine built-in RayCast / Sphere cast functions. It's less precise than the octree traversal function, but since it was implemented first, it was kept in case it's useful to anyone.
-
 ![Ray Cast](Docs/navigationqueryfilter_thetastar_raycast_ray.png)
 ![Sphere Cast](Docs/navigationqueryfilter_thetastar_raycast_sphere.png)
 

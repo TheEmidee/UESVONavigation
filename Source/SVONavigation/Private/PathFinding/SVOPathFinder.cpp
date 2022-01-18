@@ -1,8 +1,10 @@
 #include "PathFinding/SVOPathFinder.h"
 
-#include "SVONavigationData.h"
 #include "PathFinding/SVOPathFindingAlgorithm.h"
 #include "Pathfinding/SVONavigationQueryFilterImpl.h"
+#include "Raycasters/SVORayCaster.h"
+#include "SVONavigationData.h"
+#include "SVONavigationSettings.h"
 
 namespace
 {
@@ -43,9 +45,25 @@ namespace
 
 ENavigationQueryResult::Type FSVOPathFinder::GetPath( FSVONavigationPath & navigation_path, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FSharedConstNavQueryFilter & nav_query_filter )
 {
-    if ( const auto * path_finder = GetPathFindingAlgorithm( nav_query_filter ) )
+    if ( const auto * volume_navigation_data = navigation_data.GetVolumeNavigationDataContainingPoints( { start_location, end_location } ) )
     {
-        if ( const auto * volume_navigation_data = navigation_data.GetVolumeNavigationDataContainingPoints( { start_location, end_location } ) )
+        if ( auto * settings = GetDefault< USVONavigationSettings >() )
+        {
+            if ( settings->DefaultRaycasterClass != nullptr )
+            {
+                if ( !settings->DefaultRaycasterClass->GetDefaultObject< USVORayCaster >()->Trace( *volume_navigation_data, start_location, end_location ) )
+                {
+                    auto & path_points = navigation_path.GetPathPoints();
+                    path_points.Emplace( start_location );
+                    path_points.Emplace( end_location );
+                    navigation_path.MarkReady();
+
+                    return ENavigationQueryResult::Success;
+                }
+            }
+        }
+
+        if ( const auto * path_finder = GetPathFindingAlgorithm( nav_query_filter ) )
         {
             const FSVOPathFindingParameters params( *volume_navigation_data, start_location, end_location, *nav_query_filter );
             return path_finder->GetPath( navigation_path, params );

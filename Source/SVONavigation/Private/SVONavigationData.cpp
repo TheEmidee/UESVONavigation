@@ -62,8 +62,8 @@ void ASVONavigationData::PostInitProperties()
     {
         if ( auto * settings = GetDefault< USVONavigationSettings >() )
         {
-            if ( HasAnyFlags( RF_NeedLoad )                                                                   //  was loaded
-                 && settings->ShouldDiscardSubLevelNavigationData && GEngine->IsSettingUpPlayWorld() == false // this is a @HACK
+            if ( HasAnyFlags( RF_NeedLoad )                                                                                 //  was loaded
+                 && FNavigationSystem::ShouldDiscardSubLevelNavData( *this ) && GEngine->IsSettingUpPlayWorld() == false // this is a @HACK
                  && world->GetOutermost() != GetOutermost()
                  // If we are cooking, then let them all pass.
                  // They will be handled at load-time when running.
@@ -402,7 +402,7 @@ void ASVONavigationData::PostEditChangeProperty( FPropertyChangedEvent & propert
         {
             if ( auto * settings = GetDefault< USVONavigationSettings >() )
             {
-                if ( !HasAnyFlags( RF_ClassDefaultObject ) && settings->NavigationAutoUpdateEnabled )
+                if ( !HasAnyFlags( RF_ClassDefaultObject ) && settings->bNavigationAutoUpdateEnabled )
                 {
                     RebuildAll();
                 }

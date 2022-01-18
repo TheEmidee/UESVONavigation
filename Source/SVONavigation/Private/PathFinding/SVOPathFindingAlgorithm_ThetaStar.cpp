@@ -3,6 +3,7 @@
 #include "Raycasters/SVORaycaster_OctreeTraversal.h"
 #include "SVOHelpers.h"
 #include "SVONavigationData.h"
+#include "SVONavigationSettings.h"
 
 FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters::FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters() :
     RayCaster( NewObject< USVORayCaster_OctreeTraversal >() )
@@ -125,7 +126,14 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
 
 bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVONodeAddress from, const FSVONodeAddress to ) const
 {
-    return !ThetaStarParameters.RayCaster->Trace( Parameters.VolumeNavigationData, from, to );
+    const auto * ray_caster = ThetaStarParameters.RayCaster;
+
+    if ( ray_caster == nullptr )
+    {
+        ray_caster = GetDefault< USVONavigationSettings >()->DefaultRaycasterClass->GetDefaultObject< USVORayCaster >();
+    }
+
+    return !ray_caster->Trace( Parameters.VolumeNavigationData, from, to );
 }
 
 ENavigationQueryResult::Type USVOPathFindingAlgorithmThetaStar::GetPath( FSVONavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
