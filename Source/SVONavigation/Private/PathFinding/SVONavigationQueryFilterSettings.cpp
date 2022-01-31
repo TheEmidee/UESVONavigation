@@ -9,7 +9,6 @@ FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings() :
     TraversalCostCalculator( NewObject< USVOPathCostCalculator_Fixed >() ),
     HeuristicCalculator( NewObject< USVOPathHeuristicCalculator_Manhattan >() ),
     HeuristicScale( 1.0f ),
-    bUseNodeSizeCompensation( true ),
-    bOffsetPathVerticallyByAgentRadius( true )
+    bUseNodeSizeCompensation( true )
 {
 }

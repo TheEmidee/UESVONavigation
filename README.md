@@ -103,6 +103,46 @@ To move the actor, you just need to use the `Move To` default node, and not forg
 
 You can visualize the paths used by your flying agents by checking `Enable Drawing` on the SVO navigation data actor, and checking `Debug Draw Active Paths`.
 
+## Extras
+
+When the AI controller prepares a pathfinding request, it calls the function `GetNavAgentLocation()` on the pawn to get the starting position of the path, which for characters returns the feet location. \
+You would want to override that function to return another location.\
+If the actor is already flying, it makes little sense to return its feet position.\
+If your actor is grounded and you're using the pathfinding to find an aerial destination, returning the foot location would make the pathfinding fail because the feet would most likely be on a blocking surface, and would have generated a blocked voxel in the navigation data, which would make the pathfinding algorithm unable to find a path from an invalid start position.
+
+Another function you may want to override is `GetMoveGoalOffset`.\
+Indeed, if you're asking a flying actor to move to a grounded actor, the destination location will be again the result of `GetNavAgentLocation()`, which would return the foot location, in an occluded voxel.\
+By overriding `GetMoveGoalOffset`, you can return a vertical offset to make sure the destination location sits above the occluded voxels.
+
+An example implementation could use a `USceneComponent` in the actor, that you can visually place in the blueprint editor, and the function imnplementation could be:
+
+```
+FVector AMyGameCharacterPlayerBase::GetMoveGoalOffset( const AActor * moving_actor ) const
+{
+    const auto * character = Cast< ACharacter >( moving_actor );
+    if ( character == nullptr )
+    {
+        if ( auto * controller = Cast< AController >( moving_actor ) )
+        {
+            character = controller->GetCharacter();
+        }
+    }
+
+    if ( character != nullptr )
+    {
+        if (const auto * movement_component = character->GetMovementComponent() )
+        {
+            if ( movement_component->IsFlying() )
+            {
+                return FlyingEnemyTargetAttachComponent->GetRelativeLocation();
+            }
+        }
+    }
+
+    return FVector::ZeroVector;
+}
+```
+
 # Module Settings
 
 You can access the module settings by opening the `Project Settings`, heading to the `Engine` section on the left, and clicking on the `SVONavigation System` item.
