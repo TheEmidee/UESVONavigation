@@ -170,7 +170,6 @@ void FSVONavigationDataGenerator::RebuildDirtyAreas( const TArray< FNavigationDi
             {
                 FPendingBoundsDataGenerationElement pending_box_element;
                 pending_box_element.VolumeBounds = matching_bounds_element;
-
                 PendingBoundsDataGenerationElements.Emplace( pending_box_element );
 
                 NavigationData.RemoveDataInBounds( matching_bounds_element );

@@ -5,7 +5,8 @@ enum class ESVOVersion : uint8
     Initial = 1,
     NoVoxelExponent = 2,
     LeafNodeParent = 3,
+    VolumeNavigationQueryFilter = 4,
 
-    MinCompatible = LeafNodeParent,
-    Latest = LeafNodeParent
+    MinCompatible = VolumeNavigationQueryFilter,
+    Latest = VolumeNavigationQueryFilter
 };
