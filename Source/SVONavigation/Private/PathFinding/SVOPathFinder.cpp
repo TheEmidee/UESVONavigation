@@ -66,9 +66,9 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FSVONavigationPath & navig
 
         const auto volume_navigation_query_filter = volume_navigation_data->GetVolumeNavigationQueryFilter();
 
-        const FSharedConstNavQueryFilter navigation_query_filter_copy = volume_navigation_query_filter != nullptr
-                                                                            ? volume_navigation_query_filter.GetDefaultObject()->GetQueryFilter( navigation_data, nullptr )
-                                                                            : nav_query_filter;
+        const auto navigation_query_filter_copy = volume_navigation_query_filter != nullptr
+                                                      ? volume_navigation_query_filter.GetDefaultObject()->GetQueryFilter( navigation_data, nullptr )
+                                                      : nav_query_filter;
 
         if ( const auto * path_finder = GetPathFindingAlgorithm( navigation_query_filter_copy ) )
         {

@@ -510,7 +510,7 @@ void ASVONavigationData::AddVolumeNavigationData( FSVOVolumeNavigationData data 
 {
     for ( TActorIterator< ASVOBoundsVolume > iterator( GetWorld(), ASVOBoundsVolume::StaticClass() ); iterator; ++iterator )
     {
-        const ASVOBoundsVolume * volume = *iterator;
+        const auto * volume = *iterator;
 
         if ( volume->GetComponentsBoundingBox( true ) == data.GetVolumeBounds() )
         {
