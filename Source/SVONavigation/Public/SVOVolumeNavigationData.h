@@ -2,6 +2,10 @@
 
 #include "SVONavigationTypes.h"
 
+#include <Templates/SubclassOf.h>
+
+class UNavigationQueryFilter;
+class USVONavigationQueryFilter;
 enum class ESVOVersion : uint8;
 
 struct FSVOVolumeNavigationDataGenerationSettings
@@ -31,6 +35,8 @@ public:
     const FBox & GetNavigationBounds() const;
     const FSVOData & GetData() const;
     const FSVONode & GetNodeFromAddress( const FSVONodeAddress & address ) const;
+    TSubclassOf< USVONavigationQueryFilter > GetVolumeNavigationQueryFilter() const;
+    void SetVolumeNavigationQueryFilter( TSubclassOf< USVONavigationQueryFilter > navigation_query_filter );
 
     FVector GetNodePositionFromAddress( const FSVONodeAddress & address, bool try_get_sub_node_position ) const;
     FVector GetLeafNodePositionFromMortonCode( MortonCode morton_code ) const;
@@ -61,6 +67,7 @@ private:
     FSVOVolumeNavigationDataGenerationSettings Settings;
     FBox VolumeBounds;
     FSVOData SVOData;
+    TSubclassOf< USVONavigationQueryFilter > VolumeNavigationQueryFilter;
 };
 
 FORCEINLINE const FSVOVolumeNavigationDataGenerationSettings & FSVOVolumeNavigationData::GetDataGenerationSettings() const
@@ -88,6 +95,16 @@ FORCEINLINE const FSVONode & FSVOVolumeNavigationData::GetNodeFromAddress( const
     return address.LayerIndex < 15
                ? SVOData.GetLayer( address.LayerIndex ).GetNode( address.NodeIndex )
                : SVOData.GetLastLayer().GetNode( 0 );
+}
+
+FORCEINLINE TSubclassOf< USVONavigationQueryFilter > FSVOVolumeNavigationData::GetVolumeNavigationQueryFilter() const
+{
+    return VolumeNavigationQueryFilter;
+}
+
+FORCEINLINE void FSVOVolumeNavigationData::SetVolumeNavigationQueryFilter( TSubclassOf< USVONavigationQueryFilter > navigation_query_filter )
+{
+    VolumeNavigationQueryFilter = navigation_query_filter;
 }
 
 FORCEINLINE int FSVOVolumeNavigationData::GetLayerCount() const

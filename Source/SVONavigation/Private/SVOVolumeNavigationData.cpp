@@ -411,6 +411,7 @@ void FSVOVolumeNavigationData::Serialize( FArchive & archive, const ESVOVersion 
 {
     archive << VolumeBounds;
     archive << SVOData;
+    archive << VolumeNavigationQueryFilter;
 }
 
 bool FSVOVolumeNavigationData::IsPositionOccluded( const FVector & position, const float box_extent ) const

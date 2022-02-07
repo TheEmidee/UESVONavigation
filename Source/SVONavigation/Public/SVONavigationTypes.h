@@ -1,5 +1,7 @@
 #pragma once
 
+#include <CoreMinimal.h>
+
 #include "SVONavigationTypes.generated.h"
 
 class USVOPathFindingAlgorithm;

@@ -1,9 +1,9 @@
 #include "SVONavigationData.h"
 
-#include "PathFinding/SVONavigationPath.h"
 #include "PathFinding/SVONavigationQueryFilterImpl.h"
 #include "PathFinding/SVOPathFinder.h"
 #include "PathFinding/SVOPathFindingAlgorithm.h"
+#include "SVOBoundsVolume.h"
 #include "SVONavDataRenderingComponent.h"
 #include "SVONavigationDataGenerator.h"
 #include "SVONavigationSettings.h"
@@ -11,6 +11,7 @@
 
 #include <AI/NavDataGenerator.h>
 #include <DrawDebugHelpers.h>
+#include <EngineUtils.h>
 #include <NavMesh/NavMeshPath.h>
 #include <NavigationSystem.h>
 
@@ -62,7 +63,7 @@ void ASVONavigationData::PostInitProperties()
     {
         if ( auto * settings = GetDefault< USVONavigationSettings >() )
         {
-            if ( HasAnyFlags( RF_NeedLoad )                                                                                 //  was loaded
+            if ( HasAnyFlags( RF_NeedLoad )                                                                              //  was loaded
                  && FNavigationSystem::ShouldDiscardSubLevelNavData( *this ) && GEngine->IsSettingUpPlayWorld() == false // this is a @HACK
                  && world->GetOutermost() != GetOutermost()
                  // If we are cooking, then let them all pass.
@@ -507,6 +508,17 @@ void ASVONavigationData::RemoveDataInBounds( const FBox & bounds )
 
 void ASVONavigationData::AddVolumeNavigationData( FSVOVolumeNavigationData data )
 {
+    for ( TActorIterator< ASVOBoundsVolume > iterator( GetWorld(), ASVOBoundsVolume::StaticClass() ); iterator; ++iterator )
+    {
+        const auto * volume = *iterator;
+
+        if ( volume->GetComponentsBoundingBox( true ) == data.GetVolumeBounds() )
+        {
+            data.SetVolumeNavigationQueryFilter( volume->GetVolumeNavigationQueryFilter() );
+            break;
+        }
+    }
+
     VolumeNavigationData.Emplace( MoveTemp( data ) );
 }
 

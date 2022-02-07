@@ -1,5 +1,6 @@
 #include "PathFinding/SVOPathFinder.h"
 
+#include "PathFinding/SVONavigationQueryFilter.h"
 #include "PathFinding/SVOPathFindingAlgorithm.h"
 #include "Pathfinding/SVONavigationQueryFilterImpl.h"
 #include "Raycasters/SVORayCaster.h"
@@ -43,7 +44,7 @@ namespace
     }
 }
 
-ENavigationQueryResult::Type FSVOPathFinder::GetPath( FSVONavigationPath & navigation_path, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, const FSharedConstNavQueryFilter & nav_query_filter )
+ENavigationQueryResult::Type FSVOPathFinder::GetPath( FSVONavigationPath & navigation_path, const ASVONavigationData & navigation_data, const FVector & start_location, const FVector & end_location, FSharedConstNavQueryFilter nav_query_filter )
 {
     if ( const auto * volume_navigation_data = navigation_data.GetVolumeNavigationDataContainingPoints( { start_location, end_location } ) )
     {
@@ -63,9 +64,15 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FSVONavigationPath & navig
             }
         }
 
-        if ( const auto * path_finder = GetPathFindingAlgorithm( nav_query_filter ) )
+        const auto volume_navigation_query_filter = volume_navigation_data->GetVolumeNavigationQueryFilter();
+
+        const auto navigation_query_filter_copy = volume_navigation_query_filter != nullptr
+                                                      ? volume_navigation_query_filter.GetDefaultObject()->GetQueryFilter( navigation_data, nullptr )
+                                                      : nav_query_filter;
+
+        if ( const auto * path_finder = GetPathFindingAlgorithm( navigation_query_filter_copy ) )
         {
-            const FSVOPathFindingParameters params( *volume_navigation_data, start_location, end_location, *nav_query_filter );
+            const FSVOPathFindingParameters params( *volume_navigation_data, start_location, end_location, *navigation_query_filter_copy );
             return path_finder->GetPath( navigation_path, params );
         }
     }
