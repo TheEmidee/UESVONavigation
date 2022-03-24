@@ -124,6 +124,8 @@ private:
     void BuildNavigationData();
 
     void InvalidateAffectedPaths( const TArray< FBox > & updated_bounds );
+    void OnNavigationDataGenerationFinished();
+    USVONavigationDataChunk * GetNavigationDataChunk( ULevel * level ) const;
 
     static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
 

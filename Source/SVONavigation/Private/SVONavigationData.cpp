@@ -670,6 +670,107 @@ void ASVONavigationData::InvalidateAffectedPaths( const TArray< FBox > & updated
     }
 }
 
+void ASVONavigationData::OnNavigationDataGenerationFinished()
+{
+    if ( UWorld * world = GetWorld() )
+    {
+        if ( !world->IsPendingKill() )
+        {
+#if WITH_EDITOR
+            // For navmeshes that support streaming create navigation data holders in each streaming level
+            // so parts of navmesh can be streamed in/out with those levels
+            if ( !world->IsGameWorld() )
+            {
+                const auto & levels = world->GetLevels();
+
+                for ( auto * level : levels )
+                {
+                    if ( level->IsPersistentLevel() )
+                    {
+                        continue;
+                    }
+
+                    USVONavigationDataChunk * navigation_data_chunk = GetNavigationDataChunk( level );
+
+                    if ( SupportsStreaming() )
+                    {
+                        // We use navigation volumes that belongs to this streaming level to find tiles we want to save
+                        const auto & level_nav_bounds = GetNavigableBoundsInLevel( level );
+
+                        TArray< int32 > navigation_data_indices;
+                        navigation_data_indices.Reserve( level_nav_bounds.Num() );
+
+                        for ( const auto & nav_bounds : level_nav_bounds )
+                        {
+                            const auto index = VolumeNavigationData.IndexOfByPredicate( [ &nav_bounds ]( const FSVOVolumeNavigationData & data ) {
+                                const auto & bounds = data.GetData().GetVolumeBounds();
+                                return bounds == nav_bounds;
+                            } );
+
+                            if ( index != INDEX_NONE )
+                            {
+                                navigation_data_indices.Add( index );
+                            }
+                        }
+
+                        if ( navigation_data_indices.Num() > 0 )
+                        {
+                            // Create new chunk only if we have something to save in it
+                            if ( navigation_data_chunk == nullptr )
+                            {
+                                navigation_data_chunk = NewObject< USVONavigationDataChunk >( level );
+                                navigation_data_chunk->NavigationDataName = GetFName();
+                                level->NavDataChunks.Add( navigation_data_chunk );
+                            }
+
+                            for ( const auto index : navigation_data_indices )
+                            {
+                                navigation_data_chunk->NavigationData.Emplace( VolumeNavigationData[ index ] );
+                                VolumeNavigationData.RemoveAtSwap( index );
+                            }
+
+                            navigation_data_chunk->MarkPackageDirty();
+                            continue;
+                        }
+                    }
+
+                    // stale data that is left in the level
+                    if ( navigation_data_chunk != nullptr )
+                    {
+                        navigation_data_chunk->ReleaseNavigationData();
+                        navigation_data_chunk->MarkPackageDirty();
+                        level->NavDataChunks.Remove( navigation_data_chunk );
+                    }
+                }
+            }
+
+            // force navmesh drawing update
+            RequestDrawingUpdate( /*bForce=*/true );
+#endif // WITH_EDITOR
+
+            UNavigationSystemV1 * NavSys = FNavigationSystem::GetCurrent< UNavigationSystemV1 >( world );
+            if ( NavSys )
+            {
+                NavSys->OnNavigationGenerationFinished( *this );
+            }
+        }
+    }
+}
+
+USVONavigationDataChunk * ASVONavigationData::GetNavigationDataChunk( ULevel * level ) const
+{
+    const auto this_name = GetFName();
+
+    if ( const auto * result = level->NavDataChunks.FindByPredicate( [ & ]( const UNavigationDataChunk * chunk ) {
+             return chunk->NavigationDataName == this_name;
+         } ) )
+    {
+        return Cast< USVONavigationDataChunk >( *result );
+    }
+
+    return nullptr;
+}
+
 FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*agent_properties*/, const FPathFindingQuery & path_finding_query )
 {
     const auto * self = Cast< ASVONavigationData >( path_finding_query.NavData.Get() );

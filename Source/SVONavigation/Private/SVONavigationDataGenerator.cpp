@@ -296,6 +296,8 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
 
 TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_to_process_count )
 {
+    const bool has_tasks_at_start = GetNumRemaningBuildTasks() > 0;
+
     int32 processed_tasks_count = 0;
     // Submit pending tile elements
     for ( int32 element_index = PendingBoundsDataGenerationElements.Num() - 1; element_index >= 0 && processed_tasks_count < task_to_process_count; element_index-- )
@@ -353,6 +355,13 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
         delete element.AsyncTask;
         element.AsyncTask = nullptr;
         RunningBoundsDataGenerationElements.RemoveAtSwap( index, 1, false );
+    }
+
+    const bool has_tasks_at_end = GetNumRemaningBuildTasks() > 0;
+    if ( has_tasks_at_start && !has_tasks_at_end )
+    {
+        //QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMeshGenerator_OnNavMeshGenerationFinished );
+        NavigationData.OnNavigationDataGenerationFinished();
     }
 
     return finished_boxes;
