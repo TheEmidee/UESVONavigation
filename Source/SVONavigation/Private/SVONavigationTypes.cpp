@@ -77,6 +77,8 @@ bool FSVOData::Initialize( const float voxel_size, const FBox & volume_bounds )
 {
     Reset();
 
+    VolumeBounds = volume_bounds;
+
     const auto volume_size = volume_bounds.GetSize().GetAbsMax();
 
     const auto leaf_size = voxel_size * 4;
@@ -109,12 +111,6 @@ bool FSVOData::Initialize( const float voxel_size, const FBox & volume_bounds )
     return true;
 }
 
-void FSVOData::Reset()
-{
-    Layers.Reset();
-    LeafNodes.Reset();
-}
-
 void FSVOData::AddBlockedNode( const LayerIndex layer_index, const NodeIndex node_index )
 {
     BlockedNodes[ layer_index ].Add( node_index );
@@ -124,6 +120,12 @@ FSVOData::FSVOData() :
     LeafNodes(),
     bIsValid( false )
 {
+}
+
+void FSVOData::Reset()
+{
+    Layers.Reset();
+    LeafNodes.Reset();
 }
 
 int FSVOData::GetAllocatedSize() const

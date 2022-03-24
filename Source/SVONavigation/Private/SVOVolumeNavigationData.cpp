@@ -414,6 +414,12 @@ void FSVOVolumeNavigationData::Serialize( FArchive & archive, const ESVOVersion 
     archive << VolumeNavigationQueryFilter;
 }
 
+void FSVOVolumeNavigationData::Reset()
+{
+    VolumeBounds.Init();
+    SVOData.Reset();
+}
+
 bool FSVOVolumeNavigationData::IsPositionOccluded( const FVector & position, const float box_extent ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_IsPositionOccluded );

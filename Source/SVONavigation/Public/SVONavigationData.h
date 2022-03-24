@@ -8,6 +8,7 @@
 
 #include "SVONavigationData.generated.h"
 
+class USVONavigationDataChunk;
 class USVONavDataRenderingComponent;
 struct FSVONavigationBounds;
 

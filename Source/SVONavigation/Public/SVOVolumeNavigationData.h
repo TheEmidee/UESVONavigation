@@ -49,6 +49,7 @@ public:
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings );
     void Serialize( FArchive & archive, const ESVOVersion version );
+    void Reset();
 
 private:
     int GetLayerCount() const;

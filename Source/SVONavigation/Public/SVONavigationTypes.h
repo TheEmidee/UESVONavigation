@@ -337,15 +337,16 @@ public:
     const FSVOLayer & GetLastLayer() const;
     const FSVOLeafNodes & GetLeafNodes() const;
     const FBox & GetNavigationBounds() const;
+    const FBox & GetVolumeBounds() const;
     bool IsValid() const;
 
+    void Reset();
     int GetAllocatedSize() const;
 
 private:
     FSVOLayer & GetLayer( LayerIndex layer_index );
     FSVOLeafNodes & GetLeafNodes();
     bool Initialize( float voxel_size, const FBox & volume_bounds );
-    void Reset();
     void AddBlockedNode( LayerIndex layer_index, NodeIndex node_index );
     const TArray< NodeIndex > & GetLayerBlockedNodes( LayerIndex layer_index ) const;
 
@@ -353,6 +354,8 @@ private:
     TArray< FSVOLayer > Layers;
     FSVOLeafNodes LeafNodes;
     FBox NavigationBounds;
+    // The bounds of the nav mesh bounds volume in the world
+    FBox VolumeBounds;
     uint8 bIsValid : 1;
 };
 
@@ -389,6 +392,11 @@ FORCEINLINE FSVOLeafNodes & FSVOData::GetLeafNodes()
 FORCEINLINE const FBox & FSVOData::GetNavigationBounds() const
 {
     return NavigationBounds;
+}
+
+FORCEINLINE const FBox & FSVOData::GetVolumeBounds() const
+{
+    return VolumeBounds;
 }
 
 FORCEINLINE bool FSVOData::IsValid() const

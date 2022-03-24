@@ -5,6 +5,7 @@
 #include "PathFinding/SVOPathFindingAlgorithm.h"
 #include "SVOBoundsVolume.h"
 #include "SVONavDataRenderingComponent.h"
+#include "SVONavigationDataChunk.h"
 #include "SVONavigationDataGenerator.h"
 #include "SVONavigationSettings.h"
 #include "SVOVersion.h"
@@ -46,14 +47,14 @@ ASVONavigationData::ASVONavigationData() :
         TestPathImplementation = TestPath;
         TestHierarchicalPathImplementation = TestHierarchicalPath;*/
 
-        //RaycastImplementation = NavMeshRaycast;
+        // RaycastImplementation = NavMeshRaycast;
 
-        //RecastNavMeshImpl = new FPImplRecastNavMesh( this );
+        // RecastNavMeshImpl = new FPImplRecastNavMesh( this );
 
         //// add predefined areas up front
-        //SupportedAreas.Add( FSupportedAreaData( UNavArea_Null::StaticClass(), RECAST_NULL_AREA ) );
-        //SupportedAreas.Add( FSupportedAreaData( UNavArea_LowHeight::StaticClass(), RECAST_LOW_AREA ) );
-        //SupportedAreas.Add( FSupportedAreaData( UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA ) );
+        // SupportedAreas.Add( FSupportedAreaData( UNavArea_Null::StaticClass(), RECAST_NULL_AREA ) );
+        // SupportedAreas.Add( FSupportedAreaData( UNavArea_LowHeight::StaticClass(), RECAST_LOW_AREA ) );
+        // SupportedAreas.Add( FSupportedAreaData( UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA ) );
     }
 }
 
@@ -176,8 +177,7 @@ bool ASVONavigationData::SupportsRuntimeGeneration() const
 
 bool ASVONavigationData::SupportsStreaming() const
 {
-    // :TODO:
-    return false;
+    return ( RuntimeGeneration != ERuntimeGenerationType::Dynamic );
 }
 
 FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter /*filter*/, const UObject * /*querier*/ ) const
@@ -322,14 +322,38 @@ UPrimitiveComponent * ASVONavigationData::ConstructRenderingComponent()
     return NewObject< USVONavDataRenderingComponent >( this, TEXT( "SVONavRenderingComp" ), RF_Transient );
 }
 
-void ASVONavigationData::OnStreamingLevelAdded( ULevel * level, UWorld * world )
+void ASVONavigationData::OnStreamingLevelAdded( ULevel * level, UWorld * /*world*/ )
 {
-    Super::OnStreamingLevelAdded( level, world );
+    // QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMesh_OnStreamingLevelAdded );
+
+    if ( SupportsStreaming() )
+    {
+        if ( USVONavigationDataChunk * navigation_data_chunk = GetNavigationDataChunk( level ) )
+        {
+            for ( const auto & chunk_nav_data : navigation_data_chunk->NavigationData )
+            {
+                VolumeNavigationData.Add( chunk_nav_data );
+            }
+        }
+    }
 }
 
-void ASVONavigationData::OnStreamingLevelRemoved( ULevel * level, UWorld * world )
+void ASVONavigationData::OnStreamingLevelRemoved( ULevel * level, UWorld * /*world*/ )
 {
-    Super::OnStreamingLevelRemoved( level, world );
+    // QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMesh_OnStreamingLevelRemoved );
+
+    if ( SupportsStreaming() )
+    {
+        if ( USVONavigationDataChunk * navigation_data_chunk = GetNavigationDataChunk( level ) )
+        {
+            for ( const auto & chunk_nav_data : navigation_data_chunk->NavigationData )
+            {
+                VolumeNavigationData.RemoveAllSwap( [ &chunk_nav_data ]( const auto & nav_data ) {
+                    return chunk_nav_data.GetVolumeBounds() == nav_data.GetVolumeBounds();
+                } );
+            }
+        }
+    }
 }
 
 void ASVONavigationData::OnNavAreaChanged()
