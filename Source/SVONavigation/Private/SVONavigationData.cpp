@@ -780,8 +780,7 @@ void ASVONavigationData::OnNavigationDataGenerationFinished()
 
                             for ( const auto index : navigation_data_indices )
                             {
-                                navigation_data_chunk->NavigationData.Emplace( VolumeNavigationData[ index ] );
-                                VolumeNavigationData.RemoveAtSwap( index );
+                                navigation_data_chunk->AddNavigationData( VolumeNavigationData[ index ] );
                             }
 
                             navigation_data_chunk->MarkPackageDirty();
@@ -789,12 +788,23 @@ void ASVONavigationData::OnNavigationDataGenerationFinished()
                         }
                     }
 
-                    // stale data that is left in the level
-                    if ( navigation_data_chunk != nullptr )
+                    // It's hack. That check should not be there.
+                    // When calling FNavigationSystem::Build, all streaming levels should be loaded and visible for the navigation to be built. That's how it works for ReCast
+                    // But since svo nav data always resolves to a box bigger than the nav bounds volume, it's possible that when building navigation for a volume in a streaming
+                    // level, the box would encompasses geometry of another level which should not be visible.
+                    // The solution we use in our game is to use a BuildIncremental function on a custom navigation system, which never calls FNavigationSystem::DiscardNavigationDataChunks
+                    // In a commandlet we load streaming levels by batch, build navigation for those levels only, then load another batch of levels, build navigation for those levels, etc...
+                    // This means that this function ASVONavigationData::OnNavigationDataGenerationFinished is called after navigation is built for each batch of levels
+                    // and that also means that after the last batch of levels is processed, we would release the navigation data for each previous batch of levels
+                    if ( !IsRunningCommandlet() )
                     {
-                        navigation_data_chunk->ReleaseNavigationData();
-                        navigation_data_chunk->MarkPackageDirty();
-                        level->NavDataChunks.Remove( navigation_data_chunk );
+                        // stale data that is left in the level
+                        if ( navigation_data_chunk != nullptr )
+                        {
+                            navigation_data_chunk->ReleaseNavigationData();
+                            navigation_data_chunk->MarkPackageDirty();
+                            level->NavDataChunks.Remove( navigation_data_chunk );
+                        }
                     }
                 }
             }
