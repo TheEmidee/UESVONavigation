@@ -378,8 +378,15 @@ void ASVONavigationData::OnStreamingLevelAdded( ULevel * level, UWorld * /*world
         {
             for ( const auto & chunk_nav_data : navigation_data_chunk->NavigationData )
             {
-                VolumeNavigationData.Add( chunk_nav_data );
+                if ( VolumeNavigationData.FindByPredicate( [ &chunk_nav_data ]( const auto & navigation_data ) {
+                         return chunk_nav_data.GetVolumeBounds() == navigation_data.GetVolumeBounds();
+                     } ) == nullptr )
+                {
+                    VolumeNavigationData.Add( chunk_nav_data );
+                }
             }
+
+            RequestDrawingUpdate();
         }
     }
 }
@@ -398,6 +405,8 @@ void ASVONavigationData::OnStreamingLevelRemoved( ULevel * level, UWorld * /*wor
                     return chunk_nav_data.GetVolumeBounds() == nav_data.GetVolumeBounds();
                 } );
             }
+
+            RequestDrawingUpdate();
         }
     }
 }
