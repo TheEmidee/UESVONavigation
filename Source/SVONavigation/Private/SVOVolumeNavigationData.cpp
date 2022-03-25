@@ -428,6 +428,7 @@ void FSVOVolumeNavigationData::Serialize( FArchive & archive, const ESVOVersion 
     archive << VolumeBounds;
     archive << SVOData;
     archive << VolumeNavigationQueryFilter;
+    archive << bInNavigationDataChunk;
 
     if ( archive.IsSaving() )
     {

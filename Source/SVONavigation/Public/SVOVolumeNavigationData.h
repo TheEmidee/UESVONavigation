@@ -30,6 +30,8 @@ public:
         return ref.IsValid();
     }
 
+    bool IsInNavigationDataChunk() const;
+    void SetInNavigationDataChunk( bool in_navigation_data_chunk );
     const FSVOVolumeNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
     const FBox & GetNavigationBounds() const;
@@ -69,7 +71,18 @@ private:
     FBox VolumeBounds;
     FSVOData SVOData;
     TSubclassOf< USVONavigationQueryFilter > VolumeNavigationQueryFilter;
+    bool bInNavigationDataChunk;
 };
+
+FORCEINLINE bool FSVOVolumeNavigationData::IsInNavigationDataChunk() const
+{
+    return bInNavigationDataChunk;
+}
+
+FORCEINLINE void FSVOVolumeNavigationData::SetInNavigationDataChunk( const bool in_navigation_data_chunk )
+{
+    bInNavigationDataChunk = in_navigation_data_chunk;
+}
 
 FORCEINLINE const FSVOVolumeNavigationDataGenerationSettings & FSVOVolumeNavigationData::GetDataGenerationSettings() const
 {
