@@ -30,6 +30,8 @@ public:
         return ref.IsValid();
     }
 
+    bool IsInNavigationDataChunk() const;
+    void SetInNavigationDataChunk( bool in_navigation_data_chunk );
     const FSVOVolumeNavigationDataGenerationSettings & GetDataGenerationSettings() const;
     const FBox & GetVolumeBounds() const;
     const FBox & GetNavigationBounds() const;
@@ -49,6 +51,7 @@ public:
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings );
     void Serialize( FArchive & archive, const ESVOVersion version );
+    void Reset();
 
 private:
     int GetLayerCount() const;
@@ -68,7 +71,18 @@ private:
     FBox VolumeBounds;
     FSVOData SVOData;
     TSubclassOf< USVONavigationQueryFilter > VolumeNavigationQueryFilter;
+    bool bInNavigationDataChunk;
 };
+
+FORCEINLINE bool FSVOVolumeNavigationData::IsInNavigationDataChunk() const
+{
+    return bInNavigationDataChunk;
+}
+
+FORCEINLINE void FSVOVolumeNavigationData::SetInNavigationDataChunk( const bool in_navigation_data_chunk )
+{
+    bInNavigationDataChunk = in_navigation_data_chunk;
+}
 
 FORCEINLINE const FSVOVolumeNavigationDataGenerationSettings & FSVOVolumeNavigationData::GetDataGenerationSettings() const
 {

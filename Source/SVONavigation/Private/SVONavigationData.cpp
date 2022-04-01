@@ -5,6 +5,7 @@
 #include "PathFinding/SVOPathFindingAlgorithm.h"
 #include "SVOBoundsVolume.h"
 #include "SVONavDataRenderingComponent.h"
+#include "SVONavigationDataChunk.h"
 #include "SVONavigationDataGenerator.h"
 #include "SVONavigationSettings.h"
 #include "SVOVersion.h"
@@ -46,14 +47,14 @@ ASVONavigationData::ASVONavigationData() :
         TestPathImplementation = TestPath;
         TestHierarchicalPathImplementation = TestHierarchicalPath;*/
 
-        //RaycastImplementation = NavMeshRaycast;
+        // RaycastImplementation = NavMeshRaycast;
 
-        //RecastNavMeshImpl = new FPImplRecastNavMesh( this );
+        // RecastNavMeshImpl = new FPImplRecastNavMesh( this );
 
         //// add predefined areas up front
-        //SupportedAreas.Add( FSupportedAreaData( UNavArea_Null::StaticClass(), RECAST_NULL_AREA ) );
-        //SupportedAreas.Add( FSupportedAreaData( UNavArea_LowHeight::StaticClass(), RECAST_LOW_AREA ) );
-        //SupportedAreas.Add( FSupportedAreaData( UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA ) );
+        // SupportedAreas.Add( FSupportedAreaData( UNavArea_Null::StaticClass(), RECAST_NULL_AREA ) );
+        // SupportedAreas.Add( FSupportedAreaData( UNavArea_LowHeight::StaticClass(), RECAST_LOW_AREA ) );
+        // SupportedAreas.Add( FSupportedAreaData( UNavArea_Default::StaticClass(), RECAST_DEFAULT_AREA ) );
     }
 }
 
@@ -113,17 +114,63 @@ void ASVONavigationData::Serialize( FArchive & archive )
         }
     }
 
-    auto volume_count = VolumeNavigationData.Num();
-    archive << volume_count;
-    if ( archive.IsLoading() )
+    if ( archive.IsSaving() )
     {
+        // When saving, don't serialize the whole VolumeNavigationData array as it may contain navigation data from chunks added by streaming levels
+        TArray< FSVOVolumeNavigationData > level_volume_navigation_data;
+
+        if ( SupportsStreaming() && FNavigationSystem::GetCurrent< const UNavigationSystemV1 >( GetWorld() ) != nullptr )
+        {
+            const auto & level_navigable_bounds = GetNavigableBoundsInLevel( GetLevel() );
+
+            TArray< bool > navigation_data_indices_to_keep;
+            navigation_data_indices_to_keep.SetNum( VolumeNavigationData.Num() );
+
+            for ( const auto & navigable_bounds : level_navigable_bounds )
+            {
+                const auto index = VolumeNavigationData.IndexOfByPredicate( [ &navigable_bounds ]( const auto & navigation_data ) {
+                    return !navigation_data.IsInNavigationDataChunk() && !( navigation_data.GetVolumeBounds() == navigable_bounds );
+                } );
+
+                if ( index != INDEX_NONE )
+                {
+                    navigation_data_indices_to_keep[ index ] = true;
+                }
+            }
+
+            for ( auto index = VolumeNavigationData.Num() - 1; index >= 0; --index )
+            {
+                if ( navigation_data_indices_to_keep[ index ] )
+                {
+                    level_volume_navigation_data.Add( VolumeNavigationData[ index ] );
+                }
+            }
+        }
+        else
+        {
+            level_volume_navigation_data = VolumeNavigationData;
+        }
+
+        auto volume_count = level_volume_navigation_data.Num();
+        archive << volume_count;
+
+        for ( auto index = 0; index < volume_count; index++ )
+        {
+            level_volume_navigation_data[ index ].Serialize( archive, Version );
+        }
+    }
+    else if ( archive.IsLoading() )
+    {
+        auto volume_count = VolumeNavigationData.Num();
+        archive << volume_count;
+
         VolumeNavigationData.Reset( volume_count );
         VolumeNavigationData.SetNum( volume_count );
-    }
 
-    for ( auto index = 0; index < volume_count; index++ )
-    {
-        VolumeNavigationData[ index ].Serialize( archive, Version );
+        for ( auto index = 0; index < volume_count; index++ )
+        {
+            VolumeNavigationData[ index ].Serialize( archive, Version );
+        }
     }
 
     if ( archive.IsSaving() )
@@ -176,8 +223,7 @@ bool ASVONavigationData::SupportsRuntimeGeneration() const
 
 bool ASVONavigationData::SupportsStreaming() const
 {
-    // :TODO:
-    return false;
+    return ( RuntimeGeneration != ERuntimeGenerationType::Dynamic );
 }
 
 FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter /*filter*/, const UObject * /*querier*/ ) const
@@ -322,14 +368,47 @@ UPrimitiveComponent * ASVONavigationData::ConstructRenderingComponent()
     return NewObject< USVONavDataRenderingComponent >( this, TEXT( "SVONavRenderingComp" ), RF_Transient );
 }
 
-void ASVONavigationData::OnStreamingLevelAdded( ULevel * level, UWorld * world )
+void ASVONavigationData::OnStreamingLevelAdded( ULevel * level, UWorld * /*world*/ )
 {
-    Super::OnStreamingLevelAdded( level, world );
+    // QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMesh_OnStreamingLevelAdded );
+
+    if ( SupportsStreaming() )
+    {
+        if ( USVONavigationDataChunk * navigation_data_chunk = GetNavigationDataChunk( level ) )
+        {
+            for ( const auto & chunk_nav_data : navigation_data_chunk->NavigationData )
+            {
+                if ( VolumeNavigationData.FindByPredicate( [ &chunk_nav_data ]( const auto & navigation_data ) {
+                         return chunk_nav_data.GetVolumeBounds() == navigation_data.GetVolumeBounds();
+                     } ) == nullptr )
+                {
+                    VolumeNavigationData.Add( chunk_nav_data );
+                }
+            }
+
+            RequestDrawingUpdate();
+        }
+    }
 }
 
-void ASVONavigationData::OnStreamingLevelRemoved( ULevel * level, UWorld * world )
+void ASVONavigationData::OnStreamingLevelRemoved( ULevel * level, UWorld * /*world*/ )
 {
-    Super::OnStreamingLevelRemoved( level, world );
+    // QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMesh_OnStreamingLevelRemoved );
+
+    if ( SupportsStreaming() )
+    {
+        if ( USVONavigationDataChunk * navigation_data_chunk = GetNavigationDataChunk( level ) )
+        {
+            for ( const auto & chunk_nav_data : navigation_data_chunk->NavigationData )
+            {
+                VolumeNavigationData.RemoveAllSwap( [ &chunk_nav_data ]( const auto & nav_data ) {
+                    return chunk_nav_data.GetVolumeBounds() == nav_data.GetVolumeBounds();
+                } );
+            }
+
+            RequestDrawingUpdate();
+        }
+    }
 }
 
 void ASVONavigationData::OnNavAreaChanged()
@@ -644,6 +723,117 @@ void ASVONavigationData::InvalidateAffectedPaths( const TArray< FBox > & updated
             }
         }
     }
+}
+
+void ASVONavigationData::OnNavigationDataGenerationFinished()
+{
+    if ( UWorld * world = GetWorld() )
+    {
+        if ( !world->IsPendingKill() )
+        {
+#if WITH_EDITOR
+            // For navmeshes that support streaming create navigation data holders in each streaming level
+            // so parts of navmesh can be streamed in/out with those levels
+            if ( !world->IsGameWorld() )
+            {
+                const auto & levels = world->GetLevels();
+
+                for ( auto * level : levels )
+                {
+                    if ( level->IsPersistentLevel() )
+                    {
+                        continue;
+                    }
+
+                    USVONavigationDataChunk * navigation_data_chunk = GetNavigationDataChunk( level );
+
+                    if ( SupportsStreaming() )
+                    {
+                        // We use navigation volumes that belongs to this streaming level to find tiles we want to save
+                        const auto & level_nav_bounds = GetNavigableBoundsInLevel( level );
+
+                        TArray< int32 > navigation_data_indices;
+                        navigation_data_indices.Reserve( level_nav_bounds.Num() );
+
+                        for ( const auto & nav_bounds : level_nav_bounds )
+                        {
+                            const auto index = VolumeNavigationData.IndexOfByPredicate( [ &nav_bounds ]( const FSVOVolumeNavigationData & data ) {
+                                const auto & bounds = data.GetData().GetVolumeBounds();
+                                return bounds == nav_bounds;
+                            } );
+
+                            if ( index != INDEX_NONE )
+                            {
+                                navigation_data_indices.Add( index );
+                            }
+                        }
+
+                        if ( navigation_data_indices.Num() > 0 )
+                        {
+                            // Create new chunk only if we have something to save in it
+                            if ( navigation_data_chunk == nullptr )
+                            {
+                                navigation_data_chunk = NewObject< USVONavigationDataChunk >( level );
+                                navigation_data_chunk->NavigationDataName = GetFName();
+                                level->NavDataChunks.Add( navigation_data_chunk );
+                            }
+
+                            for ( const auto index : navigation_data_indices )
+                            {
+                                navigation_data_chunk->AddNavigationData( VolumeNavigationData[ index ] );
+                            }
+
+                            navigation_data_chunk->MarkPackageDirty();
+                            continue;
+                        }
+                    }
+
+                    // It's hack. That check should not be there.
+                    // When calling FNavigationSystem::Build, all streaming levels should be loaded and visible for the navigation to be built. That's how it works for ReCast
+                    // But since svo nav data always resolves to a box bigger than the nav bounds volume, it's possible that when building navigation for a volume in a streaming
+                    // level, the box would encompasses geometry of another level which should not be visible.
+                    // The solution we use in our game is to use a BuildIncremental function on a custom navigation system, which never calls FNavigationSystem::DiscardNavigationDataChunks
+                    // In a commandlet we load streaming levels by batch, build navigation for those levels only, then load another batch of levels, build navigation for those levels, etc...
+                    // This means that this function ASVONavigationData::OnNavigationDataGenerationFinished is called after navigation is built for each batch of levels
+                    // and that also means that after the last batch of levels is processed, we would release the navigation data for each previous batch of levels
+                    if ( !IsRunningCommandlet() )
+                    {
+                        // stale data that is left in the level
+                        if ( navigation_data_chunk != nullptr )
+                        {
+                            navigation_data_chunk->ReleaseNavigationData();
+                            navigation_data_chunk->MarkPackageDirty();
+                            level->NavDataChunks.Remove( navigation_data_chunk );
+                        }
+                    }
+                }
+            }
+
+            // force navmesh drawing update
+            RequestDrawingUpdate( /*bForce=*/true );
+#endif // WITH_EDITOR
+
+            UNavigationSystemV1 * NavSys = FNavigationSystem::GetCurrent< UNavigationSystemV1 >( world );
+            if ( NavSys )
+            {
+                NavSys->OnNavigationGenerationFinished( *this );
+            }
+        }
+    }
+}
+
+USVONavigationDataChunk * ASVONavigationData::GetNavigationDataChunk( ULevel * level ) const
+{
+    const auto this_name = GetFName();
+
+    if ( const auto * result = level->NavDataChunks.FindByPredicate( [ & ]( const UNavigationDataChunk * chunk ) {
+             return chunk->NavigationDataName == this_name;
+         } ) )
+    {
+        return Cast< USVONavigationDataChunk >( *result );
+    }
+
+    return nullptr;
 }
 
 FPathFindingResult ASVONavigationData::FindPath( const FNavAgentProperties & /*agent_properties*/, const FPathFindingQuery & path_finding_query )
