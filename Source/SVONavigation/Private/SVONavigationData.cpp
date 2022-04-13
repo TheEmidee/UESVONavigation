@@ -580,7 +580,7 @@ FBox ASVONavigationData::GetBoundingBox() const
 
 void ASVONavigationData::RemoveDataInBounds( const FBox & bounds )
 {
-    VolumeNavigationData.RemoveAll( [ &bounds ]( const FSVOVolumeNavigationData & data ) {
+    VolumeNavigationData.RemoveAllSwap( [ &bounds ]( const FSVOVolumeNavigationData & data ) {
         return data.GetVolumeBounds() == bounds;
     } );
 }
