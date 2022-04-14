@@ -107,6 +107,16 @@ public:
     void RequestDrawingUpdate( bool force = false );
     FBox GetBoundingBox() const;
     void RemoveDataInBounds( const FBox & bounds );
+
+    template< typename _ALLOCATOR_TYPE_ >
+    void RemoveDataInBounds( const TArray< FBox, _ALLOCATOR_TYPE_ > & bounds_array )
+    {
+        for ( const auto & bounds : bounds_array )
+        {
+            RemoveDataInBounds( bounds );
+        }
+    }
+
     void AddVolumeNavigationData( FSVOVolumeNavigationData data );
     const FSVOVolumeNavigationData * GetVolumeNavigationDataContainingPoints( const TArray< FVector > & points ) const;
     void UpdateNavVersion();

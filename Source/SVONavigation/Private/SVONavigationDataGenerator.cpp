@@ -263,18 +263,7 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
                 }
 
                 // Remove the existing navigation bounds which don't match the new navigation bounds
-                // :TODO: Avoid copying data
-                const auto & existing_navigation_bounds = NavigationData.GetVolumeNavigationData();
-
-                for ( const auto & existing_bounds : existing_navigation_bounds )
-                {
-                    if ( RegisteredNavigationBounds.FindByPredicate( [ &existing_bounds ]( const FBox & registered_bounds ) {
-                             return registered_bounds == existing_bounds.GetVolumeBounds();
-                         } ) == nullptr )
-                    {
-                        NavigationData.RemoveDataInBounds( existing_bounds.GetVolumeBounds() );
-                    }
-                }
+                NavigationData.RemoveDataInBounds( RegisteredNavigationBounds );
             }
             TotalNavigationBounds = bounds_sum;
         }
