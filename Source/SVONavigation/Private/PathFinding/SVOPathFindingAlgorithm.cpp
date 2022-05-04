@@ -37,7 +37,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper::Step( EGr
         }
         case ESVOPathFindingAlgorithmState::ProcessNeighbor:
         {
-            return ProcessNeighbor();
+            return ProcessNeighbor( result );
         }
         case ESVOPathFindingAlgorithmState::Ended:
         {

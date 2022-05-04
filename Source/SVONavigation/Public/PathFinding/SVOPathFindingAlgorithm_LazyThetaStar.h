@@ -14,7 +14,7 @@ public:
 
 protected:
     ESVOPathFindingAlgorithmStepperStatus ProcessSingleNode( EGraphAStarResult & result ) override;
-    ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
+    ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor( EGraphAStarResult & result ) override;
 };
 
 UCLASS( Blueprintable )

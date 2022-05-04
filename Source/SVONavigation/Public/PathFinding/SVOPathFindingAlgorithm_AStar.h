@@ -14,7 +14,7 @@ public:
 protected:
     ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;
     ESVOPathFindingAlgorithmStepperStatus ProcessSingleNode( EGraphAStarResult & result ) override;
-    ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
+    ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor( EGraphAStarResult & result ) override;
     ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) override;
 
     void FillNodeAddressNeighbors( const FSVONodeAddress & node_address );

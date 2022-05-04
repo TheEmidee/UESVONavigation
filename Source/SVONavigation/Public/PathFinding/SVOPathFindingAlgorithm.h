@@ -46,7 +46,7 @@ public:
 protected:
     virtual ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) = 0;
     virtual ESVOPathFindingAlgorithmStepperStatus ProcessSingleNode( EGraphAStarResult & result ) = 0;
-    virtual ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() = 0;
+    virtual ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor( EGraphAStarResult & result ) = 0;
     virtual ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) = 0;
 
     void SetState( ESVOPathFindingAlgorithmState new_state );

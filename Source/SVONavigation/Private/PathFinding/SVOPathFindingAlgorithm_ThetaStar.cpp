@@ -24,9 +24,15 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar:
 }
 
 // Pretty much the same as A* except we try to check if there's a line of sight between the parent of the current node and the neighbor, and path from that parent to the neighbor if there is
-ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar::ProcessNeighbor()
+ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_ThetaStar::ProcessNeighbor( EGraphAStarResult & result )
 {
     NeighborIndexIncrement neighbor_index_increment( Neighbors, NeighborIndex, State );
+
+    if ( !Neighbors.IsValidIndex( NeighborIndex ) )
+    {
+        result = SearchFail;
+        return ESVOPathFindingAlgorithmStepperStatus::IsStopped;
+    }
 
     const auto neighbor_node_address = Neighbors[ NeighborIndex ];
 
