@@ -27,7 +27,7 @@ public:
 
 protected:
     ESVOPathFindingAlgorithmStepperStatus Init( EGraphAStarResult & result ) override;
-    ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor() override;
+    ESVOPathFindingAlgorithmStepperStatus ProcessNeighbor( EGraphAStarResult & result ) override;
     ESVOPathFindingAlgorithmStepperStatus Ended( EGraphAStarResult & result ) override;
     bool HasLineOfSight( FSVONodeAddress from, FSVONodeAddress to ) const;
 

@@ -80,7 +80,7 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
     return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
 }
 
-ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaStar::ProcessNeighbor()
+ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaStar::ProcessNeighbor( EGraphAStarResult & result )
 {
     NeighborIndexIncrement neighbor_index_increment( Neighbors, NeighborIndex, State );
 

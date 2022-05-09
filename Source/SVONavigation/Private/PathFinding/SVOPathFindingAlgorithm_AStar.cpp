@@ -144,9 +144,15 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::Pro
     return ESVOPathFindingAlgorithmStepperStatus::MustContinue;
 }
 
-ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::ProcessNeighbor()
+ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_AStar::ProcessNeighbor( EGraphAStarResult & result )
 {
     NeighborIndexIncrement neighbor_index_increment( Neighbors, NeighborIndex, State );
+
+    if ( !Neighbors.IsValidIndex( NeighborIndex ) )
+    {
+        result = SearchFail;
+        return ESVOPathFindingAlgorithmStepperStatus::IsStopped;
+    }
 
     const auto neighbor_address = Neighbors[ NeighborIndex ];
 
