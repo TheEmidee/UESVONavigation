@@ -63,15 +63,10 @@ class FSVORayCasterDebugDrawDelegateHelper final : public FDebugDrawDelegateHelp
 public:
     FSVORayCasterDebugDrawDelegateHelper() = default;
 
-    void InitDelegateHelper( const FDebugRenderSceneProxy * InSceneProxy ) override
-    {
-        check( 0 );
-    }
-
     void InitDelegateHelper( const FSVORayCasterSceneProxy * scene_proxy );
 
-    SVONAVIGATION_API void RegisterDebugDrawDelgate() override;
-    SVONAVIGATION_API void UnregisterDebugDrawDelgate() override;
+    SVONAVIGATION_API void RegisterDebugDrawDelegateInternal() override;
+    SVONAVIGATION_API void UnregisterDebugDrawDelegate() override;
 };
 #endif
 

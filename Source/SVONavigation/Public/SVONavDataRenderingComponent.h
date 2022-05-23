@@ -33,15 +33,10 @@ class FSVODebugDrawDelegateHelper final : public FDebugDrawDelegateHelper
 public:
     FSVODebugDrawDelegateHelper() = default;
 
-    void InitDelegateHelper( const FDebugRenderSceneProxy * InSceneProxy ) override
-    {
-        check( 0 );
-    }
-
     void InitDelegateHelper( const FSVONavigationMeshSceneProxy * scene_proxy );
 
-    SVONAVIGATION_API void RegisterDebugDrawDelgate() override;
-    SVONAVIGATION_API void UnregisterDebugDrawDelgate() override;
+    SVONAVIGATION_API void RegisterDebugDrawDelegateInternal() override;
+    SVONAVIGATION_API void UnregisterDebugDrawDelegate() override;
 
 private:
     TWeakObjectPtr< ASVONavigationData > NavigationData;

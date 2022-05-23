@@ -180,7 +180,7 @@ void FSVODebugDrawDelegateHelper::InitDelegateHelper( const FSVONavigationMeshSc
     NavigationData = scene_proxy->NavigationData;
 }
 
-void FSVODebugDrawDelegateHelper::RegisterDebugDrawDelgate()
+void FSVODebugDrawDelegateHelper::RegisterDebugDrawDelegateInternal()
 {
     ensureMsgf( State != RegisteredState, TEXT( "RegisterDebugDrawDelgate is already Registered!" ) );
     if ( State == InitializedState )
@@ -191,7 +191,7 @@ void FSVODebugDrawDelegateHelper::RegisterDebugDrawDelgate()
     }
 }
 
-void FSVODebugDrawDelegateHelper::UnregisterDebugDrawDelgate()
+void FSVODebugDrawDelegateHelper::UnregisterDebugDrawDelegate()
 {
     ensureMsgf( State != InitializedState, TEXT( "UnegisterDebugDrawDelgate is in an invalid State: %i !" ), State );
     if ( State == RegisteredState )
@@ -231,7 +231,7 @@ FPrimitiveSceneProxy * USVONavDataRenderingComponent::CreateSceneProxy()
     if ( proxy != nullptr )
     {
         DebugDrawDelegateManager.InitDelegateHelper( proxy );
-        DebugDrawDelegateManager.ReregisterDebugDrawDelgate();
+        DebugDrawDelegateManager.ReregisterDebugDrawDelegate();
     }
 
     return proxy;
@@ -244,7 +244,7 @@ FBoxSphereBounds USVONavDataRenderingComponent::CalcBounds( const FTransform & L
 {
     FBox bounding_box( ForceInit );
 
-    if ( ASVONavigationData * navigation_data = Cast< ASVONavigationData >( GetOwner() ) )
+    if ( const ASVONavigationData * navigation_data = Cast< ASVONavigationData >( GetOwner() ) )
     {
         bounding_box = navigation_data->GetBoundingBox();
     }
@@ -257,14 +257,14 @@ void USVONavDataRenderingComponent::CreateRenderState_Concurrent( FRegisterCompo
     Super::CreateRenderState_Concurrent( context );
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-    DebugDrawDelegateManager.RegisterDebugDrawDelgate();
+    DebugDrawDelegateManager.RequestRegisterDebugDrawDelegate( context );
 #endif
 }
 
 void USVONavDataRenderingComponent::DestroyRenderState_Concurrent()
 {
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-    DebugDrawDelegateManager.UnregisterDebugDrawDelgate();
+    DebugDrawDelegateManager.UnregisterDebugDrawDelegate();
 #endif
 
     Super::DestroyRenderState_Concurrent();
