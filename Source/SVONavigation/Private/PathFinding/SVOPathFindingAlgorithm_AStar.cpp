@@ -1,5 +1,6 @@
 #include "PathFinding/SVOPathFindingAlgorithm_AStar.h"
 
+#include "Pathfinding/SVONavigationQueryFilterSettings.h"
 #include "SVOHelpers.h"
 #include "SVOVolumeNavigationData.h"
 
