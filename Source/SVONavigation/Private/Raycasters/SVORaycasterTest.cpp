@@ -96,7 +96,7 @@ void FSVORayCasterDebugDrawDelegateHelper::InitDelegateHelper( const FSVORayCast
     Super::InitDelegateHelper( scene_proxy );
 }
 
-void FSVORayCasterDebugDrawDelegateHelper::RegisterDebugDrawDelgate()
+void FSVORayCasterDebugDrawDelegateHelper::RegisterDebugDrawDelegateInternal()
 {
     ensureMsgf( State != RegisteredState, TEXT( "RegisterDebugDrawDelgate is already Registered!" ) );
     if ( State == InitializedState )
@@ -107,7 +107,7 @@ void FSVORayCasterDebugDrawDelegateHelper::RegisterDebugDrawDelgate()
     }
 }
 
-void FSVORayCasterDebugDrawDelegateHelper::UnregisterDebugDrawDelgate()
+void FSVORayCasterDebugDrawDelegateHelper::UnregisterDebugDrawDelegate()
 {
     ensureMsgf( State != InitializedState, TEXT( "UnegisterDebugDrawDelgate is in an invalid State: %i !" ), State );
     if ( State == RegisteredState )
@@ -129,14 +129,14 @@ void USVORayCasterRenderingComponent::CreateRenderState_Concurrent( FRegisterCom
     Super::CreateRenderState_Concurrent( context );
 
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-    DebugDrawDelegateManager.RegisterDebugDrawDelgate();
+    DebugDrawDelegateManager.RequestRegisterDebugDrawDelegate( context );
 #endif
 }
 
 void USVORayCasterRenderingComponent::DestroyRenderState_Concurrent()
 {
 #if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
-    DebugDrawDelegateManager.UnregisterDebugDrawDelgate();
+    DebugDrawDelegateManager.UnregisterDebugDrawDelegate();
 #endif
 
     Super::DestroyRenderState_Concurrent();
@@ -150,7 +150,7 @@ FPrimitiveSceneProxy * USVORayCasterRenderingComponent::CreateSceneProxy()
     if ( FSVORayCasterSceneProxy * new_scene_proxy = new FSVORayCasterSceneProxy( *this, proxy_data ) )
     {
         DebugDrawDelegateManager.InitDelegateHelper( new_scene_proxy );
-        DebugDrawDelegateManager.ReregisterDebugDrawDelgate();
+        DebugDrawDelegateManager.ReregisterDebugDrawDelegate();
 
         return new_scene_proxy;
     }

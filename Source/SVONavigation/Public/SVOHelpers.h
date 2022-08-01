@@ -9,8 +9,12 @@
 class SVONAVIGATION_API FSVOHelpers
 {
 public:
-    template < typename _VECTOR_ >
-    FORCEINLINE static MortonCode GetMortonCodeFromVector( const _VECTOR_ & vector )
+    FORCEINLINE static MortonCode GetMortonCodeFromVector( const FVector & vector )
+    {
+        return morton3D_64_encode( vector.X, vector.Y, vector.Z );
+    }
+
+    FORCEINLINE static MortonCode GetMortonCodeFromVector( const FIntVector & vector )
     {
         return morton3D_64_encode( vector.X, vector.Y, vector.Z );
     }
