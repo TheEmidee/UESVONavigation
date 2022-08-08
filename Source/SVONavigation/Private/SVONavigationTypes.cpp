@@ -93,11 +93,11 @@ bool FSVOData::Initialize( const float voxel_size, const FBox & volume_bounds )
 
     LeafNodes.Initialize( leaf_size );
 
-    const auto navigation_bounds_size = voxel_exponent * voxel_exponent * leaf_size;
+    const auto navigation_bounds_size = FMath::Pow( 2.0f, voxel_exponent ) * leaf_size;
 
     for ( LayerIndex layer_index = 0; layer_index < layer_count; ++layer_index )
     {
-        const auto layer_edge_node_count = ( voxel_exponent - layer_index ) * ( voxel_exponent - layer_index );
+        const auto layer_edge_node_count = FMath::Pow( 2.0f, voxel_exponent - layer_index );
         const auto layer_max_node_count = layer_edge_node_count * layer_edge_node_count * layer_edge_node_count; //FMath::CeilToInt( FMath::Pow( layer_edge_node_count, 3 ) );
         const auto layer_voxel_size = navigation_bounds_size / layer_edge_node_count;
 
