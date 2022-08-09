@@ -729,7 +729,7 @@ void ASVONavigationData::OnNavigationDataGenerationFinished()
 {
     if ( UWorld * world = GetWorld() )
     {
-        if ( !IsValid( world ) )
+        if ( IsValid( world ) )
         {
 #if WITH_EDITOR
             // For navmeshes that support streaming create navigation data holders in each streaming level
