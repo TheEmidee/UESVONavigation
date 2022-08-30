@@ -149,8 +149,10 @@ FPrimitiveSceneProxy * USVORayCasterRenderingComponent::CreateSceneProxy()
 
     if ( FSVORayCasterSceneProxy * new_scene_proxy = new FSVORayCasterSceneProxy( *this, proxy_data ) )
     {
+#if !UE_BUILD_SHIPPING && !UE_BUILD_TEST
         DebugDrawDelegateManager.InitDelegateHelper( new_scene_proxy );
         DebugDrawDelegateManager.ReregisterDebugDrawDelegate();
+#endif
 
         return new_scene_proxy;
     }
