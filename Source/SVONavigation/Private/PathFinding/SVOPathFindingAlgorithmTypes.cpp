@@ -27,7 +27,7 @@ void FSVOPathFinderDebugNodeCost::Reset()
     *this = FSVOPathFinderDebugNodeCost();
 }
 
-FSVOPathFinderNodeAddressWithCost::FSVOPathFinderNodeAddressWithCost( const FSVONodeAddress & node_address, const float traversal_cost ) :
+FSVOPathFinderNodeAddressWithCost::FSVOPathFinderNodeAddressWithCost( const FSVONodeAddress & node_address, const double traversal_cost ) :
     NodeAddress( node_address ),
     Cost( traversal_cost )
 {}

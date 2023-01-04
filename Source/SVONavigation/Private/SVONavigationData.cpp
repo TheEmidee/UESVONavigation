@@ -60,23 +60,6 @@ ASVONavigationData::ASVONavigationData() :
 
 void ASVONavigationData::PostInitProperties()
 {
-    if ( UWorld * world = GetWorld() )
-    {
-        if ( auto * settings = GetDefault< USVONavigationSettings >() )
-        {
-            if ( HasAnyFlags( RF_NeedLoad )                                                                              //  was loaded
-                 && FNavigationSystem::ShouldDiscardSubLevelNavData( *this ) && GEngine->IsSettingUpPlayWorld() == false // this is a @HACK
-                 && world->GetOutermost() != GetOutermost()
-                 // If we are cooking, then let them all pass.
-                 // They will be handled at load-time when running.
-                 && !IsRunningCommandlet() )
-            {
-                // marking self for deletion
-                CleanUpAndMarkPendingKill();
-            }
-        }
-    }
-
     Super::PostInitProperties();
 
     if ( HasAnyFlags( RF_ClassDefaultObject | RF_NeedLoad ) == false )
@@ -88,6 +71,19 @@ void ASVONavigationData::PostInitProperties()
 void ASVONavigationData::PostLoad()
 {
     Super::PostLoad();
+
+    if ( const UWorld * world = GetWorld() )
+    {
+        const UNavigationSystemBase * navigation_system_base = world->GetNavigationSystem();
+        if ( navigation_system_base != nullptr && navigation_system_base->IsWorldInitDone() )
+        {
+            CheckToDiscardSubLevelNavData( *navigation_system_base );
+        }
+        else
+        {
+            UNavigationSystemBase::OnNavigationInitStartStaticDelegate().AddUObject( this, &ThisClass::CheckToDiscardSubLevelNavData );
+        }
+    }
 
     RecreateDefaultFilter();
 }
@@ -619,6 +615,28 @@ const FSVOVolumeNavigationData * ASVONavigationData::GetVolumeNavigationDataCont
 void ASVONavigationData::UpdateNavVersion()
 {
     Version = ESVOVersion::Latest;
+}
+
+void ASVONavigationData::CheckToDiscardSubLevelNavData( const UNavigationSystemBase & navigation_system )
+{
+    if ( const auto * world = GetWorld() )
+    {
+        if ( const UNavigationSystemV1 * NavSys = Cast< UNavigationSystemV1 >( &navigation_system ) )
+        {
+            // Get rid of instances saved within levels that are streamed-in
+            if ( ( GEngine->IsSettingUpPlayWorld() == false ) // this is a @HACK
+                 && ( world->PersistentLevel != GetLevel() )
+                 // If we are cooking, then let them all pass.
+                 // They will be handled at load-time when running.
+                 && ( IsRunningCommandlet() == false ) )
+            {
+                UE_LOG( LogNavigation, Verbose, TEXT( "%s Discarding %s due to it not being part of PersistentLevel." ), ANSI_TO_TCHAR( __FUNCTION__ ), *GetFullNameSafe( this ) );
+
+                // Marking self for deletion
+                CleanUpAndMarkPendingKill();
+            }
+        }
+    }
 }
 
 void ASVONavigationData::RecreateDefaultFilter() const

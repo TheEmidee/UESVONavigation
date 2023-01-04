@@ -122,6 +122,7 @@ public:
     void UpdateNavVersion();
 
 private:
+    void CheckToDiscardSubLevelNavData( const UNavigationSystemBase & navigation_system );
     void RecreateDefaultFilter() const;
     void UpdateDrawing() const;
     void ResetGenerator( bool cancel_build = true );
