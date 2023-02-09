@@ -42,17 +42,17 @@ struct FSVOPathFinderDebugNodeCost
 
     FSVONodeAddressWithLocation From;
     FSVONodeAddressWithLocation To;
-    float Cost;
+    double Cost;
     uint8 bIsClosed : 1;
 };
 
 struct FSVOPathFinderNodeAddressWithCost
 {
     FSVOPathFinderNodeAddressWithCost() = default;
-    FSVOPathFinderNodeAddressWithCost( const FSVONodeAddress & node_address, float traversal_cost );
+    FSVOPathFinderNodeAddressWithCost( const FSVONodeAddress & node_address, double traversal_cost );
 
     FSVONodeAddress NodeAddress;
-    float Cost;
+    double Cost;
 };
 
 USTRUCT()
