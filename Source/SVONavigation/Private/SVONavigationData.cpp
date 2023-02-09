@@ -72,9 +72,9 @@ void ASVONavigationData::PostLoad()
 {
     Super::PostLoad();
 
-    if ( const UWorld * world = GetWorld() )
+    if ( const auto * world = GetWorld() )
     {
-        const UNavigationSystemBase * navigation_system_base = world->GetNavigationSystem();
+        const auto * navigation_system_base = world->GetNavigationSystem();
         if ( navigation_system_base != nullptr && navigation_system_base->IsWorldInitDone() )
         {
             CheckToDiscardSubLevelNavData( *navigation_system_base );
@@ -621,16 +621,16 @@ void ASVONavigationData::CheckToDiscardSubLevelNavData( const UNavigationSystemB
 {
     if ( const auto * world = GetWorld() )
     {
-        if ( const UNavigationSystemV1 * NavSys = Cast< UNavigationSystemV1 >( &navigation_system ) )
+        if ( const auto * nav_sys = Cast< UNavigationSystemV1 >( &navigation_system ) )
         {
             // Get rid of instances saved within levels that are streamed-in
-            if ( ( GEngine->IsSettingUpPlayWorld() == false ) // this is a @HACK
+            if ( GEngine->IsSettingUpPlayWorld() == false // this is a @HACK
                  && ( world->PersistentLevel != GetLevel() )
                  // If we are cooking, then let them all pass.
                  // They will be handled at load-time when running.
                  && ( IsRunningCommandlet() == false ) )
             {
-                UE_LOG( LogNavigation, Verbose, TEXT( "%s Discarding %s due to it not being part of PersistentLevel." ), ANSI_TO_TCHAR( __FUNCTION__ ), *GetFullNameSafe( this ) );
+                UE_LOG( LogNavigation, Verbose, TEXT( "%hs Discarding %s due to it not being part of PersistentLevel." ), ANSI_TO_TCHAR( __FUNCTION__ ), *GetFullNameSafe( this ) );
 
                 // Marking self for deletion
                 CleanUpAndMarkPendingKill();
