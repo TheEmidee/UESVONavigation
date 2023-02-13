@@ -204,9 +204,9 @@ void FSVONavigationDataGenerator::GetSeedLocations( TArray< FVector2D > & seed_l
     // Collect players positions
     for ( FConstPlayerControllerIterator player_iterator = world.GetPlayerControllerIterator(); player_iterator; ++player_iterator )
     {
-        if ( APlayerController * player_controller = player_iterator->Get() )
+        if ( const auto * player_controller = player_iterator->Get() )
         {
-            if ( auto * pawn = player_controller->GetPawn() )
+            if ( const auto * pawn = player_controller->GetPawn() )
             {
                 const FVector2D seed_location( pawn->GetActorLocation() );
                 seed_locations.Add( seed_location );
