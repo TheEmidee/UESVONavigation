@@ -155,6 +155,7 @@ public:
     void UpdateNavVersion();
 
 private:
+    void SerializeSVOData( FArchive & archive, ESVOVersion version );
     void CheckToDiscardSubLevelNavData( const UNavigationSystemBase & navigation_system );
     void RecreateDefaultFilter() const;
     void UpdateDrawing() const;
