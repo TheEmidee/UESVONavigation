@@ -5,6 +5,8 @@
 
 #include <NavigationPath.h>
 
+DEFINE_LOG_CATEGORY_STATIC( LogSVODebugPathStepper, Verbose, Verbose )
+
 namespace
 {
     void BuildPath( FSVONavigationPath & path, const FSVOPathFindingParameters & params, const TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses, const bool add_end_location )
@@ -75,6 +77,8 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessSingleNode( const
     DebugInfos.LastProcessedSingleNode.To = FSVONodeAddressWithLocation( node.NodeRef, Stepper.GetParameters().VolumeNavigationData );
     DebugInfos.LastProcessedSingleNode.Cost = node.TotalCost;
 
+    UE_LOG( LogSVODebugPathStepper, Verbose, TEXT( "OnProcessSingleNode From [%s] To [%s] with cost [%s]" ), *node.NodeRef.ToString(), *DebugInfos.LastProcessedSingleNode.To.NodeAddress.ToString(), *FString::SanitizeFloat( node.TotalCost ) );
+
     DebugInfos.ProcessedNeighbors.Reset();
 
     DebugInfos.Iterations++;
@@ -90,12 +94,16 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const F
 {
     DebugInfos.ProcessedNeighbors.Emplace( FSVONodeAddressWithLocation( parent.NodeRef, Stepper.GetParameters().VolumeNavigationData ), FSVONodeAddressWithLocation( neighbor.NodeRef, Stepper.GetParameters().VolumeNavigationData ), cost, true );
     DebugInfos.VisitedNodes++;
+
+    UE_LOG( LogSVODebugPathStepper, Verbose, TEXT( "OnProcessNeighbor From [%s] To [%s] with cost [%s]" ), *parent.NodeRef.ToString(), *neighbor.NodeRef.ToString(), *FString::SanitizeFloat( cost ) );
 }
 
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const FGraphAStarDefaultNode< FSVOVolumeNavigationData > & neighbor )
 {
     DebugInfos.ProcessedNeighbors.Emplace( FSVONodeAddressWithLocation( neighbor.ParentRef, Stepper.GetParameters().VolumeNavigationData ), FSVONodeAddressWithLocation( neighbor.NodeRef, Stepper.GetParameters().VolumeNavigationData ), neighbor.TotalCost, false );
     DebugInfos.VisitedNodes++;
+
+    UE_LOG( LogSVODebugPathStepper, Verbose, TEXT( "OnProcessNeighbor From [%s] To [%s] with cost [%s]" ), *neighbor.ParentRef.ToString(), *neighbor.NodeRef.ToString(), *FString::SanitizeFloat( neighbor.TotalCost ) );
 }
 
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const ::TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses )
