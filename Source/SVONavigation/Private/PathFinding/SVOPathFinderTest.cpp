@@ -32,7 +32,7 @@ void FSVOPathFindingSceneProxyData::GatherData( const ASVOPathFinderTest & path_
 FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent & component, const FSVOPathFindingSceneProxyData & proxy_data ) :
     FDebugRenderSceneProxy( &component )
 {
-    DrawType = SolidAndWireMeshes;
+    DrawType = WireMesh;
     TextWithoutShadowDistance = 1500;
     bWantsSelectionOutline = false;
     ViewFlagName = TEXT( "Navigation" );

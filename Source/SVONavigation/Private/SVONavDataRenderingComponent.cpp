@@ -21,7 +21,7 @@ static const FColor FreeVoxelColor = FColor::Green;
 FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComponent * component ) :
     FDebugRenderSceneProxy( component )
 {
-    DrawType = EDrawType::SolidAndWireMeshes;
+    DrawType = EDrawType::WireMesh;
 
     RenderingComponent = MakeWeakObjectPtr( const_cast< USVONavDataRenderingComponent * >( Cast< USVONavDataRenderingComponent >( component ) ) );
     NavigationData = MakeWeakObjectPtr( Cast< ASVONavigationData >( RenderingComponent->GetOwner() ) );
