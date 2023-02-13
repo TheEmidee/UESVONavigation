@@ -17,13 +17,15 @@ namespace
         const auto path_points_size = node_addresses.Num() + 1;
 
         path_points.Reset( path_points_size );
+
+        ensureAlways( node_addresses[ 0 ].NodeAddress == params.StartNodeAddress );
         path_points.Emplace( params.StartLocation );
 
         path_point_costs.Reset( path_points_size );
 
         const auto & bounds_data = params.VolumeNavigationData;
 
-        for ( auto index = 0; index < node_addresses.Num() - 1; index++ )
+        for ( auto index = 1; index < node_addresses.Num() - 1; index++ )
         {
             const auto address_with_cost = node_addresses[ index ];
             path_points.Emplace( bounds_data.GetNodePositionFromAddress( address_with_cost.NodeAddress, true ) );
