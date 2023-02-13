@@ -262,8 +262,10 @@ void FSVONavigationDataGenerator::UpdateNavigationBounds()
                     bounds_sum += box;
                 }
 
+                // :NOTE: Commented because starting in UE5 or UE5.1 it will always remove all nav data
+                // Can be removed later when it's sure this can be dropped
                 // Remove the existing navigation bounds which don't match the new navigation bounds
-                NavigationData.RemoveDataInBounds( RegisteredNavigationBounds );
+                // NavigationData.RemoveDataInBounds( RegisteredNavigationBounds );
             }
             TotalNavigationBounds = bounds_sum;
         }
