@@ -68,6 +68,24 @@ FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddr
     return position;
 }
 
+FVector FSVOVolumeNavigationData::GetNodePositionFromLayerAndMortonCode( const LayerIndex layer_index, const MortonCode morton_code ) const
+{
+    if ( layer_index == 0 )
+    {
+        return GetLeafNodePositionFromMortonCode( morton_code );
+    }
+
+    const auto & layer = SVOData.GetLayer( layer_index );
+    const auto layer_node_extent = layer.GetNodeExtent();
+    const auto & navigation_bounds = SVOData.GetNavigationBounds();
+    const auto navigation_bounds_center = navigation_bounds.GetCenter();
+    const auto navigation_bounds_extent = navigation_bounds.GetExtent();
+    const auto layer_node_size = layer.GetNodeSize();
+    const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( morton_code );
+
+    return navigation_bounds_center - navigation_bounds_extent + morton_coords * layer_node_size + layer_node_extent;
+}
+
 FVector FSVOVolumeNavigationData::GetLeafNodePositionFromMortonCode( const MortonCode morton_code ) const
 {
     const auto & navigation_bounds = SVOData.GetNavigationBounds();
