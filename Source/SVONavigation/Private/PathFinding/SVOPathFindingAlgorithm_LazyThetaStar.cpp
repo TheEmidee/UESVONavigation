@@ -25,8 +25,6 @@ ESVOPathFindingAlgorithmStepperStatus FSVOPathFindingAlgorithmStepper_LazyThetaS
 
     FillNodeAddressNeighbors( considered_node_unsafe->NodeRef );
 
-    const auto heuristic_scale = Parameters.NavigationQueryFilter.GetHeuristicScale();
-
     if ( considered_node_unsafe->ParentNodeIndex != INDEX_NONE && !HasLineOfSight( considered_node_unsafe->ParentRef, considered_node_unsafe->NodeRef ) )
     {
         auto min_traversal_cost = TNumericLimits< float >::Max();
