@@ -139,7 +139,25 @@ bool FSVOPathFindingAlgorithmStepper_ThetaStar::HasLineOfSight( const FSVONodeAd
         ray_caster = GetDefault< USVONavigationSettings >()->DefaultRaycasterClass->GetDefaultObject< USVORayCaster >();
     }
 
-    return !ray_caster->Trace( Parameters.VolumeNavigationData, from, to );
+    const auto get_adjusted_position = [ this ]( const FSVONodeAddress & address ) {
+        if ( address == Parameters.StartNodeAddress )
+        {
+            return Parameters.StartLocation;
+        }
+        if ( address == Parameters.EndNodeAddress )
+        {
+            return Parameters.EndLocation;
+        }
+        return Parameters.VolumeNavigationData.GetNodePositionFromAddress( address, true );
+    };
+
+    const auto from_position = get_adjusted_position( from );
+    const auto to_position = get_adjusted_position( to );
+
+    const auto result = !ray_caster->Trace( Parameters.VolumeNavigationData, from_position, to_position );
+
+
+    return result;
 }
 
 ENavigationQueryResult::Type USVOPathFindingAlgorithmThetaStar::GetPath( FSVONavigationPath & navigation_path, const FSVOPathFindingParameters & params ) const
