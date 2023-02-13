@@ -43,27 +43,27 @@ void FSVONavigationDataGenerator::Init()
     MaximumGeneratorTaskCount = FMath::Min( FMath::Max( worker_threads_count * 2, 1 ), NavigationData.MaxSimultaneousBoxGenerationJobsCount );
     UE_LOG( LogNavigation, Log, TEXT( "Using max of %d workers to build SVO navigation." ), MaximumGeneratorTaskCount );
 
-    //IsInitialized = true;
+    // IsInitialized = true;
 
     //// recreate navmesh if no data was loaded, or when loaded data doesn't match current grid layout
-    //bool must_create_navigation_data = true;
-    //const bool is_static_navigation_data = IsStaticNavigationData( NavigationData );
+    // bool must_create_navigation_data = true;
+    // const bool is_static_navigation_data = IsStaticNavigationData( NavigationData );
 
-    //if ( is_static_navigation_data )
+    // if ( is_static_navigation_data )
     //{
-    //    must_create_navigation_data = false;
-    //}
-    //else
+    //     must_create_navigation_data = false;
+    // }
+    // else
     //{
-    //    // :TODO: ?
-    //};
+    //     // :TODO: ?
+    // };
 
-    //if ( must_create_navigation_data )
+    // if ( must_create_navigation_data )
     //{
-    //    // :TODO:
-    //    //ConstructSVOData();
-    //    MarkNavBoundsDirty();
-    //}
+    //     // :TODO:
+    //     //ConstructSVOData();
+    //     MarkNavBoundsDirty();
+    // }
 }
 
 bool FSVONavigationDataGenerator::RebuildAll()
@@ -322,7 +322,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
     for ( int32 index = RunningBoundsDataGenerationElements.Num() - 1; index >= 0; --index )
     {
-        //QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMeshGenerator_ProcessTileTasks_FinishedTasks );
+        // QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMeshGenerator_ProcessTileTasks_FinishedTasks );
 
         FRunningBoundsDataGenerationElement & element = RunningBoundsDataGenerationElements[ index ];
         check( element.AsyncTask != nullptr );
@@ -351,7 +351,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
     const bool has_tasks_at_end = GetNumRemaningBuildTasks() > 0;
     if ( has_tasks_at_start && !has_tasks_at_end )
     {
-        //QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMeshGenerator_OnNavMeshGenerationFinished );
+        // QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastNavMeshGenerator_OnNavMeshGenerationFinished );
         NavigationData.OnNavigationDataGenerationFinished();
     }
 
@@ -360,7 +360,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
 TSharedRef< FSVOVolumeNavigationDataGenerator > FSVONavigationDataGenerator::CreateBoxNavigationGenerator( const FBox & box )
 {
-    //SCOPE_CYCLE_COUNTER(STAT_SVONavigation_CreateBoxNavigationGenerator);
+    // SCOPE_CYCLE_COUNTER(STAT_SVONavigation_CreateBoxNavigationGenerator);
 
     TSharedRef< FSVOVolumeNavigationDataGenerator > box_navigation_data_generator = MakeShareable( new FSVOVolumeNavigationDataGenerator( *this, box ) );
     return box_navigation_data_generator;
