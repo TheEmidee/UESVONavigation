@@ -323,6 +323,8 @@ void FSVOVolumeNavigationData::GetNodeNeighbors( TArray< FSVONodeAddress > & nei
                     auto first_child_address = neighbor.FirstChild;
                     const auto & leaf_node = SVOData.GetLeafNodes().GetLeafNode( first_child_address.NodeIndex );
 
+                    first_child_address.LayerIndex = 0;
+                    first_child_address.NodeIndex = this_address.NodeIndex;
                     first_child_address.SubNodeIndex = leaf_index;
 
                     if ( !leaf_node.IsSubNodeOccluded( leaf_index ) )
