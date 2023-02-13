@@ -61,7 +61,8 @@ FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddr
     const auto & layer = SVOData.GetLayer( address.LayerIndex );
     const auto layer_node_size = layer.GetNodeSize();
     const auto layer_node_extent = layer.GetNodeExtent();
-    const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( address.NodeIndex );
+    const auto & node = layer.GetNode( address.NodeIndex );
+    const auto morton_coords = FSVOHelpers::GetVectorFromMortonCode( node.MortonCode );
 
     const auto position = navigation_bounds_center - navigation_bounds_extent + morton_coords * layer_node_size + layer_node_extent;
 
@@ -483,12 +484,12 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
     {
         const auto & layer = SVOData.GetLayer( 1 );
         const auto layer_max_node_count = layer.GetMaxNodeCount();
-        const auto layer_node_extent = layer.GetNodeExtent();
+        const auto layer_node_extent = layer.GetNodeExtent();        
 
         for ( MortonCode node_index = 0; node_index < layer_max_node_count; ++node_index )
         {
-            const auto position = GetNodePositionFromAddress( FSVONodeAddress( 1, node_index ), false );
-
+            const auto position = GetNodePositionFromLayerAndMortonCode( 1, node_index );
+            
             if ( IsPositionOccluded( position, layer_node_extent ) )
             {
                 SVOData.AddBlockedNode( 0, node_index );
