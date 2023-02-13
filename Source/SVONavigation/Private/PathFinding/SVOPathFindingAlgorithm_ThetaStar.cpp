@@ -5,8 +5,8 @@
 #include "SVONavigationData.h"
 #include "SVONavigationSettings.h"
 
-FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters::FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters() :
-    RayCaster( NewObject< USVORayCaster_OctreeTraversal >() )
+FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters::FSVOPathFindingAlgorithmStepper_ThetaStar_Parameters():
+    RayCaster( nullptr )
 {
 }
 
