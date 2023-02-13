@@ -49,44 +49,11 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             Boxes.Emplace( navigation_bounds_data.GetData().GetNavigationBounds(), FColor::White );
         }
 
-        const auto try_add_node_text_infos = [ this, &debug_infos, &navigation_bounds_data ]( const MortonCode node_morton_code, const LayerIndex node_layer_index, const FVector & node_position ) {
-            auto vertical_offset = 0.0f;
-            if ( debug_infos.bDebugDrawMortonCoords )
-            {
-                Texts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position, FLinearColor::Black );
-                vertical_offset += 40.0f;
-            }
-            if ( debug_infos.bDebugDrawNodeAddress )
-            {
-                const FIntVector morton_coords = FIntVector( FSVOHelpers::GetVectorFromMortonCode( node_morton_code ) );
-                Texts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
-                vertical_offset += 40.0f;
-            }
-            if ( debug_infos.bDebugDrawNodeLocation )
-            {
-                Texts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
-            }
-        };
 
-        const auto try_add_voxel_to_boxes = [ this, &debug_infos ]( const FVector & voxel_location, const float node_extent, const bool is_occluded ) {
-            if ( debug_infos.bDebugDrawFreeVoxels && !is_occluded )
-            {
-                Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( node_extent ) ), FreeVoxelColor );
 
-                return true;
-            }
-            if ( debug_infos.bDebugDrawOccludedVoxels && is_occluded )
             {
-                Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( node_extent ) ), OccludedVoxelColor );
-
-                return true;
             }
 
-            return false;
-        };
-
-        const auto & leaf_nodes = octree_data.GetLeafNodes();
-        const auto leaf_node_extent = leaf_nodes.GetLeafNodeExtent();
 
         if ( debug_infos.bDebugDrawLayers )
         {
@@ -101,19 +68,18 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
                 {
                     const auto leaf_node_position = navigation_bounds_data.GetLeafNodePositionFromMortonCode( code );
 
-                    if ( try_add_voxel_to_boxes( leaf_node_position, leaf_node_extent, node.HasChildren() ) )
+                    if ( AddVoxelToBoxes( leaf_node_position, leaf_node_extent, node.HasChildren() ) )
                     {
-                        try_add_node_text_infos( code, 0, leaf_node_position );
+                        AddNodeTextInfos( code, 0, leaf_node_position );
                     }
                 }
                 else
                 {
-                    const FSVONodeAddress node_address( corrected_layer_index, code );
-                    const auto node_position = navigation_bounds_data.GetNodePositionFromAddress( node_address, false );
+                    const auto position = navigation_bounds_data.GetNodePositionFromLayerAndMortonCode( corrected_layer_index, code );
 
-                    if ( try_add_voxel_to_boxes( node_position, node_extent, node.HasChildren() ) )
+                    if ( AddVoxelToBoxes( position, node_extent, node.HasChildren() ) )
                     {
-                        try_add_node_text_infos( code, corrected_layer_index, node_position );
+                        AddNodeTextInfos( code, corrected_layer_index, position );
                     }
                 }
             }
@@ -139,9 +105,9 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
                         const auto sub_node_location = leaf_node_position - leaf_node_extent + sub_node_morton_coords * leaf_sub_node_size + leaf_sub_node_extent;
                         const bool is_sub_node_occluded = leaf.IsSubNodeOccluded( sub_node_index );
 
-                        if ( try_add_voxel_to_boxes( sub_node_location, leaf_sub_node_extent, is_sub_node_occluded ) )
+                        if ( AddVoxelToBoxes( sub_node_location, leaf_sub_node_extent, is_sub_node_occluded ) )
                         {
-                            try_add_node_text_infos( sub_node_index, 0, sub_node_location );
+                            AddNodeTextInfos( sub_node_index, 0, sub_node_location );
                         }
                     }
                 }
@@ -160,6 +126,54 @@ SIZE_T FSVONavigationMeshSceneProxy::GetTypeHash() const
     return reinterpret_cast< size_t >( &UniquePointer );
 }
 
+bool FSVONavigationMeshSceneProxy::AddVoxelToBoxes( const FVector & voxel_location, const float node_extent, const bool is_occluded )
+{
+    const auto & debug_infos = NavigationData->GetDebugInfos();
+
+    if ( debug_infos.bDebugDrawFreeVoxels && !is_occluded )
+    {
+        Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( node_extent ) ), FreeVoxelColor );
+
+        return true;
+    }
+    if ( debug_infos.bDebugDrawOccludedVoxels && is_occluded )
+    {
+        Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( node_extent ) ), OccludedVoxelColor );
+
+        return true;
+    }
+
+    return false;
+}
+
+void FSVONavigationMeshSceneProxy::AddNodeTextInfos( const MortonCode node_morton_code, const LayerIndex node_layer_index, const FVector & node_position )
+{
+    const auto & debug_infos = NavigationData->GetDebugInfos();
+
+    auto vertical_offset = 0.0f;
+    if ( debug_infos.bDebugDrawMortonCoords )
+    {
+        Texts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position, FLinearColor::Black );
+        vertical_offset += 40.0f;
+    }
+    if ( debug_infos.bDebugDrawNodeCoords )
+    {
+        const FIntVector morton_coords = FIntVector( FSVOHelpers::GetVectorFromMortonCode( node_morton_code ) );
+        Texts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
+        vertical_offset += 40.0f;
+    }
+    if ( debug_infos.bDebugDrawNodeAddresses )
+    {
+        const FSVONodeAddress node_address( node_layer_index, node_morton_code );
+
+        Texts.Emplace( FString::Printf( TEXT( "%s" ), *node_address.ToString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
+        vertical_offset += 40.0f;
+    }
+    if ( debug_infos.bDebugDrawNodeLocation )
+    {
+        Texts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
+    }
+}
 FPrimitiveViewRelevance FSVONavigationMeshSceneProxy::GetViewRelevance( const FSceneView * view ) const
 {
     const bool bVisible = !!view->Family->EngineShowFlags.Navigation;
@@ -294,7 +308,7 @@ bool USVONavDataRenderingComponent::IsNavigationShowFlagSet( const UWorld * worl
         }
     }
     else
-#endif //WITH_EDITOR
+#endif // WITH_EDITOR
     {
         show_navigation = world_context && world_context->GameViewport && world_context->GameViewport->EngineShowFlags.Navigation;
     }

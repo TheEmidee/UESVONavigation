@@ -19,7 +19,10 @@ public:
     virtual ~FSVONavigationMeshSceneProxy() override;
 
     SIZE_T GetTypeHash() const override;
+
 protected:
+    bool AddVoxelToBoxes( const FVector & voxel_location, const float node_extent, const bool is_occluded );
+    void AddNodeTextInfos( const MortonCode node_morton_code, const LayerIndex node_layer_index, const FVector & node_position );
     FPrimitiveViewRelevance GetViewRelevance( const FSceneView * view ) const override;
     TWeakObjectPtr< USVONavDataRenderingComponent > RenderingComponent;
     TWeakObjectPtr< ASVONavigationData > NavigationData;
