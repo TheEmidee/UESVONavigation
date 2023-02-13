@@ -83,6 +83,11 @@ struct FSVONodeAddress
         return static_cast< NavNodeRef >( address );
     }
 
+    FString ToString() const
+    {
+        return FString::Printf( TEXT( "%i %i %i" ), LayerIndex, NodeIndex, SubNodeIndex );
+    }
+
     static const FSVONodeAddress InvalidAddress;
 
     uint8 LayerIndex        : 4;
