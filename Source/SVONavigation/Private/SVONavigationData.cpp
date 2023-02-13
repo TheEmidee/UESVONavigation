@@ -438,26 +438,32 @@ void ASVONavigationData::TickActor( const float delta_time, const ELevelTick tic
 {
     Super::TickActor( delta_time, tick, this_tick_function );
 
+#if ENABLE_DRAW_DEBUG
+
     if ( bEnableDrawing && DebugInfos.bDebugDrawActivePaths )
     {
         for ( auto active_path : ActivePaths )
         {
-            if ( active_path.IsValid() )
+            if ( !active_path.IsValid() )
             {
-                const TSharedPtr< FNavigationPath, ESPMode::ThreadSafe > active_path_ptr = active_path.Pin();
-                const auto & path_points = active_path_ptr->GetPathPoints();
+                continue;
+            }
 
-                for ( auto path_point_index = 1; path_point_index < path_points.Num(); ++path_point_index )
-                {
-                    const auto & from = path_points[ path_point_index - 1 ].Location;
-                    const auto & to = path_points[ path_point_index ].Location;
+            const TSharedPtr< FNavigationPath, ESPMode::ThreadSafe > active_path_ptr = active_path.Pin();
+            const auto & path_points = active_path_ptr->GetPathPoints();
 
-                    DrawDebugLine( GetWorld(), from, to, FColor::Red, false, -1, SDPG_World, 5.0f );
-                    DrawDebugCone( GetWorld(), to, from - to, 50.0f, 0.25f, 0.25f, 16, FColor::Red, false, -1, SDPG_World, 5.0f );
-                }
+            for ( auto path_point_index = 1; path_point_index < path_points.Num(); ++path_point_index )
+            {
+                const auto & from = path_points[ path_point_index - 1 ].Location;
+                const auto & to = path_points[ path_point_index ].Location;
+
+                DrawDebugLine( GetWorld(), from, to, FColor::Red, false, -1, SDPG_World, 5.0f );
+                DrawDebugCone( GetWorld(), to, from - to, 50.0f, 0.25f, 0.25f, 16, FColor::Red, false, -1, SDPG_World, 5.0f );
             }
         }
     }
+
+#endif
 }
 
 #if WITH_EDITOR
@@ -837,6 +843,16 @@ void ASVONavigationData::OnNavigationDataGenerationFinished()
             if ( NavSys )
             {
                 NavSys->OnNavigationGenerationFinished( *this );
+            }
+
+            DataInfos.Infos.Reset();
+
+            for ( const auto & bounds_navigation_data : VolumeNavigationData )
+            {
+                auto & navigation_data_infos = DataInfos.Infos.AddDefaulted_GetRef();
+                navigation_data_infos.VolumeLocation = bounds_navigation_data.GetVolumeBounds().GetCenter();
+                navigation_data_infos.LayerCount = bounds_navigation_data.GetData().GetLayerCount();
+                navigation_data_infos.bHasNavigationData = bounds_navigation_data.GetData().IsValid();
             }
         }
     }

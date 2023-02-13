@@ -59,6 +59,30 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
     uint8 bDebugDrawActivePaths : 1;
 };
 
+USTRUCT()
+struct SVONAVIGATION_API FSVONavigationDataInfos
+{
+    GENERATED_USTRUCT_BODY()
+
+    UPROPERTY( VisibleInstanceOnly )
+    FVector VolumeLocation;
+
+    UPROPERTY( VisibleInstanceOnly )
+    uint8 bHasNavigationData : 1;
+
+    UPROPERTY( VisibleInstanceOnly )
+    int LayerCount;
+};
+
+USTRUCT()
+struct SVONAVIGATION_API FSVODataInfos
+{
+    GENERATED_USTRUCT_BODY()
+
+    UPROPERTY( EditInstanceOnly )
+    TArray< FSVONavigationDataInfos > Infos;
+};
+
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
 class SVONAVIGATION_API ASVONavigationData final : public ANavigationData
 {
@@ -149,8 +173,11 @@ private:
 
     static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
 
-    UPROPERTY( EditAnywhere, config, Category = "Display" )
+    UPROPERTY( EditInstanceOnly, Category = "Display" )
     FSVOVolumeNavigationDataDebugInfos DebugInfos;
+
+    UPROPERTY( VisibleInstanceONly, Category = "Display" )
+    FSVODataInfos DataInfos;
 
     UPROPERTY( EditAnywhere, config, Category = "Generation" )
     FSVODataGenerationSettings GenerationSettings;
