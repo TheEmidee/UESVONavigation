@@ -49,11 +49,28 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             Boxes.Emplace( navigation_bounds_data.GetData().GetNavigationBounds(), FColor::White );
         }
 
+        const auto & leaf_nodes = octree_data.GetLeafNodes();
+        const auto leaf_node_extent = leaf_nodes.GetLeafNodeExtent();
 
+        FSVONodeAddress node_address_for_neighbors;
+        if ( !debug_infos.NeighborLinksForNodeAddress.IsEmpty() )
+        {
+            TArray< FString > parts;
+            debug_infos.NeighborLinksForNodeAddress.ParseIntoArrayWS( parts, TEXT( " " ) );
 
+            if ( parts.Num() == 3 )
             {
+                node_address_for_neighbors.LayerIndex = FCString::Atoi( *parts[ 0 ] );
+                node_address_for_neighbors.NodeIndex = FCString::Atoi( *parts[ 1 ] );
+                node_address_for_neighbors.SubNodeIndex = FCString::Atoi( *parts[ 2 ] );
             }
+        }
 
+        if ( debug_infos.bDebugDrawNeighborLinks && node_address_for_neighbors.IsValid() )
+        {
+            DrawNeighborInfos( navigation_bounds_data, node_address_for_neighbors );
+            return;
+        }
 
         if ( debug_infos.bDebugDrawLayers )
         {
@@ -174,6 +191,64 @@ void FSVONavigationMeshSceneProxy::AddNodeTextInfos( const MortonCode node_morto
         Texts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
     }
 }
+
+void FSVONavigationMeshSceneProxy::DrawNeighborInfos( const FSVOVolumeNavigationData & navigation_bounds_data, const FSVONodeAddress & node_address )
+{
+    const auto & octree_data = navigation_bounds_data.GetData();
+
+    TArray< FSVONodeAddress > neighbor_node_addresses;
+    navigation_bounds_data.GetNodeNeighbors( neighbor_node_addresses, node_address );
+
+    const auto node_position = navigation_bounds_data.GetNodePositionFromAddress( node_address, false );
+    const auto node_extent = navigation_bounds_data.GetData().GetLayer( node_address.LayerIndex ).GetNodeExtent();
+
+    AddVoxelToBoxes( node_position, node_extent, false );
+    Spheres.Emplace( node_extent * 0.5f, node_position, FColor::Black );
+
+    const auto & leaf_nodes = octree_data.GetLeafNodes();
+    const auto leaf_node_extent = leaf_nodes.GetLeafNodeExtent();
+    const auto leaf_sub_node_size = leaf_nodes.GetLeafSubNodeSize();
+    const auto leaf_sub_node_extent = leaf_nodes.GetLeafSubNodeExtent();
+
+    for ( const auto & neighbor_node_address : neighbor_node_addresses )
+    {
+        FColor color;
+
+        if ( node_address.LayerIndex == neighbor_node_address.LayerIndex )
+        {
+            color = FColor::Purple;
+        }
+        else if ( node_address.LayerIndex > neighbor_node_address.LayerIndex )
+        {
+            color = FColor::Cyan;
+        }
+        else
+        {
+            color = FColor::Red;
+        }
+
+        Lines.Emplace( node_position, navigation_bounds_data.GetNodePositionFromAddress( neighbor_node_address, true ), color, 5.0f );
+
+        FVector neighbor_node_position;
+        float neighbor_node_extent;
+
+        neighbor_node_position = navigation_bounds_data.GetNodePositionFromAddress( neighbor_node_address, true );
+
+        if ( neighbor_node_address.SubNodeIndex > 0 )
+        {
+            neighbor_node_extent = leaf_nodes.GetLeafSubNodeExtent();
+        }
+        else
+        {
+            neighbor_node_extent = navigation_bounds_data.GetData().GetLayer( neighbor_node_address.LayerIndex ).GetNodeExtent();
+        }
+
+        Boxes.Emplace( FBox::BuildAABB( neighbor_node_position, FVector( neighbor_node_extent ) ), color );
+        Texts.Emplace( FString::Printf( TEXT( "%s" ), *neighbor_node_address.ToString() ), neighbor_node_position, FLinearColor::Black );
+        Spheres.Emplace( neighbor_node_extent * 0.5f, neighbor_node_position, color );
+    }
+}
+
 FPrimitiveViewRelevance FSVONavigationMeshSceneProxy::GetViewRelevance( const FSceneView * view ) const
 {
     const bool bVisible = !!view->Family->EngineShowFlags.Navigation;

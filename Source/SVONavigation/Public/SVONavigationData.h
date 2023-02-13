@@ -23,10 +23,13 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
     uint8 bDebugDrawBounds : 1;
 
     UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawNodeAddress : 1;
+    uint8 bDebugDrawNodeCoords: 1;
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawMortonCoords : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawNodeAddresses: 1;
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawNodeLocation : 1;
@@ -45,6 +48,12 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawFreeVoxels : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawNeighborLinks : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    FString NeighborLinksForNodeAddress;
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawActivePaths : 1;
