@@ -21,7 +21,7 @@ static const FColor FreeVoxelColor = FColor::Green;
 FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComponent * component ) :
     FDebugRenderSceneProxy( component )
 {
-    DrawType = EDrawType::SolidAndWireMeshes;
+    DrawType = EDrawType::WireMesh;
 
     RenderingComponent = MakeWeakObjectPtr( const_cast< USVONavDataRenderingComponent * >( Cast< USVONavDataRenderingComponent >( component ) ) );
     NavigationData = MakeWeakObjectPtr( Cast< ASVONavigationData >( RenderingComponent->GetOwner() ) );
@@ -49,44 +49,28 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
             Boxes.Emplace( navigation_bounds_data.GetData().GetNavigationBounds(), FColor::White );
         }
 
-        const auto try_add_node_text_infos = [ this, &debug_infos, &navigation_bounds_data ]( const MortonCode node_morton_code, const LayerIndex node_layer_index, const FVector & node_position ) {
-            auto vertical_offset = 0.0f;
-            if ( debug_infos.bDebugDrawMortonCoords )
-            {
-                Texts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position, FLinearColor::Black );
-                vertical_offset += 40.0f;
-            }
-            if ( debug_infos.bDebugDrawNodeAddress )
-            {
-                const FIntVector morton_coords = FIntVector( FSVOHelpers::GetVectorFromMortonCode( node_morton_code ) );
-                Texts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
-                vertical_offset += 40.0f;
-            }
-            if ( debug_infos.bDebugDrawNodeLocation )
-            {
-                Texts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
-            }
-        };
-
-        const auto try_add_voxel_to_boxes = [ this, &debug_infos ]( const FVector & voxel_location, const float node_extent, const bool is_occluded ) {
-            if ( debug_infos.bDebugDrawFreeVoxels && !is_occluded )
-            {
-                Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( node_extent ) ), FreeVoxelColor );
-
-                return true;
-            }
-            if ( debug_infos.bDebugDrawOccludedVoxels && is_occluded )
-            {
-                Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( node_extent ) ), OccludedVoxelColor );
-
-                return true;
-            }
-
-            return false;
-        };
-
         const auto & leaf_nodes = octree_data.GetLeafNodes();
         const auto leaf_node_extent = leaf_nodes.GetLeafNodeExtent();
+
+        FSVONodeAddress node_address_for_neighbors;
+        if ( !debug_infos.NeighborLinksForNodeAddress.IsEmpty() )
+        {
+            TArray< FString > parts;
+            debug_infos.NeighborLinksForNodeAddress.ParseIntoArrayWS( parts, TEXT( " " ) );
+
+            if ( parts.Num() == 3 )
+            {
+                node_address_for_neighbors.LayerIndex = FCString::Atoi( *parts[ 0 ] );
+                node_address_for_neighbors.NodeIndex = FCString::Atoi( *parts[ 1 ] );
+                node_address_for_neighbors.SubNodeIndex = FCString::Atoi( *parts[ 2 ] );
+            }
+        }
+
+        if ( debug_infos.bDebugDrawNeighborLinks && node_address_for_neighbors.IsValid() )
+        {
+            DrawNeighborInfos( navigation_bounds_data, node_address_for_neighbors );
+            return;
+        }
 
         if ( debug_infos.bDebugDrawLayers )
         {
@@ -101,19 +85,18 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
                 {
                     const auto leaf_node_position = navigation_bounds_data.GetLeafNodePositionFromMortonCode( code );
 
-                    if ( try_add_voxel_to_boxes( leaf_node_position, leaf_node_extent, node.HasChildren() ) )
+                    if ( AddVoxelToBoxes( leaf_node_position, leaf_node_extent, node.HasChildren() ) )
                     {
-                        try_add_node_text_infos( code, 0, leaf_node_position );
+                        AddNodeTextInfos( code, 0, leaf_node_position );
                     }
                 }
                 else
                 {
-                    const FSVONodeAddress node_address( corrected_layer_index, code );
-                    const auto node_position = navigation_bounds_data.GetNodePositionFromAddress( node_address, false );
+                    const auto position = navigation_bounds_data.GetNodePositionFromLayerAndMortonCode( corrected_layer_index, code );
 
-                    if ( try_add_voxel_to_boxes( node_position, node_extent, node.HasChildren() ) )
+                    if ( AddVoxelToBoxes( position, node_extent, node.HasChildren() ) )
                     {
-                        try_add_node_text_infos( code, corrected_layer_index, node_position );
+                        AddNodeTextInfos( code, corrected_layer_index, position );
                     }
                 }
             }
@@ -139,9 +122,9 @@ FSVONavigationMeshSceneProxy::FSVONavigationMeshSceneProxy( const UPrimitiveComp
                         const auto sub_node_location = leaf_node_position - leaf_node_extent + sub_node_morton_coords * leaf_sub_node_size + leaf_sub_node_extent;
                         const bool is_sub_node_occluded = leaf.IsSubNodeOccluded( sub_node_index );
 
-                        if ( try_add_voxel_to_boxes( sub_node_location, leaf_sub_node_extent, is_sub_node_occluded ) )
+                        if ( AddVoxelToBoxes( sub_node_location, leaf_sub_node_extent, is_sub_node_occluded ) )
                         {
-                            try_add_node_text_infos( sub_node_index, 0, sub_node_location );
+                            AddNodeTextInfos( sub_node_index, 0, sub_node_location );
                         }
                     }
                 }
@@ -158,6 +141,114 @@ SIZE_T FSVONavigationMeshSceneProxy::GetTypeHash() const
 {
     static size_t UniquePointer;
     return reinterpret_cast< size_t >( &UniquePointer );
+}
+
+bool FSVONavigationMeshSceneProxy::AddVoxelToBoxes( const FVector & voxel_location, const float node_extent, const bool is_occluded )
+{
+    const auto & debug_infos = NavigationData->GetDebugInfos();
+
+    if ( debug_infos.bDebugDrawFreeVoxels && !is_occluded )
+    {
+        Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( node_extent ) ), FreeVoxelColor );
+
+        return true;
+    }
+    if ( debug_infos.bDebugDrawOccludedVoxels && is_occluded )
+    {
+        Boxes.Emplace( FBox::BuildAABB( voxel_location, FVector( node_extent ) ), OccludedVoxelColor );
+
+        return true;
+    }
+
+    return false;
+}
+
+void FSVONavigationMeshSceneProxy::AddNodeTextInfos( const MortonCode node_morton_code, const LayerIndex node_layer_index, const FVector & node_position )
+{
+    const auto & debug_infos = NavigationData->GetDebugInfos();
+
+    static constexpr float vertical_offset_increment = 40.0f;
+
+    auto vertical_offset = 0.0f;
+    if ( debug_infos.bDebugDrawMortonCoords )
+    {
+        Texts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position, FLinearColor::Black );
+        vertical_offset += vertical_offset_increment;
+    }
+    if ( debug_infos.bDebugDrawNodeCoords )
+    {
+        const FIntVector morton_coords = FIntVector( FSVOHelpers::GetVectorFromMortonCode( node_morton_code ) );
+        Texts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
+        vertical_offset += vertical_offset_increment;
+    }
+    if ( debug_infos.bDebugDrawNodeAddresses )
+    {
+        const FSVONodeAddress node_address( node_layer_index, node_morton_code );
+
+        Texts.Emplace( FString::Printf( TEXT( "%s" ), *node_address.ToString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
+        vertical_offset += vertical_offset_increment;
+    }
+    if ( debug_infos.bDebugDrawNodeLocation )
+    {
+        Texts.Emplace( FString::Printf( TEXT( "%s" ), *node_position.ToCompactString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
+    }
+}
+
+void FSVONavigationMeshSceneProxy::DrawNeighborInfos( const FSVOVolumeNavigationData & navigation_bounds_data, const FSVONodeAddress & node_address )
+{
+    const auto & octree_data = navigation_bounds_data.GetData();
+
+    TArray< FSVONodeAddress > neighbor_node_addresses;
+    navigation_bounds_data.GetNodeNeighbors( neighbor_node_addresses, node_address );
+
+    const auto node_position = navigation_bounds_data.GetNodePositionFromAddress( node_address, false );
+    const auto node_extent = navigation_bounds_data.GetData().GetLayer( node_address.LayerIndex ).GetNodeExtent();
+
+    AddVoxelToBoxes( node_position, node_extent, false );
+    Spheres.Emplace( node_extent * 0.5f, node_position, FColor::Black );
+
+    const auto & leaf_nodes = octree_data.GetLeafNodes();
+    const auto leaf_node_extent = leaf_nodes.GetLeafNodeExtent();
+    const auto leaf_sub_node_size = leaf_nodes.GetLeafSubNodeSize();
+    const auto leaf_sub_node_extent = leaf_nodes.GetLeafSubNodeExtent();
+
+    for ( const auto & neighbor_node_address : neighbor_node_addresses )
+    {
+        FColor color;
+
+        if ( node_address.LayerIndex == neighbor_node_address.LayerIndex )
+        {
+            color = FColor::Purple;
+        }
+        else if ( node_address.LayerIndex > neighbor_node_address.LayerIndex )
+        {
+            color = FColor::Cyan;
+        }
+        else
+        {
+            color = FColor::Red;
+        }
+
+        Lines.Emplace( node_position, navigation_bounds_data.GetNodePositionFromAddress( neighbor_node_address, true ), color, 5.0f );
+
+        FVector neighbor_node_position;
+        float neighbor_node_extent;
+
+        neighbor_node_position = navigation_bounds_data.GetNodePositionFromAddress( neighbor_node_address, true );
+
+        if ( neighbor_node_address.SubNodeIndex > 0 )
+        {
+            neighbor_node_extent = leaf_nodes.GetLeafSubNodeExtent();
+        }
+        else
+        {
+            neighbor_node_extent = navigation_bounds_data.GetData().GetLayer( neighbor_node_address.LayerIndex ).GetNodeExtent();
+        }
+
+        Boxes.Emplace( FBox::BuildAABB( neighbor_node_position, FVector( neighbor_node_extent ) ), color );
+        Texts.Emplace( FString::Printf( TEXT( "%s" ), *neighbor_node_address.ToString() ), neighbor_node_position, FLinearColor::Black );
+        Spheres.Emplace( neighbor_node_extent * 0.5f, neighbor_node_position, color );
+    }
 }
 
 FPrimitiveViewRelevance FSVONavigationMeshSceneProxy::GetViewRelevance( const FSceneView * view ) const
@@ -294,7 +385,7 @@ bool USVONavDataRenderingComponent::IsNavigationShowFlagSet( const UWorld * worl
         }
     }
     else
-#endif //WITH_EDITOR
+#endif // WITH_EDITOR
     {
         show_navigation = world_context && world_context->GameViewport && world_context->GameViewport->EngineShowFlags.Navigation;
     }

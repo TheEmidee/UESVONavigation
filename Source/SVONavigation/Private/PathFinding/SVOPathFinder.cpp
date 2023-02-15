@@ -72,8 +72,11 @@ ENavigationQueryResult::Type FSVOPathFinder::GetPath( FSVONavigationPath & navig
 
         if ( const auto * path_finder = GetPathFindingAlgorithm( navigation_query_filter_copy ) )
         {
-            const FSVOPathFindingParameters params( *volume_navigation_data, start_location, end_location, *navigation_query_filter_copy );
-            return path_finder->GetPath( navigation_path, params );
+            const auto params = FSVOPathFindingParameters::Initialize( *volume_navigation_data, start_location, end_location, *navigation_query_filter_copy );
+            if ( params.IsSet() )
+            {
+                return path_finder->GetPath( navigation_path, params.GetValue() );
+            }
         }
     }
 
@@ -86,8 +89,12 @@ TSharedPtr< FSVOPathFindingAlgorithmStepper > FSVOPathFinder::GetDebugPathSteppe
     {
         if ( const auto * volume_navigation_data = navigation_data.GetVolumeNavigationDataContainingPoints( { start_location, end_location } ) )
         {
-            const FSVOPathFindingParameters params( *volume_navigation_data, start_location, end_location, *nav_query_filter );
-            return path_finder->GetDebugPathStepper( debug_infos, params );
+            const auto params = FSVOPathFindingParameters::Initialize( *volume_navigation_data, start_location, end_location, *nav_query_filter );
+
+            if ( params.IsSet() )
+            {
+                return path_finder->GetDebugPathStepper( debug_infos, params.GetValue() );
+            }
         }
     }
 

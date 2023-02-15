@@ -23,10 +23,13 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
     uint8 bDebugDrawBounds : 1;
 
     UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawNodeAddress : 1;
+    uint8 bDebugDrawNodeCoords: 1;
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawMortonCoords : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawNodeAddresses: 1;
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawNodeLocation : 1;
@@ -47,7 +50,37 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
     uint8 bDebugDrawFreeVoxels : 1;
 
     UPROPERTY( EditInstanceOnly )
+    uint8 bDebugDrawNeighborLinks : 1;
+
+    UPROPERTY( EditInstanceOnly )
+    FString NeighborLinksForNodeAddress;
+
+    UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawActivePaths : 1;
+};
+
+USTRUCT()
+struct SVONAVIGATION_API FSVONavigationDataInfos
+{
+    GENERATED_USTRUCT_BODY()
+
+    UPROPERTY( VisibleInstanceOnly )
+    FVector VolumeLocation;
+
+    UPROPERTY( VisibleInstanceOnly )
+    uint8 bHasNavigationData : 1;
+
+    UPROPERTY( VisibleInstanceOnly )
+    int LayerCount;
+};
+
+USTRUCT()
+struct SVONAVIGATION_API FSVODataInfos
+{
+    GENERATED_USTRUCT_BODY()
+
+    UPROPERTY( EditInstanceOnly )
+    TArray< FSVONavigationDataInfos > Infos;
 };
 
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
@@ -122,6 +155,7 @@ public:
     void UpdateNavVersion();
 
 private:
+    void SerializeSVOData( FArchive & archive, ESVOVersion version );
     void CheckToDiscardSubLevelNavData( const UNavigationSystemBase & navigation_system );
     void RecreateDefaultFilter() const;
     void UpdateDrawing() const;
@@ -140,8 +174,11 @@ private:
 
     static FPathFindingResult FindPath( const FNavAgentProperties & agent_properties, const FPathFindingQuery & path_finding_query );
 
-    UPROPERTY( EditAnywhere, config, Category = "Display" )
+    UPROPERTY( EditInstanceOnly, Category = "Display" )
     FSVOVolumeNavigationDataDebugInfos DebugInfos;
+
+    UPROPERTY( VisibleInstanceONly, Category = "Display" )
+    FSVODataInfos DataInfos;
 
     UPROPERTY( EditAnywhere, config, Category = "Generation" )
     FSVODataGenerationSettings GenerationSettings;

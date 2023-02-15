@@ -78,11 +78,17 @@ struct SVONAVIGATION_API FSVOPathFinderDebugInfos
 
     UPROPERTY( VisibleAnywhere )
     float PathLength;
+
+    UPROPERTY( VisibleAnywhere )
+    FString StartNodeAddress;
+
+    UPROPERTY( VisibleAnywhere )
+    FString EndNodeAddress;
 };
 
 struct FSVOPathFindingParameters
 {
-    FSVOPathFindingParameters( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & start_location, const FVector & end_location, const FNavigationQueryFilter & nav_query_filter );
+    static TOptional< FSVOPathFindingParameters > Initialize( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & start_location, const FVector & end_location, const FNavigationQueryFilter & nav_query_filter );
 
     FVector StartLocation;
     FVector EndLocation;
@@ -94,4 +100,7 @@ struct FSVOPathFindingParameters
     const FSVOVolumeNavigationData & VolumeNavigationData;
     FSVONodeAddress StartNodeAddress;
     FSVONodeAddress EndNodeAddress;
+
+private:
+    FSVOPathFindingParameters( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & start_location, const FVector & end_location, const FNavigationQueryFilter & nav_query_filter );
 };

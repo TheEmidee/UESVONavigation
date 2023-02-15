@@ -22,14 +22,16 @@
 
 FSVOVolumeNavigationDataDebugInfos::FSVOVolumeNavigationDataDebugInfos() :
     bDebugDrawBounds( false ),
-    bDebugDrawNodeAddress( false ),
+    bDebugDrawNodeCoords( false ),
     bDebugDrawMortonCoords( false ),
+    bDebugDrawNodeAddresses( false ),
     bDebugDrawNodeLocation( false ),
     bDebugDrawLayers( false ),
     LayerIndexToDraw( 0 ),
     bDebugDrawSubNodes( false ),
     bDebugDrawOccludedVoxels( true ),
     bDebugDrawFreeVoxels( false ),
+    bDebugDrawNeighborLinks( false ),
     bDebugDrawActivePaths( false )
 {
 }
@@ -102,75 +104,46 @@ void ASVONavigationData::Serialize( FArchive & archive )
 
     if ( archive.IsLoading() )
     {
+        auto clean_up_bad_version = [ &archive, svo_size_bytes, svo_size_position, this ]() {
+            // incompatible, just skip over this data.  navmesh needs rebuilt.
+            archive.Seek( svo_size_position + svo_size_bytes );
+
+            // Mark self for delete
+            CleanUpAndMarkPendingKill();
+        };
+
         if ( Version < ESVOVersion::MinCompatible )
         {
+            UE_LOG( LogNavigation, Warning, TEXT( "%s: ASVONavigationData: Nav mesh version %d < Min compatible %d. Nav mesh needs to be rebuilt. \n" ), *GetFullName(), Version, ESVOVersion::MinCompatible );
             // incompatible, just skip over this data.  nav mesh needs rebuilt.
-            archive.Seek( svo_size_position + svo_size_bytes );
+            clean_up_bad_version();
             return;
         }
-    }
-
-    if ( archive.IsSaving() )
-    {
-        // When saving, don't serialize the whole VolumeNavigationData array as it may contain navigation data from chunks added by streaming levels
-        TArray< FSVOVolumeNavigationData > level_volume_navigation_data;
-
-        if ( SupportsStreaming() && FNavigationSystem::GetCurrent< const UNavigationSystemV1 >( GetWorld() ) != nullptr )
+        if ( Version > ESVOVersion::Latest )
         {
-            const auto & level_navigable_bounds = GetNavigableBoundsInLevel( GetLevel() );
-
-            TArray< bool > navigation_data_indices_to_keep;
-            navigation_data_indices_to_keep.SetNum( VolumeNavigationData.Num() );
-
-            for ( const auto & navigable_bounds : level_navigable_bounds )
-            {
-                const auto index = VolumeNavigationData.IndexOfByPredicate( [ &navigable_bounds ]( const auto & navigation_data ) {
-                    return !navigation_data.IsInNavigationDataChunk() && !( navigation_data.GetVolumeBounds() == navigable_bounds );
-                } );
-
-                if ( index != INDEX_NONE )
-                {
-                    navigation_data_indices_to_keep[ index ] = true;
-                }
-            }
-
-            for ( auto index = VolumeNavigationData.Num() - 1; index >= 0; --index )
-            {
-                if ( navigation_data_indices_to_keep[ index ] )
-                {
-                    level_volume_navigation_data.Add( VolumeNavigationData[ index ] );
-                }
-            }
+            UE_LOG( LogNavigation, Warning, TEXT( "%s: ASVONavigationData: Nav mesh version %d > NAVMESHVER_LATEST %d. Newer nav mesh should not be loaded by older code. At a minimum the nav mesh needs to be rebuilt. \n" ), *GetFullName(), Version, ESVOVersion::Latest );
+            clean_up_bad_version();
+            return;
+        }
+        if ( svo_size_bytes > 4 )
+        {
+            SerializeSVOData( archive, Version );
+#if !( UE_BUILD_SHIPPING )
+            RequestDrawingUpdate();
+#endif //!(UE_BUILD_SHIPPING)
         }
         else
         {
-            level_volume_navigation_data = VolumeNavigationData;
-        }
-
-        auto volume_count = level_volume_navigation_data.Num();
-        archive << volume_count;
-
-        for ( auto index = 0; index < volume_count; index++ )
-        {
-            level_volume_navigation_data[ index ].Serialize( archive, Version );
+            // empty, just skip over this data
+            archive.Seek( svo_size_position + svo_size_bytes );
+            // if it's not getting filled it's better to just remove it
+            VolumeNavigationData.Reset();
         }
     }
-    else if ( archive.IsLoading() )
+    else
     {
-        auto volume_count = VolumeNavigationData.Num();
-        archive << volume_count;
+        SerializeSVOData( archive, Version );
 
-        VolumeNavigationData.Reset( volume_count );
-        VolumeNavigationData.SetNum( volume_count );
-
-        for ( auto index = 0; index < volume_count; index++ )
-        {
-            VolumeNavigationData[ index ].Serialize( archive, Version );
-        }
-    }
-
-    if ( archive.IsSaving() )
-    {
         const int64 current_position = archive.Tell();
 
         svo_size_bytes = current_position - svo_size_position;
@@ -436,26 +409,32 @@ void ASVONavigationData::TickActor( const float delta_time, const ELevelTick tic
 {
     Super::TickActor( delta_time, tick, this_tick_function );
 
+#if ENABLE_DRAW_DEBUG
+
     if ( bEnableDrawing && DebugInfos.bDebugDrawActivePaths )
     {
         for ( auto active_path : ActivePaths )
         {
-            if ( active_path.IsValid() )
+            if ( !active_path.IsValid() )
             {
-                const TSharedPtr< FNavigationPath, ESPMode::ThreadSafe > active_path_ptr = active_path.Pin();
-                const auto & path_points = active_path_ptr->GetPathPoints();
+                continue;
+            }
 
-                for ( auto path_point_index = 1; path_point_index < path_points.Num(); ++path_point_index )
-                {
-                    const auto & from = path_points[ path_point_index - 1 ].Location;
-                    const auto & to = path_points[ path_point_index ].Location;
+            const TSharedPtr< FNavigationPath, ESPMode::ThreadSafe > active_path_ptr = active_path.Pin();
+            const auto & path_points = active_path_ptr->GetPathPoints();
 
-                    DrawDebugLine( GetWorld(), from, to, FColor::Red, false, -1, SDPG_World, 5.0f );
-                    DrawDebugCone( GetWorld(), to, from - to, 50.0f, 0.25f, 0.25f, 16, FColor::Red, false, -1, SDPG_World, 5.0f );
-                }
+            for ( auto path_point_index = 1; path_point_index < path_points.Num(); ++path_point_index )
+            {
+                const auto & from = path_points[ path_point_index - 1 ].Location;
+                const auto & to = path_points[ path_point_index ].Location;
+
+                DrawDebugLine( GetWorld(), from, to, FColor::Red, false, -1, SDPG_World, 5.0f );
+                DrawDebugCone( GetWorld(), to, from - to, 50.0f, 0.25f, 0.25f, 16, FColor::Red, false, -1, SDPG_World, 5.0f );
             }
         }
     }
+
+#endif
 }
 
 #if WITH_EDITOR
@@ -615,6 +594,67 @@ const FSVOVolumeNavigationData * ASVONavigationData::GetVolumeNavigationDataCont
 void ASVONavigationData::UpdateNavVersion()
 {
     Version = ESVOVersion::Latest;
+}
+
+void ASVONavigationData::SerializeSVOData( FArchive & archive, ESVOVersion version )
+{
+    if ( archive.IsLoading() )
+    {
+        auto volume_count = VolumeNavigationData.Num();
+        archive << volume_count;
+        VolumeNavigationData.Reset( volume_count );
+        VolumeNavigationData.SetNum( volume_count );
+
+        for ( auto index = 0; index < volume_count; index++ )
+        {
+            VolumeNavigationData[ index ].Serialize( archive, Version );
+        }
+    }
+    else
+    {
+        // When saving, don't serialize the whole VolumeNavigationData array as it may contain navigation data from chunks added by streaming levels
+        TArray< FSVOVolumeNavigationData > level_volume_navigation_data;
+
+        if ( SupportsStreaming() && FNavigationSystem::GetCurrent< const UNavigationSystemV1 >( GetWorld() ) != nullptr )
+        {
+            const auto & level_navigable_bounds = GetNavigableBoundsInLevel( GetLevel() );
+
+            TArray< bool > navigation_data_indices_to_keep;
+            navigation_data_indices_to_keep.SetNum( VolumeNavigationData.Num() );
+
+            for ( const auto & navigable_bounds : level_navigable_bounds )
+            {
+                const auto index = VolumeNavigationData.IndexOfByPredicate( [ &navigable_bounds ]( const auto & navigation_data ) {
+                    return !navigation_data.IsInNavigationDataChunk() && /*!*/( navigation_data.GetVolumeBounds() == navigable_bounds );
+                } );
+
+                if ( index != INDEX_NONE )
+                {
+                    navigation_data_indices_to_keep[ index ] = true;
+                }
+            }
+
+            for ( auto index = VolumeNavigationData.Num() - 1; index >= 0; --index )
+            {
+                if ( navigation_data_indices_to_keep[ index ] )
+                {
+                    level_volume_navigation_data.Add( VolumeNavigationData[ index ] );
+                }
+            }
+        }
+        else
+        {
+            level_volume_navigation_data = VolumeNavigationData;
+        }
+
+        auto volume_count = level_volume_navigation_data.Num();
+        archive << volume_count;
+
+        for ( auto index = 0; index < volume_count; index++ )
+        {
+            level_volume_navigation_data[ index ].Serialize( archive, Version );
+        }
+    }
 }
 
 void ASVONavigationData::CheckToDiscardSubLevelNavData( const UNavigationSystemBase & navigation_system )
@@ -835,6 +875,16 @@ void ASVONavigationData::OnNavigationDataGenerationFinished()
             if ( NavSys )
             {
                 NavSys->OnNavigationGenerationFinished( *this );
+            }
+
+            DataInfos.Infos.Reset();
+
+            for ( const auto & bounds_navigation_data : VolumeNavigationData )
+            {
+                auto & navigation_data_infos = DataInfos.Infos.AddDefaulted_GetRef();
+                navigation_data_infos.VolumeLocation = bounds_navigation_data.GetVolumeBounds().GetCenter();
+                navigation_data_infos.LayerCount = bounds_navigation_data.GetData().GetLayerCount();
+                navigation_data_infos.bHasNavigationData = bounds_navigation_data.GetData().IsValid();
             }
         }
     }

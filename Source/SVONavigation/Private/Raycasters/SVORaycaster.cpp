@@ -3,7 +3,6 @@
 #include "SVONavigationData.h"
 #include "SVOVolumeNavigationData.h"
 
-#include <NavigationSystem.h>
 
 FSVORayCasterObserver_GenerateDebugInfos::FSVORayCasterObserver_GenerateDebugInfos( FSVORayCasterDebugInfos & debug_infos ) :
     DebugInfos( debug_infos )
@@ -35,14 +34,6 @@ void FSVORayCasterObserver_GenerateDebugInfos::AddTraversedLeafSubNode( FSVONode
 {
     UE_LOG( LogTemp, Warning, TEXT( "SubNode Address : %i - %i - %i" ), node_address.LayerIndex, node_address.NodeIndex, node_address.SubNodeIndex );
     DebugInfos.TraversedLeafSubNodes.Emplace( node_address, is_occluded );
-}
-
-bool USVORayCaster::Trace( const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to ) const
-{
-    const auto from_position = volume_navigation_data.GetNodePositionFromAddress( from, true );
-    const auto to_position = volume_navigation_data.GetNodePositionFromAddress( to, true );
-
-    return Trace( volume_navigation_data, from_position, to_position );
 }
 
 bool USVORayCaster::Trace( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to ) const

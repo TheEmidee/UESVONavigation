@@ -32,7 +32,7 @@ void FSVOPathFindingSceneProxyData::GatherData( const ASVOPathFinderTest & path_
 FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent & component, const FSVOPathFindingSceneProxyData & proxy_data ) :
     FDebugRenderSceneProxy( &component )
 {
-    DrawType = SolidAndWireMeshes;
+    DrawType = WireMesh;
     TextWithoutShadowDistance = 1500;
     bWantsSelectionOutline = false;
     ViewFlagName = TEXT( "Navigation" );
@@ -329,6 +329,8 @@ void ASVOPathFinderTest::UpdateDrawing()
 
 void ASVOPathFinderTest::InitPathFinding()
 {
+    Stepper.Reset();
+
     if ( UNavigationSystemV1 * navigation_system = UNavigationSystemV1::GetCurrent( GetWorld() ) )
     {
         if ( auto * navigation_data = navigation_system->GetNavDataForProps( NavAgentProperties ) )
@@ -343,7 +345,14 @@ void ASVOPathFinderTest::InitPathFinding()
                     const auto navigation_query_filter = UNavigationQueryFilter::GetQueryFilter( *svo_navigation_data, this, NavigationQueryFilter );
                     Stepper = FSVOPathFinder::GetDebugPathStepper( PathFinderDebugInfos, *svo_navigation_data, path_start, path_end, navigation_query_filter );
 
+                    if ( !Stepper.IsValid() )
+                    {
+                        return;
+                    }
+
                     PathFinderDebugInfos.Reset();
+                    PathFinderDebugInfos.StartNodeAddress = Stepper->GetParameters().StartNodeAddress.ToString();
+                    PathFinderDebugInfos.EndNodeAddress = Stepper->GetParameters().EndNodeAddress.ToString();
                     NavigationPath.ResetForRepath();
                     LastStatus = ESVOPathFindingAlgorithmStepperStatus::MustContinue;
                     PathFindingResult = SearchFail;
@@ -415,6 +424,11 @@ void ASVOPathFinderTest::AutoCompleteUntilNextNode()
 {
     InitPathFindingIfNotDone();
 
+    if ( !Stepper.IsValid() )
+    {
+        return;
+    }
+
     if ( LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
     {
         do
@@ -431,6 +445,11 @@ void ASVOPathFinderTest::AutoCompleteUntilNextNode()
 void ASVOPathFinderTest::AutoCompleteInstantly()
 {
     InitPathFindingIfNotDone();
+
+    if ( !Stepper.IsValid() )
+    {
+        return;
+    }
 
     if ( LastStatus != ESVOPathFindingAlgorithmStepperStatus::IsStopped )
     {

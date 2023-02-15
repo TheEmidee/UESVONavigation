@@ -61,7 +61,6 @@ class SVONAVIGATION_API USVORayCaster : public UObject
     GENERATED_BODY()
 
 public:
-    bool Trace( const FSVOVolumeNavigationData & volume_navigation_data, const FSVONodeAddress from, const FSVONodeAddress to ) const;
     bool Trace( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & from, const FVector & to ) const;
 
     void SetObserver( TSharedPtr< FSVORayCasterObserver > observer );

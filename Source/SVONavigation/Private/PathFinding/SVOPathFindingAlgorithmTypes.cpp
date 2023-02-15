@@ -51,6 +51,19 @@ FSVOPathFindingParameters::FSVOPathFindingParameters( const FSVOVolumeNavigation
     CostCalculator( QueryFilterSettings.TraversalCostCalculator ),
     VolumeNavigationData( volume_navigation_data )
 {
-    VolumeNavigationData.GetNodeAddressFromPosition( StartNodeAddress, StartLocation );
-    VolumeNavigationData.GetNodeAddressFromPosition( EndNodeAddress, EndLocation );
+}
+
+TOptional< FSVOPathFindingParameters > FSVOPathFindingParameters::Initialize( const FSVOVolumeNavigationData & volume_navigation_data, const FVector & start_location, const FVector & end_location, const FNavigationQueryFilter & nav_query_filter )
+{
+    auto result = FSVOPathFindingParameters( volume_navigation_data, start_location, end_location, nav_query_filter );
+
+    if ( volume_navigation_data.GetNodeAddressFromPosition( result.StartNodeAddress, start_location ) )
+    {
+        if ( volume_navigation_data.GetNodeAddressFromPosition( result.EndNodeAddress, end_location ) )
+        {
+            return result;
+        }
+    }
+
+    return TOptional< FSVOPathFindingParameters >();
 }
