@@ -167,24 +167,26 @@ void FSVONavigationMeshSceneProxy::AddNodeTextInfos( const MortonCode node_morto
 {
     const auto & debug_infos = NavigationData->GetDebugInfos();
 
+    static constexpr float vertical_offset_increment = 40.0f;
+
     auto vertical_offset = 0.0f;
     if ( debug_infos.bDebugDrawMortonCoords )
     {
         Texts.Emplace( FString::Printf( TEXT( "%i:%llu" ), node_layer_index, node_morton_code ), node_position, FLinearColor::Black );
-        vertical_offset += 40.0f;
+        vertical_offset += vertical_offset_increment;
     }
     if ( debug_infos.bDebugDrawNodeCoords )
     {
         const FIntVector morton_coords = FIntVector( FSVOHelpers::GetVectorFromMortonCode( node_morton_code ) );
         Texts.Emplace( FString::Printf( TEXT( "%s" ), *morton_coords.ToString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
-        vertical_offset += 40.0f;
+        vertical_offset += vertical_offset_increment;
     }
     if ( debug_infos.bDebugDrawNodeAddresses )
     {
         const FSVONodeAddress node_address( node_layer_index, node_morton_code );
 
         Texts.Emplace( FString::Printf( TEXT( "%s" ), *node_address.ToString() ), node_position + FVector( 0.0f, 0.0f, vertical_offset ), FLinearColor::Black );
-        vertical_offset += 40.0f;
+        vertical_offset += vertical_offset_increment;
     }
     if ( debug_infos.bDebugDrawNodeLocation )
     {
