@@ -472,12 +472,23 @@ void FSVOVolumeNavigationData::Reset()
 bool FSVOVolumeNavigationData::IsPositionOccluded( const FVector & position, const float box_extent ) const
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_IsPositionOccluded );
-    return Settings.World->OverlapBlockingTestByChannel(
+    TArray< FOverlapResult > overlap_results;
+    const auto result = Settings.World->OverlapMultiByChannel(  
+        overlap_results,
         position,
         FQuat::Identity,
         Settings.GenerationSettings.CollisionChannel,
         FCollisionShape::MakeBox( FVector( box_extent + Settings.GenerationSettings.Clearance ) ),
         Settings.GenerationSettings.CollisionQueryParameters );
+
+    if ( !result )
+    {
+        return false;
+    }
+
+    return overlap_results.FindByPredicate( []( const FOverlapResult & overlap_result ) {
+        return overlap_result.GetComponent()->CanEverAffectNavigation();
+    } ) != nullptr;
 }
 
 void FSVOVolumeNavigationData::FirstPassRasterization()
