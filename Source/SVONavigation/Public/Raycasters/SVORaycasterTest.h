@@ -18,7 +18,15 @@ struct SVONAVIGATION_API FSVORayCasterDebugDrawOptions
 {
     GENERATED_USTRUCT_BODY()
 
-    FSVORayCasterDebugDrawOptions() = default;
+    FSVORayCasterDebugDrawOptions():
+        bEnableDebugDraw( 0 ),
+        bDrawLayerNodes( 0 ),
+        LayerIndexToDraw( 0 ),
+        bDrawSubNodes( 0 ),
+        bDrawMortonCode( 0 )
+    {
+
+    }
 
     UPROPERTY( EditAnywhere )
     uint8 bEnableDebugDraw : 1;

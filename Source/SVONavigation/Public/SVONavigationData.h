@@ -23,13 +23,13 @@ struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
     uint8 bDebugDrawBounds : 1;
 
     UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawNodeCoords: 1;
+    uint8 bDebugDrawNodeCoords : 1;
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawMortonCoords : 1;
 
     UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawNodeAddresses: 1;
+    uint8 bDebugDrawNodeAddresses : 1;
 
     UPROPERTY( EditInstanceOnly )
     uint8 bDebugDrawNodeLocation : 1;
@@ -63,6 +63,13 @@ USTRUCT()
 struct SVONAVIGATION_API FSVONavigationDataInfos
 {
     GENERATED_USTRUCT_BODY()
+
+    FSVONavigationDataInfos() :
+        VolumeLocation( ForceInit ),
+        bHasNavigationData( false ),
+        LayerCount( INDEX_NONE )
+    {
+    }
 
     UPROPERTY( VisibleInstanceOnly )
     FVector VolumeLocation;
@@ -141,7 +148,7 @@ public:
     FBox GetBoundingBox() const;
     void RemoveDataInBounds( const FBox & bounds );
 
-    template< typename _ALLOCATOR_TYPE_ >
+    template < typename _ALLOCATOR_TYPE_ >
     void RemoveDataInBounds( const TArray< FBox, _ALLOCATOR_TYPE_ > & bounds_array )
     {
         for ( const auto & bounds : bounds_array )

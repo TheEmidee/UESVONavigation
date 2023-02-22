@@ -32,6 +32,15 @@ FSVOPathFinderNodeAddressWithCost::FSVOPathFinderNodeAddressWithCost( const FSVO
     Cost( traversal_cost )
 {}
 
+FSVOPathFinderDebugInfos::FSVOPathFinderDebugInfos():
+    LastProcessedSingleNode(),
+    Iterations( 0 ),
+    VisitedNodes( 0 ),
+    PathSegmentCount( 0 ),
+    PathLength( 0 )
+{
+}
+
 void FSVOPathFinderDebugInfos::Reset()
 {
     LastProcessedSingleNode.Reset();
