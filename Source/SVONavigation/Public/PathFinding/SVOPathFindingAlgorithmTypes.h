@@ -60,6 +60,8 @@ struct SVONAVIGATION_API FSVOPathFinderDebugInfos
 {
     GENERATED_USTRUCT_BODY()
 
+    FSVOPathFinderDebugInfos();
+
     void Reset();
 
     FSVOPathFinderDebugNodeCost LastProcessedSingleNode;
