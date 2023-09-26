@@ -9,11 +9,10 @@ struct SVONAVIGATION_API FSVONavigationPath final : public FNavigationPath
     FSVONavigationPath() = default;
 
     TArray< float > & GetPathPointCosts();
-    float GetCostFromNode( NavNodeRef path_node ) const override;
-    float GetCostFromIndex( int32 path_point_index ) const override;
+    FVector::FReal GetCostFromNode( NavNodeRef path_node ) const override;
+    FVector::FReal GetCostFromIndex( int32 path_point_index ) const override;
 
 private:
-
     TArray< float > PathPointCosts;
 };
 

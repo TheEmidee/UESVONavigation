@@ -119,9 +119,9 @@ public:
     bool ProjectPoint( const FVector & point, FNavLocation & out_location, const FVector & extent, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
     void BatchProjectPoints( TArray< FNavigationProjectionWork > & Workload, const FVector & Extent, FSharedConstNavQueryFilter Filter = nullptr, const UObject * Querier = nullptr ) const override;
     void BatchProjectPoints( TArray< FNavigationProjectionWork > & Workload, FSharedConstNavQueryFilter Filter = nullptr, const UObject * Querier = nullptr ) const override;
-    ENavigationQueryResult::Type CalcPathCost( const FVector & path_start, const FVector & path_end, float & out_path_cost, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
-    ENavigationQueryResult::Type CalcPathLength( const FVector & path_start, const FVector & path_end, float & out_path_length, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
-    ENavigationQueryResult::Type CalcPathLengthAndCost( const FVector & path_start, const FVector & path_end, float & out_path_length, float & out_path_cost, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
+    ENavigationQueryResult::Type CalcPathCost( const FVector & path_start, const FVector & path_end, FVector::FReal & out_path_cost, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
+    ENavigationQueryResult::Type CalcPathLength( const FVector & path_start, const FVector & path_end, FVector::FReal & out_path_length, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
+    ENavigationQueryResult::Type CalcPathLengthAndCost( const FVector & path_start, const FVector & path_end, FVector::FReal & out_path_length, FVector::FReal & out_path_cost, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
     bool DoesNodeContainLocation( NavNodeRef node_ref, const FVector & world_space_location ) const override;
     UPrimitiveComponent * ConstructRenderingComponent() override;
     void OnStreamingLevelAdded( ULevel * level, UWorld * world ) override;
