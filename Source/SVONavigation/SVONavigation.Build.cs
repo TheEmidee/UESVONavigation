@@ -8,7 +8,7 @@ public class SVONavigation : ModuleRules
     {
         PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
         bUseUnity = true;
-        bEnforceIWYU = true;
+        
 
         PublicIncludePaths.AddRange(
             new string[] {
