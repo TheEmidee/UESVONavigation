@@ -283,19 +283,19 @@ void ASVONavigationData::BatchProjectPoints( TArray< FNavigationProjectionWork >
     ensure( false );
 }
 
-ENavigationQueryResult::Type ASVONavigationData::CalcPathCost( const FVector & path_start, const FVector & path_end, float & out_path_cost, const FSharedConstNavQueryFilter filter, const UObject * querier ) const
+ENavigationQueryResult::Type ASVONavigationData::CalcPathCost( const FVector & path_start, const FVector & path_end, FVector::FReal & out_path_cost, const FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
-    float path_length = 0.f;
+    FVector::FReal path_length = 0.f;
     return CalcPathLengthAndCost( path_start, path_end, path_length, out_path_cost, filter, querier );
 }
 
-ENavigationQueryResult::Type ASVONavigationData::CalcPathLength( const FVector & path_start, const FVector & path_end, float & out_path_length, const FSharedConstNavQueryFilter filter, const UObject * querier ) const
+ENavigationQueryResult::Type ASVONavigationData::CalcPathLength( const FVector & path_start, const FVector & path_end, FVector::FReal & out_path_length, const FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
-    float path_cost = 0.f;
+    FVector::FReal path_cost = 0.f;
     return CalcPathLengthAndCost( path_start, path_end, out_path_length, path_cost, filter, querier );
 }
 
-ENavigationQueryResult::Type ASVONavigationData::CalcPathLengthAndCost( const FVector & path_start, const FVector & path_end, float & out_path_length, float & out_path_cost, FSharedConstNavQueryFilter filter, const UObject * querier ) const
+ENavigationQueryResult::Type ASVONavigationData::CalcPathLengthAndCost( const FVector & path_start, const FVector & path_end, FVector::FReal & out_path_length, FVector::FReal & out_path_cost, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
     ENavigationQueryResult::Type result = ENavigationQueryResult::Invalid;
 

@@ -1,6 +1,6 @@
 #include "PathFinding/SVONavigationPath.h"
 
-float FSVONavigationPath::GetCostFromNode( NavNodeRef path_node ) const
+FVector::FReal FSVONavigationPath::GetCostFromNode( NavNodeRef path_node ) const
 {
     const auto index = PathPoints.IndexOfByPredicate( [ &path_node ]( const FNavPathPoint & nav_path_point ) {
         return nav_path_point.NodeRef == path_node;
@@ -9,9 +9,9 @@ float FSVONavigationPath::GetCostFromNode( NavNodeRef path_node ) const
     return GetCostFromIndex( index );
 }
 
-float FSVONavigationPath::GetCostFromIndex( const int32 path_point_index ) const
+FVector::FReal FSVONavigationPath::GetCostFromIndex( const int32 path_point_index ) const
 {
-    if ( path_point_index < 0 || path_point_index >= PathPointCosts.Num()  )
+    if ( path_point_index < 0 || path_point_index >= PathPointCosts.Num() )
     {
         return 0.0f;
     }
