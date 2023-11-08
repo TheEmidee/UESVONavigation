@@ -41,6 +41,12 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
     RenderingComponent = MakeWeakObjectPtr( const_cast< USVOPathFindingRenderingComponent * >( Cast< USVOPathFindingRenderingComponent >( &component ) ) );
     PathFinderTest = RenderingComponent->GetPathFinderTest();
     DebugDrawOptions = PathFinderTest->GetDebugDrawOptions();
+    ActorOwner = component.GetOwner();
+
+    if ( !proxy_data.Stepper.IsValid() )
+    {
+        return;
+    }
 
     const auto add_text = [ texts = &Texts ]( const FSVOPathFinderDebugNodeCost & debug_node_cost ) {
         texts->Emplace( FText3d( FString::SanitizeFloat( debug_node_cost.Cost ), FVector( 0.0f, 0.0f, 50.0f ) + ( debug_node_cost.From.Location + debug_node_cost.To.Location ) / 2.0f, FLinearColor::White ) );
@@ -103,8 +109,6 @@ FSVOPathFindingSceneProxy::FSVOPathFindingSceneProxy( const UPrimitiveComponent 
             ArrowHeadLocations.Emplace( from, to );
         }
     }
-
-    ActorOwner = component.GetOwner();
 }
 
 SIZE_T FSVOPathFindingSceneProxy::GetTypeHash() const
