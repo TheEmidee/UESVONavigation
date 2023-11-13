@@ -41,6 +41,7 @@ namespace
         }
     }
 
+    // From https://www.wikiwand.com/en/Centripetal_Catmull%E2%80%93Rom_spline
     struct FSVOCatmullRomPath
     {
         explicit FSVOCatmullRomPath( FSVONavigationPath & path, const int subdivisions )
