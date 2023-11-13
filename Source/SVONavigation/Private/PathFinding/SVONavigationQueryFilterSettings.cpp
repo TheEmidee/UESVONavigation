@@ -5,6 +5,8 @@ FSVONavigationQueryFilterSettings::FSVONavigationQueryFilterSettings() :
     TraversalCostCalculator( nullptr ),
     HeuristicCalculator( nullptr ),
     HeuristicScale( 1.0f ),
-    bUseNodeSizeCompensation( true )
+    bUseNodeSizeCompensation( true ),
+    bSmoothPaths( true ),
+    SmoothingSubdivisions( 10 )
 {
 }
