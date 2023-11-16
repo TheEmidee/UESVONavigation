@@ -1,6 +1,7 @@
 #include "PathFinding/SVOPathFindingAlgorithmObservers.h"
 
 #include "PathFinding/SVOPathFindingAlgorithm.h"
+#include "Pathfinding/SVONavigationQueryFilterSettings.h"
 #include "SVOVolumeNavigationData.h"
 
 #include <NavigationPath.h>
@@ -16,14 +17,15 @@ namespace
 
         const auto path_points_size = node_addresses.Num() + 1;
 
-        path_points.Reset( path_points_size );
-
         ensureAlways( node_addresses[ 0 ].NodeAddress == params.StartNodeAddress );
-        path_points.Emplace( params.StartLocation );
-
-        path_point_costs.Reset( path_points_size );
 
         const auto & bounds_data = params.VolumeNavigationData;
+
+        path_points.Reset( path_points_size );
+        path_point_costs.Reset( path_points_size );
+
+        path_points.Emplace( params.StartLocation );
+        path_point_costs.Add( 0.0f );
 
         for ( auto index = 1; index < node_addresses.Num() - 1; index++ )
         {
@@ -35,7 +37,74 @@ namespace
         if ( add_end_location )
         {
             path_points.Emplace( params.EndLocation );
+            path_point_costs.Add( node_addresses.Last().Cost );
         }
+    }
+
+    // From https://www.wikiwand.com/en/Centripetal_Catmull%E2%80%93Rom_spline
+    struct FSVOCatmullRomPath
+    {
+        explicit FSVOCatmullRomPath( FSVONavigationPath & path, const int subdivisions )
+        {
+            auto old_points = path.GetPathPoints();
+            auto old_costs = path.GetPathPointCosts();
+
+            auto & path_points = path.GetPathPoints();
+            auto & path_point_costs = path.GetPathPointCosts();
+
+            old_points.Insert( 2 * ( old_points[ 0 ].Location - old_points[ 1 ].Location ), 0 );
+            old_points.Emplace( 2 * ( old_points.Last().Location - old_points.Last( 1 ).Location ) );
+
+            const auto new_size = ( old_points.Num() - 3 ) * subdivisions;
+            path_points.Reset( new_size );
+            path_point_costs.Reset( new_size );
+
+            for ( auto index = 1; index < old_points.Num() - 2; ++index )
+            {
+                for ( auto alpha = 0; alpha < subdivisions; ++alpha )
+                {
+                    path_points.Emplace(
+                        GetPoint(
+                            old_points[ index - 1 ],
+                            old_points[ index ],
+                            old_points[ index + 1 ],
+                            old_points[ index + 2 ],
+                            static_cast< float >( alpha ) / subdivisions ) );
+
+                    path_point_costs.Add( old_costs[ index - 1 ] / subdivisions );
+                }
+            }
+        }
+
+    private:
+        float GetT( float t, float alpha, const FVector & p0, const FVector & p1 ) const
+        {
+            const auto d = p1 - p0;
+            const auto a = d | d; // Dot product
+            const auto b = FMath::Pow( a, alpha * .5f );
+            return ( b + t );
+        }
+
+        FVector GetPoint( const FVector & p0, const FVector & p1, const FVector & p2, const FVector & p3, float t /* between 0 and 1 */, float alpha = .5f /* between 0 and 1 */ ) const
+        {
+            constexpr auto t0 = 0.0f;
+            const auto t1 = GetT( t0, alpha, p0, p1 );
+            const auto t2 = GetT( t1, alpha, p1, p2 );
+            const auto t3 = GetT( t2, alpha, p2, p3 );
+            t = FMath::Lerp( t1, t2, t );
+            const auto a1 = ( t1 - t ) / ( t1 - t0 ) * p0 + ( t - t0 ) / ( t1 - t0 ) * p1;
+            const auto a2 = ( t2 - t ) / ( t2 - t1 ) * p1 + ( t - t1 ) / ( t2 - t1 ) * p2;
+            const auto a3 = ( t3 - t ) / ( t3 - t2 ) * p2 + ( t - t2 ) / ( t3 - t2 ) * p3;
+            const auto b1 = ( t2 - t ) / ( t2 - t0 ) * a1 + ( t - t0 ) / ( t2 - t0 ) * a2;
+            const auto b2 = ( t3 - t ) / ( t3 - t1 ) * a2 + ( t - t1 ) / ( t3 - t1 ) * a3;
+            const auto c = ( t2 - t ) / ( t2 - t1 ) * b1 + ( t - t1 ) / ( t2 - t1 ) * b2;
+            return c;
+        }
+    };
+
+    void SmoothPath( FSVONavigationPath & path, const int subdivisions )
+    {
+        FSVOCatmullRomPath catmull_rom_path( path, subdivisions );
     }
 }
 
@@ -55,6 +124,11 @@ void FSVOPathFindingAStarObserver_BuildPath::OnSearchSuccess( const TArray< FSVO
     const auto & params = Stepper.GetParameters();
 
     BuildPath( NavigationPath, params, node_addresses, true );
+
+    if ( params.QueryFilterSettings.bSmoothPaths )
+    {
+        SmoothPath( NavigationPath, params.QueryFilterSettings.SmoothingSubdivisions );
+    }
 
     NavigationPath.MarkReady();
 }
@@ -111,6 +185,13 @@ void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnProcessNeighbor( const F
 void FSVOPathFindingAStarObserver_GenerateDebugInfos::OnSearchSuccess( const ::TArray< FSVOPathFinderNodeAddressWithCost > & node_addresses )
 {
     FillCurrentBestPath( node_addresses, true );
+
+    const auto & params = Stepper.GetParameters();
+
+    if ( params.QueryFilterSettings.bSmoothPaths )
+    {
+        SmoothPath( DebugInfos.CurrentBestPath, params.QueryFilterSettings.SmoothingSubdivisions );
+    }
 
     auto & nav_path_points = DebugInfos.CurrentBestPath.GetPathPoints();
     DebugInfos.PathSegmentCount = nav_path_points.Num();
