@@ -5,8 +5,7 @@
 #include "SVONavigationTypes.h"
 #include "SVOVersion.h"
 
-#include "Engine/OverlapResult.h"
-
+#include <Engine/OverlapResult.h>
 #include <ThirdParty/libmorton/morton.h>
 
 namespace
@@ -36,9 +35,9 @@ FVector FSVOVolumeNavigationData::GetNodePositionFromAddress( const FSVONodeAddr
         // Leaf nodes don't have the same NodeIndex as other nodes. They map to the index of the array of leaf nodes.
         // We must then re-construct the leaf node position based on that leaf node parent.
         const auto & leaf_nodes = SVOData.GetLeafNodes();
-        const auto & leaf_node = leaf_nodes.GetLeafNode( address.NodeIndex );        
+        const auto & leaf_node = leaf_nodes.GetLeafNode( address.NodeIndex );
         const auto & leaf_node_parent_node = SVOData.GetLayer( 1 ).GetNode( leaf_node.Parent.NodeIndex );
-        
+
         const auto child_index_offset = address.NodeIndex - leaf_node_parent_node.FirstChild.NodeIndex;
         const auto leaf_node_morton_code = FSVOHelpers::GetFirstChildMortonCode( leaf_node_parent_node.MortonCode ) + child_index_offset;
         const auto leaf_node_extent = leaf_nodes.GetLeafNodeExtent();
@@ -201,7 +200,7 @@ bool FSVOVolumeNavigationData::GetNodeAddressFromPosition( FSVONodeAddress & nod
             layer_index = layer_nodes[ node_index ].FirstChild.LayerIndex;
             nodeIndex = layer_nodes[ node_index ].FirstChild.NodeIndex;
 
-            break; //stop iterating this layer
+            break; // stop iterating this layer
         }
     }
 
@@ -298,7 +297,7 @@ void FSVOVolumeNavigationData::GetNodeNeighbors( TArray< FSVONodeAddress > & nei
                 /*
                 Sub node morton code ordering for the face pointing to neighbor[0], which is (1,0,0)
                 Use the debug draw options of the navigation data in the scene to show all the sub nodes
-                 
+
                 Z
                 |
                 |   36 38 52 54
@@ -475,7 +474,7 @@ bool FSVOVolumeNavigationData::IsPositionOccluded( const FVector & position, con
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_IsPositionOccluded );
     TArray< FOverlapResult > overlap_results;
-    const auto result = Settings.World->OverlapMultiByChannel(  
+    const auto result = Settings.World->OverlapMultiByChannel(
         overlap_results,
         position,
         FQuat::Identity,
@@ -499,12 +498,12 @@ void FSVOVolumeNavigationData::FirstPassRasterization()
     {
         const auto & layer = SVOData.GetLayer( 1 );
         const auto layer_max_node_count = layer.GetMaxNodeCount();
-        const auto layer_node_extent = layer.GetNodeExtent();        
+        const auto layer_node_extent = layer.GetNodeExtent();
 
         for ( MortonCode node_index = 0; node_index < layer_max_node_count; ++node_index )
         {
             const auto position = GetNodePositionFromLayerAndMortonCode( 1, node_index );
-            
+
             if ( IsPositionOccluded( position, layer_node_extent ) )
             {
                 SVOData.AddBlockedNode( 0, node_index );
@@ -897,7 +896,7 @@ void FSVOVolumeNavigationData::GetFreeNodesFromNodeAddress( const FSVONodeAddres
     }
 }
 
-void FSVOVolumeNavigationData::BuildParentLinkForLeafNodes( const TMap<LeafIndex, MortonCode> & leaf_index_to_parent_morton_code_map )
+void FSVOVolumeNavigationData::BuildParentLinkForLeafNodes( const TMap< LeafIndex, MortonCode > & leaf_index_to_parent_morton_code_map )
 {
     for ( const auto & key_pair : leaf_index_to_parent_morton_code_map )
     {
