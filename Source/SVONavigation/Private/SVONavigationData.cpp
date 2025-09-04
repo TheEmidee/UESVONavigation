@@ -223,7 +223,7 @@ FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter /*fi
 
     do
     {
-        const auto index = navigation_bounds_indices.Pop( false );
+        const auto index = navigation_bounds_indices.Pop( EAllowShrinking::No );
         const auto & volume_navigation_data = VolumeNavigationData[ index ];
 
         const auto random_point = volume_navigation_data.GetRandomPoint();
@@ -625,7 +625,7 @@ void ASVONavigationData::SerializeSVOData( FArchive & archive, ESVOVersion versi
             for ( const auto & navigable_bounds : level_navigable_bounds )
             {
                 const auto index = VolumeNavigationData.IndexOfByPredicate( [ &navigable_bounds ]( const auto & navigation_data ) {
-                    return !navigation_data.IsInNavigationDataChunk() && /*!*/( navigation_data.GetVolumeBounds() == navigable_bounds );
+                    return !navigation_data.IsInNavigationDataChunk() && /*!*/ ( navigation_data.GetVolumeBounds() == navigable_bounds );
                 } );
 
                 if ( index != INDEX_NONE )
@@ -750,7 +750,7 @@ void ASVONavigationData::InvalidateAffectedPaths( const TArray< FBox > & updated
             FNavPathSharedPtr shared_path = weak_path_ptr->Pin();
             if ( !weak_path_ptr->IsValid() )
             {
-                ActivePaths.RemoveAtSwap( path_index, 1, /*bAllowShrinking=*/false );
+                ActivePaths.RemoveAtSwap( path_index, 1, EAllowShrinking::No );
             }
             else
             {
@@ -768,7 +768,7 @@ void ASVONavigationData::InvalidateAffectedPaths( const TArray< FBox > & updated
                          } ) != nullptr )
                     {
                         shared_path->Invalidate();
-                        ActivePaths.RemoveAtSwap( path_index, 1, /*bAllowShrinking=*/false );
+                        ActivePaths.RemoveAtSwap( path_index, 1, EAllowShrinking::No );
 
                         break;
                     }

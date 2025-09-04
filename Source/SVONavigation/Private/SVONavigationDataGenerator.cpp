@@ -77,7 +77,7 @@ bool FSVONavigationDataGenerator::RebuildAll()
 
     for ( const auto & registered_navigation_bounds : RegisteredNavigationBounds )
     {
-        dirty_areas.Emplace( FNavigationDirtyArea( registered_navigation_bounds, 0 ) );
+        dirty_areas.Emplace( FNavigationDirtyArea( registered_navigation_bounds, ENavigationDirtyFlag::None ) );
     }
 
     RebuildDirtyAreas( dirty_areas );
@@ -309,7 +309,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
         RunningBoundsDataGenerationElements.Add( running_element );
 
-        PendingBoundsDataGenerationElements.RemoveAt( element_index, 1, /*bAllowShrinking=*/false );
+        PendingBoundsDataGenerationElements.RemoveAt( element_index, 1, EAllowShrinking::No );
         processed_tasks_count++;
     }
 
@@ -345,7 +345,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
         delete element.AsyncTask;
         element.AsyncTask = nullptr;
-        RunningBoundsDataGenerationElements.RemoveAtSwap( index, 1, false );
+        RunningBoundsDataGenerationElements.RemoveAtSwap( index, 1, EAllowShrinking::No );
     }
 
     const bool has_tasks_at_end = GetNumRemaningBuildTasks() > 0;
