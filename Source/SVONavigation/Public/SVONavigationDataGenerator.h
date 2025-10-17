@@ -133,6 +133,9 @@ public:
     int32 GetNumRemaningBuildTasks() const override;
     int32 GetNumRunningBuildTasks() const override;
 
+    /** Rebuilds navigation data for the specified bounds, bypassing the internal RegisteredNavigationBounds filter. */
+    void RebuildBounds(const TArray<FBox>& BoundsToRebuild);
+
 private:
     void GetSeedLocations( TArray< FVector2D > & seed_locations, UWorld & world ) const;
     void SortPendingBounds();

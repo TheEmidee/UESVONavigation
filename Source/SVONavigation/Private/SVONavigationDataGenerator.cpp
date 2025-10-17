@@ -77,7 +77,7 @@ bool FSVONavigationDataGenerator::RebuildAll()
 
     for ( const auto & registered_navigation_bounds : RegisteredNavigationBounds )
     {
-        dirty_areas.Emplace( FNavigationDirtyArea( registered_navigation_bounds, 0 ) );
+        dirty_areas.Emplace( FNavigationDirtyArea( registered_navigation_bounds, ENavigationDirtyFlag::All ) );
     }
 
     RebuildDirtyAreas( dirty_areas );
@@ -206,7 +206,7 @@ void FSVONavigationDataGenerator::GetSeedLocations( TArray< FVector2D > & seed_l
     {
         if ( const auto * player_controller = player_iterator->Get() )
         {
-            if ( const auto * pawn = player_controller->GetPawn() )
+            if ( const APawn * pawn = player_controller->GetPawn() )
             {
                 const FVector2D seed_location( pawn->GetActorLocation() );
                 seed_locations.Add( seed_location );
@@ -309,7 +309,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
         RunningBoundsDataGenerationElements.Add( running_element );
 
-        PendingBoundsDataGenerationElements.RemoveAt( element_index, 1, /*bAllowShrinking=*/false );
+        PendingBoundsDataGenerationElements.RemoveAt( element_index, 1, EAllowShrinking::No );
         processed_tasks_count++;
     }
 
@@ -345,7 +345,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
         delete element.AsyncTask;
         element.AsyncTask = nullptr;
-        RunningBoundsDataGenerationElements.RemoveAtSwap( index, 1, false );
+        RunningBoundsDataGenerationElements.RemoveAtSwap( index, 1, EAllowShrinking::No);
     }
 
     const bool has_tasks_at_end = GetNumRemaningBuildTasks() > 0;
@@ -364,4 +364,29 @@ TSharedRef< FSVOVolumeNavigationDataGenerator > FSVONavigationDataGenerator::Cre
 
     TSharedRef< FSVOVolumeNavigationDataGenerator > box_navigation_data_generator = MakeShareable( new FSVOVolumeNavigationDataGenerator( *this, box ) );
     return box_navigation_data_generator;
+}
+
+void FSVONavigationDataGenerator::RebuildBounds(const TArray<FBox>& BoundsToRebuild)
+{
+    NavigationData.UpdateNavVersion();
+    
+    for (const FBox& BuildBounds : BoundsToRebuild)
+    {
+        // Don't add another pending generation if one is already there for these bounds.
+        if (PendingBoundsDataGenerationElements.FindByPredicate([&BuildBounds](const FPendingBoundsDataGenerationElement& PendingElement) {
+            return PendingElement.VolumeBounds == BuildBounds;
+        }) == nullptr)
+        {
+            FPendingBoundsDataGenerationElement PendingBoxElement;
+            PendingBoxElement.VolumeBounds = BuildBounds;
+            PendingBoundsDataGenerationElements.Emplace(PendingBoxElement);
+
+            NavigationData.RemoveDataInBounds(BuildBounds);
+        }
+    }
+    
+    if (PendingBoundsDataGenerationElements.Num() > 0)
+    {
+        SortPendingBounds();
+    }
 }
