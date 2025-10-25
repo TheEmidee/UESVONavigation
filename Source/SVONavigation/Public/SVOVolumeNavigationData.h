@@ -49,6 +49,8 @@ public:
     float GetLayerInverseRatio( LayerIndex layer_index ) const;
     float GetNodeExtentFromNodeAddress( FSVONodeAddress node_address ) const;
     TOptional< FNavLocation > GetRandomPoint() const;
+    bool IsNodeAddressNavigable(const FSVONodeAddress& Address) const;
+    void FindNodesInSphere(const FVector& Center, float Radius, TArray<FSVONodeAddress>& OutNodes) const;
 
     void GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings );
     void Serialize( FArchive & archive, const ESVOVersion version );
@@ -67,6 +69,7 @@ private:
     void GetLeafNeighbors( TArray< FSVONodeAddress > & neighbors, const FSVONodeAddress & leaf_address ) const;
     void GetFreeNodesFromNodeAddress( FSVONodeAddress node_address, TArray< FSVONodeAddress > & free_nodes ) const;
     void BuildParentLinkForLeafNodes( const TMap< LeafIndex, MortonCode > & leaf_index_to_parent_morton_code_map );
+    void FindNodesInSphereRecursive(const FVector& Center, float RadiusSq, const FSVONodeAddress& CurrentNodeAddress, TArray<FSVONodeAddress>& OutNodes) const;
 
     FSVOVolumeNavigationDataGenerationSettings Settings;
     FBox VolumeBounds;

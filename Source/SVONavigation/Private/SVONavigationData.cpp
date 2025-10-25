@@ -265,21 +265,151 @@ bool ASVONavigationData::FindMoveAlongSurface( const FNavLocation & start_locati
 
 bool ASVONavigationData::ProjectPoint( const FVector & point, FNavLocation & out_location, const FVector & extent, FSharedConstNavQueryFilter filter, const UObject * querier ) const
 {
-    // :TODO:
-    ensure( false );
+    if (VolumeNavigationData.IsEmpty())
+    {
+        return false;
+    }
+
+    // 1. Find the correct volume to search in.
+    const FSVOVolumeNavigationData* VolumeToSearch = nullptr;
+    for (const auto& Volume : VolumeNavigationData)
+    {
+        if (Volume.GetData().GetNavigationBounds().IsInside(point))
+        {
+            VolumeToSearch = &Volume;
+            break;
+        }
+    }
+
+    // Fallback: If the point is outside all volumes, find the closest volume to search within.
+    if (!VolumeToSearch)
+    {
+        float MinDistSq = -1.0f;
+        for (const auto& Volume : VolumeNavigationData)
+        {
+            const FBox& BoundingBox = Volume.GetData().GetNavigationBounds();
+            if (!BoundingBox.IsValid)
+                continue;
+
+            const float DistSq = BoundingBox.ComputeSquaredDistanceToPoint(point);
+            if (MinDistSq < 0 || DistSq < MinDistSq)
+            {
+                MinDistSq = DistSq;
+                VolumeToSearch = &Volume;
+            }
+        }
+    }
+
+    if ( !VolumeToSearch )
+    {
+        return false;
+    }
+
+    // 2. Clamp the search point to be within the volume's bounds.
+    FVector StartPoint = point;
+    const FBox& VolumeBounds = VolumeToSearch->GetData().GetNavigationBounds();
+    if (!VolumeBounds.IsInside(StartPoint))
+    {
+        StartPoint = VolumeBounds.GetClosestPointTo(StartPoint);
+    }
+
+    // 3. Attempt to find the initial node and check if it's already navigable.
+    FSVONodeAddress InitialAddress;
+    const bool bInitialNodeFound = VolumeToSearch->GetNodeAddressFromPosition(InitialAddress, StartPoint);
+    if (bInitialNodeFound && VolumeToSearch->IsNodeAddressNavigable(InitialAddress))
+    {
+        out_location.Location = StartPoint;
+        out_location.NodeRef = InitialAddress.GetNavNodeRef();
+        return true;
+    }
+
+    // 4. BFS Initialization: The start point is either in an occluded node or couldn't be resolved.
+    //    We must perform a search for the nearest navigable one.
+    TQueue<FSVONodeAddress> OpenList;
+    TSet<FSVONodeAddress> VisitedList;
+    const FBox SearchBounds = FBox::BuildAABB(StartPoint, extent);
+    
+    if (bInitialNodeFound)
+    {
+        // Start point is in an occluded node, begin search from there.
+        OpenList.Enqueue(InitialAddress);
+        VisitedList.Add(InitialAddress);
+    }
+    else
+    {
+        // The start point could not be resolved to any node.
+        // Seed the search with the nearest nodes to the start point instead of failing.
+        
+        TArray<FSVONodeAddress> SeedNodes;
+        // A small radius, just enough to find the immediate surrounding nodes.
+        const float SeedRadius = VolumeToSearch->GetData().GetLeafNodes().GetLeafNodeExtent() * 1.5f;
+        VolumeToSearch->FindNodesInSphere(StartPoint, SeedRadius, SeedNodes);
+        
+        if (SeedNodes.IsEmpty())
+        {
+             return false;
+        }
+
+        for (const FSVONodeAddress& SeedNode : SeedNodes)
+        {
+            if (!VisitedList.Contains(SeedNode))
+            {
+                 OpenList.Enqueue(SeedNode);
+                 VisitedList.Add(SeedNode);
+            }
+        }
+    }
+    
+    // 5. BFS Loop
+    FSVONodeAddress CurrentAddress;
+    while ( OpenList.Dequeue(CurrentAddress))
+    {
+        TArray<FSVONodeAddress> Neighbors;
+        VolumeToSearch->GetNodeNeighbors(Neighbors, CurrentAddress);
+
+        for (const FSVONodeAddress& NeighborAddress : Neighbors)
+        {
+            if (!VisitedList.Contains( NeighborAddress))
+            {
+                VisitedList.Add(NeighborAddress);
+
+                const FVector NeighborLocation = VolumeToSearch->GetNodePositionFromAddress(NeighborAddress, true);
+
+                if (!SearchBounds.IsInside(NeighborLocation))
+                {
+                    continue;
+                }
+
+                if (VolumeToSearch->IsNodeAddressNavigable(NeighborAddress))
+                {
+                    out_location.Location = NeighborLocation;
+                    out_location.NodeRef = NeighborAddress.GetNavNodeRef();
+                    return true;
+                }
+
+                OpenList.Enqueue(NeighborAddress);
+            }
+        }
+    }
+
+    // 6. Failure
     return false;
 }
 
 void ASVONavigationData::BatchProjectPoints( TArray< FNavigationProjectionWork > & Workload, const FVector & Extent, FSharedConstNavQueryFilter Filter, const UObject * Querier ) const
 {
-    // :TODO:
-    ensure( false );
+    for (FNavigationProjectionWork& WorkItem : Workload)
+    {
+        WorkItem.bResult = ProjectPoint(WorkItem.Point, WorkItem.OutLocation, Extent, Filter, Querier);
+    }
 }
 
 void ASVONavigationData::BatchProjectPoints( TArray< FNavigationProjectionWork > & Workload, FSharedConstNavQueryFilter Filter, const UObject * Querier ) const
 {
-    // :TODO:
-    ensure( false );
+    for (FNavigationProjectionWork& WorkItem : Workload)
+    {
+        WorkItem.bResult = ProjectPoint(WorkItem.Point, WorkItem.OutLocation, FVector::ZeroVector, Filter, Querier);
+    }
 }
 
 ENavigationQueryResult::Type ASVONavigationData::CalcPathCost( const FVector & path_start, const FVector & path_end, FVector::FReal & out_path_cost, const FSharedConstNavQueryFilter filter, const UObject * querier ) const
@@ -326,8 +456,30 @@ ENavigationQueryResult::Type ASVONavigationData::CalcPathLengthAndCost( const FV
 
 bool ASVONavigationData::DoesNodeContainLocation( NavNodeRef node_ref, const FVector & world_space_location ) const
 {
-    // :TODO:
-    ensure( false );
+    const FSVONodeAddress Address(node_ref);
+    if (!Address.IsValid())
+    {
+        return false;
+    }
+
+    for (const auto& Volume : VolumeNavigationData)
+    {
+        // A simple check to see if the location is even in this volume. This isn't perfect
+        // as a node from one volume could technically contain a point just inside another,
+        // but it's a reasonable optimization.
+        if (Volume.GetData().GetNavigationBounds().IsInside(world_space_location))
+        {
+            const FVector NodeLocation = Volume.GetNodePositionFromAddress(Address, true);
+            const float NodeExtent = Volume.GetNodeExtentFromNodeAddress(Address);
+            const FBox NodeBounds = FBox::BuildAABB(NodeLocation, FVector(NodeExtent));
+
+            if (NodeBounds.IsInsideOrOn(world_space_location))
+            {
+                return true;
+            }
+        }
+    }
+
     return false;
 }
 

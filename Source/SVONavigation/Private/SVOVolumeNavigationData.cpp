@@ -388,6 +388,44 @@ TOptional< FNavLocation > FSVOVolumeNavigationData::GetRandomPoint() const
     return FNavLocation( random_point_in_node, random_node.GetNavNodeRef() );
 }
 
+bool FSVOVolumeNavigationData::IsNodeAddressNavigable(const FSVONodeAddress& Address) const
+{
+    if (!Address.IsValid())
+    {
+        return false;
+    }
+
+    const FSVONode& Node = GetNodeFromAddress(Address);
+
+    if (Address.LayerIndex > 0)
+    {
+        // A non-leaf node is navigable if it represents a large open space (has no children).
+        return !Node.HasChildren();
+    }
+    
+    // This is a leaf-level node (Layer 0)
+    if (!Node.HasChildren())
+    {
+        // This is a completely open leaf node.
+        return true;
+    }
+
+    // This leaf node has sub-nodes. We must check the specific sub-node.
+    const FSVOLeafNode& Leaf = SVOData.GetLeafNodes().GetLeafNode(Node.FirstChild.NodeIndex);
+    return !Leaf.IsSubNodeOccluded(Address.SubNodeIndex);
+}
+
+void FSVOVolumeNavigationData::FindNodesInSphere(const FVector& Center, float Radius, TArray<FSVONodeAddress>& OutNodes) const
+{
+    if (!SVOData.IsValid())
+    {
+        return;
+    }
+    
+    const FSVONodeAddress RootNodeAddress(SVOData.GetLayerCount() - 1, 0, 0);
+    FindNodesInSphereRecursive(Center, FMath::Square(Radius), RootNodeAddress, OutNodes);
+}
+
 void FSVOVolumeNavigationData::GenerateNavigationData( const FBox & volume_bounds, const FSVOVolumeNavigationDataGenerationSettings & generation_settings )
 {
     QUICK_SCOPE_CYCLE_COUNTER( STAT_SVOBoundsNavigationData_GenerateNavigationData );
@@ -908,5 +946,50 @@ void FSVOVolumeNavigationData::BuildParentLinkForLeafNodes( const TMap<LeafIndex
         check( node_index != INDEX_NONE );
 
         leaf_node.Parent.NodeIndex = node_index;
+    }
+}
+
+void FSVOVolumeNavigationData::FindNodesInSphereRecursive(const FVector& Center, float RadiusSq, const FSVONodeAddress& CurrentNodeAddress, TArray<FSVONodeAddress>& OutNodes) const
+{
+    const FVector NodeCenter = GetNodePositionFromAddress(CurrentNodeAddress, false);
+    const float NodeExtent = SVOData.GetLayer(CurrentNodeAddress.LayerIndex).GetNodeExtent();
+    const FBox NodeBounds = FBox::BuildAABB(NodeCenter, FVector(NodeExtent));
+
+    if (!FMath::SphereAABBIntersection(FSphere(Center, FMath::Sqrt(RadiusSq)), NodeBounds))
+    {
+        return;
+    }
+
+    const FSVONode& Node = GetNodeFromAddress(CurrentNodeAddress);
+
+    if (!Node.HasChildren())
+    {
+        OutNodes.AddUnique(CurrentNodeAddress);
+        return;
+    }
+
+    if (CurrentNodeAddress.LayerIndex > 0)
+    {
+        const FSVONodeAddress& FirstChildAddress = Node.FirstChild;
+        for (uint32 i = 0; i < 8; ++i)
+        {
+            FSVONodeAddress ChildAddress(FirstChildAddress.LayerIndex, FirstChildAddress.NodeIndex + i, 0);
+            FindNodesInSphereRecursive(Center, RadiusSq, ChildAddress, OutNodes);
+        }
+    }
+    else // At Layer 0 with sub-nodes
+    {
+        const float SubNodeExtent = SVOData.GetLeafNodes().GetLeafSubNodeExtent();
+        for (SubNodeIndex i = 0; i < 64; ++i)
+        {
+            FSVONodeAddress SubNodeAddress(0, CurrentNodeAddress.NodeIndex, i);
+            const FVector SubNodeCenter = GetNodePositionFromAddress(SubNodeAddress, true);
+            const FBox SubNodeBounds = FBox::BuildAABB(SubNodeCenter, FVector(SubNodeExtent));
+            
+            if (FMath::SphereAABBIntersection(FSphere(Center, FMath::Sqrt(RadiusSq)), SubNodeBounds))
+            {
+                OutNodes.AddUnique(SubNodeAddress);
+            }
+        }
     }
 }

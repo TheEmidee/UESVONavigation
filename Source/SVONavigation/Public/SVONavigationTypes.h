@@ -50,11 +50,12 @@ struct FSVONodeAddress
     {
     }
 
-    explicit FSVONodeAddress( const int32 index ) :
-        LayerIndex( index << 28 ),
-        NodeIndex( index << 6 ),
-        SubNodeIndex( index )
+    explicit FSVONodeAddress( const NavNodeRef NavRef )
     {
+        const uint32 Ref32 = static_cast<uint32>(NavRef);
+        LayerIndex = (Ref32 >> 28) & 0xF;
+        NodeIndex = (Ref32 >> 6) & 0x3FFFFF;
+        SubNodeIndex = Ref32 & 0x3F;
     }
 
     FSVONodeAddress( const LayerIndex layer_index, const MortonCode node_index, const SubNodeIndex sub_node_index = 0 ) :
