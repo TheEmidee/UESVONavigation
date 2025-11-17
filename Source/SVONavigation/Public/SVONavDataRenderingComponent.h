@@ -1,12 +1,12 @@
 #pragma once
 
-#include "SVONavigationTypes.h"
-
 #include <Components/PrimitiveComponent.h>
 #include <CoreMinimal.h>
 #include <DebugRenderSceneProxy.h>
 #include <Math/GenericOctree.h>
 
+#include "SVOVolumeNavigationData.h"
+#include "Common/SVONodeTypes.h"
 #include "SVONavDataRenderingComponent.generated.h"
 
 class ASVONavigationData;

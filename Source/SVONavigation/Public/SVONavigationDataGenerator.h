@@ -1,7 +1,6 @@
 #pragma once
 
 #include "SVONavigationData.h"
-#include "SVONavigationTypes.h"
 
 #include <AI/NavDataGenerator.h>
 

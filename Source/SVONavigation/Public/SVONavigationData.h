@@ -1,12 +1,12 @@
 #pragma once
 
-#include "SVONavigationTypes.h"
 #include "SVOVolumeNavigationData.h"
 #include "SVONavigationDataDetails.h"
 
 #include <CoreMinimal.h>
 #include <NavigationData.h>
 
+#include "Common/SVONavigationTypes.h"
 #include "SVONavigationData.generated.h"
 
 class USVONavigationDataChunk;

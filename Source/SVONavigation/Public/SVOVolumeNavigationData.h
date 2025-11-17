@@ -1,8 +1,8 @@
 #pragma once
 
-#include "SVONavigationTypes.h"
-
 #include <Templates/SubclassOf.h>
+
+#include "Common/SVONavigationTypes.h"
 
 class UNavigationQueryFilter;
 class USVONavigationQueryFilter;
