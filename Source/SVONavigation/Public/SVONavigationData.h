@@ -1,94 +1,17 @@
 #pragma once
 
-#include "SVONavigationTypes.h"
 #include "SVOVolumeNavigationData.h"
+#include "SVONavigationDataDetails.h"
 
 #include <CoreMinimal.h>
 #include <NavigationData.h>
 
+#include "Common/SVONavigationTypes.h"
 #include "SVONavigationData.generated.h"
 
 class USVONavigationDataChunk;
 class USVONavDataRenderingComponent;
 struct FSVONavigationBounds;
-
-USTRUCT()
-struct SVONAVIGATION_API FSVOVolumeNavigationDataDebugInfos
-{
-    GENERATED_USTRUCT_BODY()
-
-    FSVOVolumeNavigationDataDebugInfos();
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawBounds : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawNodeCoords : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawMortonCoords : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawNodeAddresses : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawNodeLocation : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawLayers : 1;
-
-    UPROPERTY( EditInstanceOnly, meta = ( EditCondition = "bDebugDrawLayers", ClampMin = "0", UIMin = "0" ) )
-    uint8 LayerIndexToDraw;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawSubNodes : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawOccludedVoxels : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawFreeVoxels : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawNeighborLinks : 1;
-
-    UPROPERTY( EditInstanceOnly )
-    FString NeighborLinksForNodeAddress;
-
-    UPROPERTY( EditInstanceOnly )
-    uint8 bDebugDrawActivePaths : 1;
-};
-
-USTRUCT()
-struct SVONAVIGATION_API FSVONavigationDataInfos
-{
-    GENERATED_USTRUCT_BODY()
-
-    FSVONavigationDataInfos() :
-        VolumeLocation( ForceInit ),
-        bHasNavigationData( false ),
-        LayerCount( INDEX_NONE )
-    {
-    }
-
-    UPROPERTY( VisibleInstanceOnly )
-    FVector VolumeLocation;
-
-    UPROPERTY( VisibleInstanceOnly )
-    uint8 bHasNavigationData : 1;
-
-    UPROPERTY( VisibleInstanceOnly )
-    int LayerCount;
-};
-
-USTRUCT()
-struct SVONAVIGATION_API FSVODataInfos
-{
-    GENERATED_USTRUCT_BODY()
-
-    UPROPERTY( EditInstanceOnly )
-    TArray< FSVONavigationDataInfos > Infos;
-};
 
 UCLASS( config = Engine, defaultconfig, hidecategories = ( Input, Physics, Collisions, Lighting, Rendering, Tags, "Utilities|Transformation", Actor, Layers, Replication ), notplaceable )
 class SVONAVIGATION_API ASVONavigationData final : public ANavigationData
@@ -124,6 +47,7 @@ public:
     ENavigationQueryResult::Type CalcPathLengthAndCost( const FVector & path_start, const FVector & path_end, FVector::FReal & out_path_length, FVector::FReal & out_path_cost, FSharedConstNavQueryFilter filter = nullptr, const UObject * querier = nullptr ) const override;
     bool DoesNodeContainLocation( NavNodeRef node_ref, const FVector & world_space_location ) const override;
     UPrimitiveComponent * ConstructRenderingComponent() override;
+
     void OnStreamingLevelAdded( ULevel * level, UWorld * world ) override;
     void OnStreamingLevelRemoved( ULevel * level, UWorld * world ) override;
     void OnNavAreaChanged() override;

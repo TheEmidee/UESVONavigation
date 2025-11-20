@@ -1,7 +1,7 @@
 #pragma once
 
 #include "SVONavigationPath.h"
-#include "SVONavigationTypes.h"
+#include "Common/SVONodeTypes.h"
 
 #include "SVOPathFindingAlgorithmTypes.generated.h"
 

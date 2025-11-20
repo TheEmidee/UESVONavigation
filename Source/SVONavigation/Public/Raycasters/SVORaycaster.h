@@ -1,9 +1,8 @@
 #pragma once
 
-#include "SVONavigationTypes.h"
-
 #include <CoreMinimal.h>
 
+#include "Common/SVONodeTypes.h"
 #include "SVORayCaster.generated.h"
 
 struct FSVORaycasterTraversedNode

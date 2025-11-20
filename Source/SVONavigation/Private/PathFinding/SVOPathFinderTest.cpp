@@ -13,6 +13,11 @@
 #include <Engine/Selection.h>
 #endif
 
+ASVOPathFinderTest* USVOPathFindingRenderingComponent::GetPathFinderTest() const
+{
+    return Cast<ASVOPathFinderTest>(GetOwner());
+}
+
 void FSVOPathFindingSceneProxyData::GatherData( const ASVOPathFinderTest & path_finder_test )
 {
     StartLocation = path_finder_test.GetStartLocation();

@@ -97,11 +97,6 @@ public:
     FBoxSphereBounds CalcBounds( const FTransform & local_to_world ) const override;
 };
 
-FORCEINLINE ASVOPathFinderTest * USVOPathFindingRenderingComponent::GetPathFinderTest() const
-{
-    return Cast< ASVOPathFinderTest >( GetOwner() );
-}
-
 UCLASS( hidecategories = ( Object, Actor, Input, Rendering, Replication, LOD, Cooking, Physics, Collision, Lighting, VirtualTexture, HLOD ), showcategories = ( "Input|MouseInput", "Input|TouchInput" ), Blueprintable )
 class SVONAVIGATION_API ASVOPathFinderTest final : public AActor
 {
