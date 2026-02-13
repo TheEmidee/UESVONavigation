@@ -202,7 +202,7 @@ void ASVONavigationData::InvalidateAffectedPaths( const TArray< FBox > & updated
             FNavPathSharedPtr shared_path = weak_path_ptr->Pin();
             if ( !weak_path_ptr->IsValid() )
             {
-                ActivePaths.RemoveAtSwap( path_index, 1, EAllowShrinking::No );
+                ActivePaths.RemoveAtSwap( path_index, 1, false );
             }
             else
             {
@@ -220,7 +220,7 @@ void ASVONavigationData::InvalidateAffectedPaths( const TArray< FBox > & updated
                          } ) != nullptr )
                     {
                         shared_path->Invalidate();
-                        ActivePaths.RemoveAtSwap( path_index, 1, EAllowShrinking::No );
+                        ActivePaths.RemoveAtSwap( path_index, 1, false );
 
                         break;
                     }

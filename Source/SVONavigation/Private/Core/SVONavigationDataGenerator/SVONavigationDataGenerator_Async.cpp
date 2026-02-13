@@ -86,7 +86,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
         RunningBoundsDataGenerationElements.Add( running_element );
 
-        PendingBoundsDataGenerationElements.RemoveAt( element_index, 1, EAllowShrinking::No );
+        PendingBoundsDataGenerationElements.RemoveAt( element_index, 1, false );
         processed_tasks_count++;
     }
 
@@ -122,7 +122,7 @@ TArray< FBox > FSVONavigationDataGenerator::ProcessAsyncTasks( const int32 task_
 
         delete element.AsyncTask;
         element.AsyncTask = nullptr;
-        RunningBoundsDataGenerationElements.RemoveAtSwap( index, 1, EAllowShrinking::No);
+        RunningBoundsDataGenerationElements.RemoveAtSwap( index, 1, false);
     }
 
     const bool has_tasks_at_end = GetNumRemaningBuildTasks() > 0;

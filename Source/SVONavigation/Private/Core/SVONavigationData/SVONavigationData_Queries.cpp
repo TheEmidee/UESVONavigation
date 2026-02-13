@@ -33,7 +33,7 @@ FNavLocation ASVONavigationData::GetRandomPoint( FSharedConstNavQueryFilter /*fi
 
     do
     {
-        const auto index = navigation_bounds_indices.Pop( EAllowShrinking::No );
+        const auto index = navigation_bounds_indices.Pop( false );
         const auto & volume_navigation_data = VolumeNavigationData[ index ];
 
         const auto random_point = volume_navigation_data.GetRandomPoint();
